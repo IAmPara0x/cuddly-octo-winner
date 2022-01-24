@@ -1,6 +1,10 @@
 module Main where
 
-import Lib
+import System.IO
+import Task
 
 main :: IO ()
-main = yuno
+main = do
+        fileH <- openFile "stuff/test.md" WriteMode
+        hPrint fileH x
+        hClose fileH
