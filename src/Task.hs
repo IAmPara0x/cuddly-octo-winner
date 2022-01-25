@@ -1,27 +1,32 @@
-module Task ( x
-            -- , Task
+module Task ( Heading(..)
+            , TaskTime(..)
+            , Desc(..)
+            , Tags(..)
+            , Task(..)
             ) where
 
-import Time
+import Data.Maybe ( fromJust
+                  , isNothing
+                  )
+import Time (Time)
 
 
+elemSep :: String
+elemSep = "<br><br>\n"
 
 -- |
 -- Name of the task. This is the heading in the markdown with prefix of "###"
 --
 
 
-data Name = Name { name :: String
-                 , nameString :: String
-                 }
+data Heading = Heading { hName :: String
+                       , hTime :: TaskTime
+                       }
 
-instance Show Name where
-  show (Name _ str) = str
-
-newName :: String -> Name
-newName = Name <*> (prefix ++)
-  where
-    prefix = "### "
+instance Show Heading where
+  show (Heading name time) = concat ["#### Task: ", name, " ",
+                                     show time, "\n\n", elemSep
+                                    ]
 
 
 -- |
@@ -31,23 +36,18 @@ newName = Name <*> (prefix ++)
 -- The closing brace is followed by \n\n characters.
 
 
-data TaskTime = TaskTime { start :: Time
-                         , end :: Maybe Time
-                         , tasktimeString :: String
+data TaskTime = TaskTime { startT :: Time
+                         , endT :: Maybe Time
                          }
 
 instance Show TaskTime where
-  show (TaskTime _ _ str) = str
-
-newTaskTime :: Time -> Maybe Time -> TaskTime
-newTaskTime start end = case end of
-                          Nothing -> TaskTime start end $ str (show start)
-                          (Just t) -> TaskTime start end $ str (show start <> " - " <> show t)
-  where
-    prefix = "  ("
-    suffix = ")\n\n"
-    str    = \x -> concat [prefix, x , suffix]
-
+  show (TaskTime start end)
+    | isNothing end = str (show start)
+    | otherwise     = str (show start <> " - " <> show (fromJust end))
+    where
+      prefix = "  ("
+      suffix = ")"
+      str    = \x -> concat [prefix, x , suffix]
 
 
 -- |
@@ -56,56 +56,39 @@ newTaskTime start end = case end of
 --
 
 
-data Tags = Tags { tags :: [String]
-                 , tagsString :: String
-                 }
+newtype Tags = Tags { tags :: [String] }
 
 instance Show Tags where
-  show (Tags _ str) = str
+  show (Tags (t:ts)) = concat [prefix, tagsStr, suffix]
+    where
+      prefix = "\t`Tags: "
+      suffix = "`"
+      tagsStr = t ++ foldMap (", " <>) ts
 
-newTags :: [String] -> Tags
-newTags ts = Tags ts $ concat [prefix, tagsStr ts, suffix]
-  where
-    prefix = "`Tags: "
-    suffix = "`"
-    tagsStr = (<>) . head <*> foldMap (", " <>) . tail
 
 
 -- |
 -- This datatype stores the description of the task.
 -- The suffix of the description if it exists is \n\n .
+--
 
-newtype Desc = Desc { descString :: Maybe String
-                    }
+newtype Desc = Desc { desc :: String }
 
 instance Show Desc where
-  show (Desc Nothing) = ""
-  show (Desc (Just str)) = str
-
-newDesc :: Maybe String -> Desc
-newDesc = Desc . fmap (++ suffix)
-  where
-    suffix = "\n\n"
+  show (Desc str) = concat ["\tDesc: ", str, "\n\n", elemSep]
 
 
-data Task = Task { taskName :: Name
-                 , taskTime :: TaskTime
-                 , taskDesc :: Desc
+-- |
+-- DataType that contains all the information about the task.
+
+data Task = Task { taskHeading :: Heading
+                 , taskDesc :: Maybe Desc
                  , taskTags :: Tags
                  }
 
+
+
 instance Show Task where
-  show (Task name time desc tags) = concat [show name, show time, show desc, show tags]
+  show (Task heading Nothing tags)     = show heading ++ show tags
+  show (Task heading (Just desc) tags) = concat [show heading, show desc, show tags]
 
-newTask :: Name -> TaskTime -> Desc -> Tags -> Task
-newTask = Task
-
-
------------------------------------------------
-
-x :: Task
-x = Task { taskName = newName "Heading"
-         , taskDesc = newDesc (Just "produced output (of type a) to our continuation k, which produces a parser that is executed with the remainder of the output.")
-         , taskTags = newTags ["Tag 1", "Tag 2"]
-         , taskTime = newTaskTime (newTime 10 2) (Just $ newTime 13 2)
-         }
