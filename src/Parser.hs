@@ -1,19 +1,28 @@
 module Parser ( x
               , PData(..)
               , Parser(..)
+              , spanP
               , charP
+              , seqP
+              , headingP
+              , timeP
+              , taskTimeP
               ) where
 
-import Data.Bifunctor (first,bimap)
-import Task
-import Time (newTime)
 
-data PData = PHeading Heading
-           | PDesc (Maybe Desc)
-           | PTags Tags
-           | PTaskTime TaskTime
-           | PTask Task
-           | PList [PData]
+import Data.Bifunctor ( first
+                      , second
+                      )
+
+import Control.Applicative
+
+import Types
+import Time ( newTime
+            , Time
+            )
+
+data PData = PList [PData]
+           deriving (Show)
 
 newtype Parser a = Parser { runParser :: String -> Maybe (a, String)
                           }
@@ -29,12 +38,10 @@ instance Applicative Parser where
                                            Just (ab a , input'')
                                            )
 
-  {-
+instance Alternative Parser where
+  empty = Parser $ const Nothing
+  (<|>) (Parser p1) (Parser p2) = Parser (\input -> p1 input <|> p2 input)
 
-        a :: String -> Maybe (a, String)
-        ab :: String -> Maybe (a -> b, String)
-        (<*>) :: Parser (a -> b) -> Parser a -> Parser b
-    -}
 
 charP :: Char -> Parser Char
 charP c = Parser f
@@ -43,10 +50,37 @@ charP c = Parser f
       | x == c    = Just (c, xs)
       | otherwise = Nothing
 
+seqP :: String -> Parser String
+seqP = traverse charP
+
+spanP :: String -> Parser String
+spanP c = Parser $ Just . second (drop lenc) . (\input -> cmp ("", input))
+  where
+    cmp (r,"") = (r,"")
+    cmp (r,rs)
+      | take lenc rs == c = (r,rs)
+      | otherwise         = cmp (r ++ [head rs], tail rs)
+    lenc = length c
+
+
+--- Parse Datas
+--
+
+timeP :: Parser Time
+timeP = (\a b -> newTime (read a::Int) (read b::Int)) <$> spanP "H:" <*> spanP "M"
+
+
+taskTimeP :: Parser TaskTime
+taskTimeP = undefined
+
+headingP :: Parser String
+headingP = seqP headingPrefix *> spanP headingSuffix
+
+
 parser :: Parser PData
 parser = undefined
 
-x = Task { taskHeading = Heading "New Heading 100" $ TaskTime (newTime 23 30) (Just $ newTime 24 00)
+x = Task { taskHeading = Heading "New Heading 200" $ TaskTime (newTime 23 30) (Just $ newTime 24 00)
          , taskDesc = Just $ Desc "just a random description"
          , taskTags = Tags ["Yuno", "Gasai"]
          }

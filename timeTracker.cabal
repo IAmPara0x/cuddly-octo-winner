@@ -26,8 +26,8 @@ source-repository head
 library
   exposed-modules:
       Parser
-      Task
       Time
+      Types
   other-modules:
       Paths_timeTracker
   hs-source-dirs:

@@ -1,6 +1,9 @@
 module Time ( Time()
             , newTime
+            , readTime
             ) where
+
+import Data.Bifunctor (bimap)
 
 mins :: Int
 mins = 60
@@ -18,6 +21,10 @@ newTime h m = Time hnew mnew
 
 instance Show Time where
   show (Time h m) = concat [show h, "H:", show m, "M"]
+
+-- NOTE: readTime doesn't Handle errors.
+readTime :: String -> Time
+readTime = (\(h,m) -> newTime (read h::Int) (read m::Int)) . bimap init (init . tail) . span (/= ':')
 
 instance Eq Time where
   (==) (Time h1 m1) (Time h2 m2) = h1 == h2 && m1 == m2
