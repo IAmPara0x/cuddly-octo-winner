@@ -2,10 +2,10 @@ module Main where
 
 import System.IO
 import Parser
-
+import Control.Applicative
 
 main :: IO ()
 main = do
-        fileH <- openFile "stuff/test.md" WriteMode
-        hPrint fileH x
-        hClose fileH
+        newX <- readFile "stuff/test.md"
+        print $ runParser taskP newX
+

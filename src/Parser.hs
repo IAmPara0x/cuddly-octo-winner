@@ -4,9 +4,14 @@ module Parser ( x
               , spanP
               , charP
               , seqP
+              , intP
               , headingP
               , timeP
               , taskTimeP
+              , descP
+              , wsP
+              , tagsP
+              , taskP
               ) where
 
 
@@ -15,6 +20,10 @@ import Data.Bifunctor ( first
                       )
 
 import Control.Applicative
+import Data.Char ( isDigit
+                 , isSpace
+                 , digitToInt
+                 )
 
 import Types
 import Time ( newTime
@@ -46,6 +55,7 @@ instance Alternative Parser where
 charP :: Char -> Parser Char
 charP c = Parser f
   where
+    f []          = Nothing
     f (x:xs)
       | x == c    = Just (c, xs)
       | otherwise = Nothing
@@ -53,34 +63,64 @@ charP c = Parser f
 seqP :: String -> Parser String
 seqP = traverse charP
 
+spanC :: Char -> Parser String
+spanC c = Parser (Just . span (/= c))
+
 spanP :: String -> Parser String
-spanP c = Parser $ Just . second (drop lenc) . (\input -> cmp ("", input))
+spanP c = Parser (\input -> cmp ("", input))
   where
-    cmp (r,"") = (r,"")
+    cmp (r,"") = Nothing
     cmp (r,rs)
-      | take lenc rs == c = (r,rs)
+      | take lenc rs == c = Just (r, drop lenc rs)
       | otherwise         = cmp (r ++ [head rs], tail rs)
     lenc = length c
 
-
 --- Parse Datas
---
+
+wsP :: Parser String
+wsP = Parser (Just . span isSpace)
+
+nlP :: Parser String
+nlP = Parser (Just . span (== '\n'))
+
+intP :: Parser Int
+intP = Parser (readInt . span isDigit)
+  where
+    readInt ("", _) = Nothing
+    readInt (x, xs)  = Just (read x::Int, xs)
+
 
 timeP :: Parser Time
-timeP = (\a b -> newTime (read a::Int) (read b::Int)) <$> spanP "H:" <*> spanP "M"
+timeP = newTime <$> (intP <* wsP <* spanP "H:") <*>
+                    (wsP *> intP <* wsP <* spanP "M")
 
 
 taskTimeP :: Parser TaskTime
-taskTimeP = undefined
+taskTimeP = TaskTime <$> startP <*> (endP <|> Nothing <$ spanP taskTimeSuffix)
+  where
+    startP = wsP *> spanP taskTimePrefix *> timeP
+             <* wsP <* spanP taskTimeSep <* wsP
+    endP   = wsP *> (Just <$> timeP) <* wsP <* seqP taskTimeSuffix
 
-headingP :: Parser String
-headingP = seqP headingPrefix *> spanP headingSuffix
 
+headingP :: Parser Heading
+headingP = Heading <$> (seqP headingPrefix *> wsP *> spanC '(') <*>
+                       (taskTimeP <* spanP headingSuffix <* nlP)
+
+descP :: Parser Desc
+descP = Desc <$> (seqP descPrefix *> spanP descSuffix <* nlP)
+
+tagsP :: Parser Tags
+tagsP = Tags <$> (seqP tagsPrefix *> many (wsP *> spanP tagsSep) <* wsP <* seqP tagsSuffix <* nlP)
+
+taskP :: Parser Task
+taskP = Task <$> headingP <*> (Just <$> descP) <*> tagsP
 
 parser :: Parser PData
 parser = undefined
 
-x = Task { taskHeading = Heading "New Heading 200" $ TaskTime (newTime 23 30) (Just $ newTime 24 00)
+
+x = Task { taskHeading = Heading "New Heading 200" $ TaskTime (newTime 23 30) Nothing
          , taskDesc = Just $ Desc "just a random description"
          , taskTags = Tags ["Yuno", "Gasai"]
          }

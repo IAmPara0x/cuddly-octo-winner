@@ -12,6 +12,7 @@ module Types ( Heading(..)
              , tagsSuffix
              , tagsSep
              , descPrefix
+             , descSuffix
              , taskSep
              ) where
 
@@ -40,19 +41,22 @@ taskTimeSuffix :: String
 taskTimeSuffix  = ")"
 
 taskTimeSep :: String
-taskTimeSep = concat [whitespace 1, "-", whitespace 1]
+taskTimeSep = "-"
 
 tagsPrefix :: String
 tagsPrefix = whitespace 2 ++ "`Tags: "
 
 tagsSuffix :: String
-tagsSuffix = "`"
+tagsSuffix = "`<br>"
 
 tagsSep :: String
 tagsSep = ","
 
 descPrefix :: String
 descPrefix = whitespace 2 ++ "Desc: "
+
+descSuffix :: String
+descSuffix = "<br>"
 
 taskSep :: String
 taskSep = replicate 8 '-'
@@ -74,24 +78,26 @@ data TaskTime = TaskTime { startT :: Time
 
 instance Show TaskTime where
   show (TaskTime start end)
-    | isNothing end = concat [taskTimePrefix, show start, taskTimeSuffix]
-    | otherwise     = concat [taskTimePrefix, show start, taskTimeSep,
-                              show (fromJust end), taskTimeSuffix
+    | isNothing end = concat [taskTimePrefix, show start, whitespace 2,
+                              taskTimeSep, whitespace 2, taskTimeSuffix
+                             ]
+    | otherwise     = concat [taskTimePrefix, show start, whitespace 2, taskTimeSep,
+                              whitespace 2, show (fromJust end), taskTimeSuffix
                              ]
 
 
 newtype Tags = Tags { tags :: [String] }
 
 instance Show Tags where
-  show (Tags (t:ts)) = concat [tagsPrefix, tagsStr, tagsSuffix]
+  show (Tags tags) = concat [tagsPrefix, tagsStr, tagsSuffix, newline 2]
     where
-      tagsStr = t ++ foldMap (tagsSep <> whitespace 1 ++) ts
+      tagsStr = foldMap (++ (tagsSep <> whitespace 1)) tags
 
 
 newtype Desc = Desc { desc :: String }
 
 instance Show Desc where
-  show (Desc str) = concat [descPrefix, str, newline 2]
+  show (Desc str) = concat [descPrefix, str, descSuffix, newline 2]
 
 
 data Task = Task { taskHeading :: Heading
