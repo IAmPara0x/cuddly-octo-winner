@@ -3,110 +3,68 @@ module Types ( Heading(..)
              , Desc(..)
              , Tags(..)
              , Task(..)
-             , headingPrefix
-             , headingSuffix
-             , taskTimePrefix
-             , taskTimeSuffix
-             , taskTimeSep
-             , tagsPrefix
-             , tagsSuffix
-             , tagsSep
-             , descPrefix
-             , descSuffix
-             , taskSep
+             , Put(..)
              ) where
 
 import Data.Maybe ( fromJust
                   , isNothing
                   )
+import Syntax
 import Time (Time)
 
 
-whitespace :: Int -> String
-whitespace = flip replicate ' '
-
-newline :: Int -> String
-newline = flip replicate '\n'
-
-headingPrefix :: String
-headingPrefix = "#### Task: "
-
-headingSuffix :: String
-headingSuffix = "<br>"
-
-taskTimePrefix :: String
-taskTimePrefix  = "("
-
-taskTimeSuffix :: String
-taskTimeSuffix  = ")"
-
-taskTimeSep :: String
-taskTimeSep = "-"
-
-tagsPrefix :: String
-tagsPrefix = whitespace 2 ++ "`Tags: "
-
-tagsSuffix :: String
-tagsSuffix = "`<br>"
-
-tagsSep :: String
-tagsSep = ","
-
-descPrefix :: String
-descPrefix = whitespace 2 ++ "Desc: "
-
-descSuffix :: String
-descSuffix = "<br>"
-
-taskSep :: String
-taskSep = replicate 8 '-'
+class (Put a) where
+  put :: a -> String
 
 
-data Heading = Heading { hName :: String
-                       , hTime :: TaskTime
-                       }
-
-instance Show Heading where
-  show (Heading name time) = concat [headingPrefix, name, whitespace 4,
-                                     show time, headingSuffix, newline 2]
+data Heading = Heading String TaskTime
+               deriving (Show)
 
 
+instance Put Heading where
+  put (Heading name time) = concat [headingPrefix <+ 2, name <+ 2,
+                                    put time, headingSuffix, newline 2
+                                   ]
 
-data TaskTime = TaskTime { startT :: Time
-                         , endT :: Maybe Time
-                         }
 
-instance Show TaskTime where
-  show (TaskTime start end)
-    | isNothing end = concat [taskTimePrefix, show start, whitespace 2,
-                              taskTimeSep, whitespace 2, taskTimeSuffix
+data TaskTime = TaskTime Time (Maybe Time)
+                deriving (Show)
+
+
+instance Put TaskTime where
+  put (TaskTime start end)
+    | isNothing end = concat [taskTimePrefix:[], show start <+ 2,
+                              taskTimeSep:[] <+ 2, taskTimeSuffix:[]
                              ]
-    | otherwise     = concat [taskTimePrefix, show start, whitespace 2, taskTimeSep,
-                              whitespace 2, show (fromJust end), taskTimeSuffix
+    | otherwise     = concat [taskTimePrefix:[], show start <+ 2, taskTimeSep:[] <+ 2 ,
+                              show (fromJust end), taskTimeSuffix:[]
                              ]
 
 
-newtype Tags = Tags { tags :: [String] }
+newtype Tags = Tags [String]
+               deriving (Show)
 
-instance Show Tags where
-  show (Tags tags) = concat [tagsPrefix, tagsStr, tagsSuffix, newline 2]
+instance Put Tags where
+  put (Tags (tag:tags)) = concat [2 +> tagsPrefix, 2 +> tagsStr, tagsSuffix]
     where
-      tagsStr = foldMap (++ (tagsSep <> whitespace 1)) tags
+      tagsStr = tag ++ foldMap ((tagsSep:wSpace 1) ++) tags
 
 
-newtype Desc = Desc { desc :: String }
+newtype Desc = Desc String
+               deriving (Show)
 
-instance Show Desc where
-  show (Desc str) = concat [descPrefix, str, descSuffix, newline 2]
+instance Put Desc where
+  put (Desc str) = concat [2 +> descPrefix, 2 +> str, descSuffix, newline 2]
 
 
 data Task = Task { taskHeading :: Heading
                  , taskDesc :: Maybe Desc
                  , taskTags :: Tags
-                 }
+                 } deriving (Show)
 
 
-instance Show Task where
-  show (Task heading Nothing tags)     = show heading ++ show tags
-  show (Task heading (Just desc) tags) = concat [show heading, show desc, show tags]
-
+instance Put Task where
+  put (Task heading Nothing tags)     = concat [put heading, put tags, newline 2]
+  put (Task heading (Just desc) tags) = concat [put heading, put desc,
+                                                put tags, newline 2
+                                               ]
