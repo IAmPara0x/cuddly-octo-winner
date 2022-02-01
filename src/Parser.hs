@@ -1,4 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
+
 module Parser ( x
               , Parser(..)
               , stringP
@@ -6,6 +10,14 @@ module Parser ( x
               , timeP
               , taskTimeP
               , headingP
+              , spanTokenP
+              , sepbyP
+              , charP
+              , spanP
+              , symbCharP
+              , tagsP
+              , taskP
+              , sepby
               ) where
 
 
@@ -114,7 +126,23 @@ symbCharP :: Char -> Parser Char
 symbCharP = tokenP . charP
 
 spanTokenP :: String -> Parser String
-spanTokenP = undefined
+spanTokenP name = do
+                    x <- stringP name `mplus` ((:[]) <$> item)
+                    if x == name
+                       then Parser (\input -> Just ("", x++input))
+                       else (x ++) <$> spanTokenP name
+
+trim :: String -> String
+trim = f . f
+   where f = reverse . dropWhile isSpace
+
+sepby :: Char -> String -> [String]
+sepby _ "" = []
+sepby token str = i : sepby token (tail' is)
+  where
+    (i,is) = span (/= token) str
+    tail' [] = []
+    tail' (x:xs) = xs
 
 -- Parsing Tasks
 --
@@ -135,20 +163,37 @@ taskTimeP = do
 
 headingP :: Parser Heading
 headingP = do
-            symbP headingPrefix
-            title <- spanP taskTimePrefix
-            taskTime <- tokenP taskTimeP
-            symbP headingSuffix
-            return (Heading title taskTime)
+             symbP headingPrefix
+             title <- trim <$> spanP taskTimePrefix
+             taskTime <- tokenP taskTimeP
+             symbP headingSuffix
+             return (Heading title taskTime)
 
 descP :: Parser Desc
 descP = do
-         symbP descPrefix
-         return undefined
+          symbP descPrefix
+          descStr <- spanTokenP descSuffix
+          symbP descSuffix
+          return (Desc $ trim descStr)
+
+tagsP :: Parser Tags
+tagsP = do
+          symbP tagsPrefix
+          tags <- sepby tagsSep <$> spanTokenP tagsSuffix
+          symbP tagsSuffix
+          return (Tags $ map trim tags)
+
+taskP :: Parser Task
+taskP = do
+          heading <- headingP
+          desc <- (Just <$> descP) `mplus`
+                  (Nothing <$ return "")
+          Task heading desc <$> tagsP
 
 
 -- NOTE: Just an example of task
-x = Task { taskHeading = Heading "New Heading 200" $ TaskTime (newTime 23 30) Nothing
+x = Task { taskHeading = Heading "New Heading Yuno Gasai" $ TaskTime (newTime 23 30) Nothing
          , taskDesc = Just $ Desc "just a random description"
          , taskTags = Tags ["Yuno", "Gasai"]
          }
+

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Types ( Heading(..)
              , TaskTime(..)
              , Desc(..)
