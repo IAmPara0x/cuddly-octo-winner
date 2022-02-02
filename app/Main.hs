@@ -1,14 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import System.IO
+import qualified Data.Text.IO as IO
 import Parser
 import Types
 
 main :: IO ()
 main = do
-  str <- readFile "stuff/test.md"
+  str <- IO.readFile "stuff/test.md"
   print $ runParser tasksP str
-  fileH <- openFile "stuff/test.md" WriteMode
-  hPutStr fileH $ put x
-  hClose fileH
   print "Yuno"

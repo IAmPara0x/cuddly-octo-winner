@@ -8,6 +8,7 @@ module Types ( Heading(..)
              , Put(..)
              ) where
 
+import qualified Data.Text as T
 import Data.Maybe ( fromJust
                   , isNothing
                   )
@@ -16,17 +17,17 @@ import Time (Time)
 
 
 class (Put a) where
-  put :: a -> String
+  put :: a -> T.Text
 
 
-data Heading = Heading String TaskTime
+data Heading = Heading T.Text TaskTime
                deriving (Show)
 
 
 instance Put Heading where
-  put (Heading name time) = concat [headingPrefix <+ 2, name <+ 2,
-                                    put time, headingSuffix, newline 2
-                                   ]
+  put (Heading name time) = T.concat [headingPrefix <+ 2, name <+ 2,
+                                      put time, headingSuffix, newline 2
+                                     ]
 
 
 data TaskTime = TaskTime Time (Maybe Time)
@@ -35,28 +36,30 @@ data TaskTime = TaskTime Time (Maybe Time)
 
 instance Put TaskTime where
   put (TaskTime start end)
-    | isNothing end = concat [[taskTimePrefix], show start <+ 2,
-                              [taskTimeSep] <+ 2, [taskTimeSuffix]
-                             ]
-    | otherwise     = concat [[taskTimePrefix], show start <+ 2, [taskTimeSep] <+ 2 ,
-                              show (fromJust end), [taskTimeSuffix]
-                             ]
+    | isNothing end = T.concat [T.singleton taskTimePrefix, (T.pack $ show start) <+ 2,
+                                (T.singleton taskTimeSep) <+ 2, T.singleton taskTimeSuffix
+                               ]
+    | otherwise     = T.concat [T.singleton taskTimePrefix, (T.pack $ show start) <+ 2,
+                                (T.singleton taskTimeSep) <+ 2 , (T.pack $ show (fromJust end)),
+                                T.singleton taskTimeSuffix
+                               ]
 
 
-newtype Tags = Tags [String]
+newtype Tags = Tags [T.Text]
                deriving (Show)
 
 instance Put Tags where
-  put (Tags (tag:tags)) = concat [2 +> tagsPrefix, 2 +> tagsStr, tagsSuffix]
+  put (Tags (tag:tags)) = T.concat [2 +> tagsPrefix, 2 +> tagsStr, tagsSuffix]
     where
-      tagsStr = tag ++ foldMap ((tagsSep:wSpace 1) ++) tags
+      -- tagsStr = tag ++ foldMap (T.append (T.cons tagsSep $ wSpace 1)) tags
+      tagsStr = "Yuno"
 
 
-newtype Desc = Desc String
+newtype Desc = Desc T.Text
                deriving (Show)
 
 instance Put Desc where
-  put (Desc str) = concat [2 +> descPrefix, 2 +> str, descSuffix, newline 2]
+  put (Desc str) = T.concat [2 +> descPrefix, 2 +> str, descSuffix, newline 2]
 
 
 data Task = Task { taskHeading :: Heading
@@ -66,9 +69,9 @@ data Task = Task { taskHeading :: Heading
 
 
 instance Put Task where
-  put (Task heading Nothing tags)     = concat [put heading, put tags,
+  put (Task heading Nothing tags)     = T.concat [put heading, put tags,
                                                 newline 2, taskSep
                                                ]
-  put (Task heading (Just desc) tags) = concat [put heading, put desc, put tags,
+  put (Task heading (Just desc) tags) = T.concat [put heading, put desc, put tags,
                                                 newline 2, taskSep, newline 2
                                                ]

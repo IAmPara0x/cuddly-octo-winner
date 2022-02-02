@@ -1,7 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ExtendedDefaultRules #-}
 
 module Parser ( x
               , Parser(..)
@@ -20,6 +17,7 @@ import Data.Char ( isSpace
                  )
 import Control.Monad
 import Control.Applicative
+import qualified Data.Text as T
 
 import Types
 import Syntax
@@ -27,7 +25,7 @@ import Time ( newTime
             , Time
             )
 
-newtype Parser a = Parser { runParser :: String -> Maybe (a, String)
+newtype Parser a = Parser { runParser :: T.Text -> Maybe (a, T.Text)
                           }
 
 instance Functor Parser where
@@ -68,9 +66,9 @@ instance MonadPlus Parser where
 -- Utility Functions
 
 item :: Parser Char
-item = Parser (\case
-                  "" -> Nothing
-                  (c:cs) -> Just (c,cs)
+item = Parser (\input -> case input of
+                            "" -> Nothing
+                            _ -> Just (T.head input, T.tail input)
                )
 
 predP :: (Char -> Bool) -> Parser Char
@@ -88,15 +86,18 @@ intP = many (predP isDigit) >>= parse
     parse "" = mzero
     parse digits = return (read digits::Int)
 
-spanP :: Char -> Parser String
-spanP c = Parser (Just . span (/= c))
+spanP :: Char -> Parser T.Text
+spanP c = Parser (Just . T.span (/= c))
 
-spaceP :: Parser String
-spaceP = many (predP isSpace)
+spaceP :: Parser T.Text
+spaceP = T.pack <$> many (predP isSpace)
 
-stringP :: String -> Parser String
+stringP :: T.Text -> Parser T.Text
 stringP ""     = return ""
-stringP (c:cs) = charP c >> stringP cs >> return (c:cs)
+stringP input = charP c >> stringP cs >> return input
+  where
+    c = T.head input
+    cs = T.tail input
 
 sepbyP :: Parser a -> Parser b -> Parser [a]
 sepbyP a sep = many $ a <* sep
@@ -107,33 +108,29 @@ tokenP aP = do
             spaceP
             return a
 
-symbP :: String -> Parser String
+symbP :: T.Text -> Parser T.Text
 symbP symbN = tokenP (stringP symbN)
 
 symbCharP :: Char -> Parser Char
 symbCharP = tokenP . charP
 
-spanTokenP :: String -> Parser String
+spanTokenP :: T.Text -> Parser T.Text
 spanTokenP name = do
-                    x <- stringP name `mplus` ((:[]) <$> item)
+                    x <- stringP name `mplus` (T.singleton <$> item)
                     if x == name
-                       then Parser (\input -> Just ("", x++input))
-                       else (x ++) <$> spanTokenP name
+                       then Parser (\input -> Just ("", T.append x input))
+                       else T.append x <$> spanTokenP name
 
-trim :: String -> String
-trim = f . f
-   where f = reverse . dropWhile isSpace
 
-sepby :: Char -> String -> [String]
+sepby :: Char -> T.Text -> [T.Text]
 sepby _ "" = []
 sepby token str = i : sepby token (tail' is)
   where
-    (i,is) = span (/= token) str
-    tail' [] = []
-    tail' (x:xs) = xs
+    (i,is) = T.span (/= token) str
+    tail' "" = ""
+    tail' l = T.tail l
 
 -- Parsing Tasks
---
 
 timeP :: Parser Time
 timeP = newTime <$> tokenP intP <* symbP "H:" <*>
@@ -152,7 +149,7 @@ taskTimeP = do
 headingP :: Parser Heading
 headingP = do
              symbP headingPrefix
-             title <- trim <$> spanP taskTimePrefix
+             title <- T.strip <$> spanP taskTimePrefix
              taskTime <- tokenP taskTimeP
              symbP headingSuffix
              return (Heading title taskTime)
@@ -162,14 +159,14 @@ descP = do
           symbP descPrefix
           descStr <- spanTokenP descSuffix
           symbP descSuffix
-          return (Desc $ trim descStr)
+          return (Desc $ T.strip descStr)
 
 tagsP :: Parser Tags
 tagsP = do
           symbP tagsPrefix
           tags <- sepby tagsSep <$> spanTokenP tagsSuffix
           symbP tagsSuffix
-          return (Tags $ map trim tags)
+          return (Tags $ map T.strip tags)
 
 taskP :: Parser Task
 taskP = do

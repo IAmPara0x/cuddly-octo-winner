@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Syntax ( headingPrefix
               , headingSuffix
               , taskTimePrefix
@@ -16,16 +18,18 @@ module Syntax ( headingPrefix
               )
               where
 
-wSpace :: Int -> String
-wSpace = flip replicate ' '
+import qualified Data.Text as T
 
-newline :: Int -> String
-newline = flip replicate '\n'
+wSpace :: Int -> T.Text
+wSpace = flip T.replicate " "
 
-headingPrefix :: String
+newline :: Int -> T.Text
+newline = flip T.replicate "\n"
+
+headingPrefix :: T.Text
 headingPrefix = "#### Task:"
 
-headingSuffix :: String
+headingSuffix :: T.Text
 headingSuffix = "<br>"
 
 taskTimePrefix :: Char
@@ -37,27 +41,27 @@ taskTimeSuffix  = ')'
 taskTimeSep :: Char
 taskTimeSep = '-'
 
-tagsPrefix :: String
+tagsPrefix :: T.Text
 tagsPrefix = "`Tags:"
 
-tagsSuffix :: String
+tagsSuffix :: T.Text
 tagsSuffix = "`<br>"
 
 tagsSep :: Char
 tagsSep = ','
 
-descPrefix :: String
+descPrefix :: T.Text
 descPrefix = "Desc:"
 
-descSuffix :: String
+descSuffix :: T.Text
 descSuffix = "<br>"
 
-taskSep :: String
-taskSep = replicate 8 '-'
+taskSep :: T.Text
+taskSep = T.replicate 8 "-"
 
-(+>) :: Int -> String -> String
-n +> str = wSpace n ++ str
+(+>) :: Int -> T.Text -> T.Text
+n +> str =  T.append (wSpace n) str
 
 
-(<+) :: String -> Int -> String
-(<+) str n = str ++ wSpace n
+(<+) :: T.Text -> Int -> T.Text
+str <+ n = T.append str (wSpace n)
