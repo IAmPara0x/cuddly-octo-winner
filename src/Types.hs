@@ -35,11 +35,11 @@ data TaskTime = TaskTime Time (Maybe Time)
 
 instance Put TaskTime where
   put (TaskTime start end)
-    | isNothing end = concat [taskTimePrefix:[], show start <+ 2,
-                              taskTimeSep:[] <+ 2, taskTimeSuffix:[]
+    | isNothing end = concat [[taskTimePrefix], show start <+ 2,
+                              [taskTimeSep] <+ 2, [taskTimeSuffix]
                              ]
-    | otherwise     = concat [taskTimePrefix:[], show start <+ 2, taskTimeSep:[] <+ 2 ,
-                              show (fromJust end), taskTimeSuffix:[]
+    | otherwise     = concat [[taskTimePrefix], show start <+ 2, [taskTimeSep] <+ 2 ,
+                              show (fromJust end), [taskTimeSuffix]
                              ]
 
 
@@ -66,7 +66,9 @@ data Task = Task { taskHeading :: Heading
 
 
 instance Put Task where
-  put (Task heading Nothing tags)     = concat [put heading, put tags, newline 2]
-  put (Task heading (Just desc) tags) = concat [put heading, put desc,
-                                                put tags, newline 2
+  put (Task heading Nothing tags)     = concat [put heading, put tags,
+                                                newline 2, taskSep
+                                               ]
+  put (Task heading (Just desc) tags) = concat [put heading, put desc, put tags,
+                                                newline 2, taskSep, newline 2
                                                ]

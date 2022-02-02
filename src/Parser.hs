@@ -5,19 +5,7 @@
 
 module Parser ( x
               , Parser(..)
-              , stringP
-              , intP
-              , timeP
-              , taskTimeP
-              , headingP
-              , spanTokenP
-              , sepbyP
-              , charP
-              , spanP
-              , symbCharP
-              , tagsP
-              , taskP
-              , sepby
+              , tasksP
               ) where
 
 
@@ -188,7 +176,12 @@ taskP = do
           heading <- headingP
           desc <- (Just <$> descP) `mplus`
                   (Nothing <$ return "")
-          Task heading desc <$> tagsP
+          tags <- tagsP
+          symbP taskSep
+          return $ Task heading desc tags
+
+tasksP :: Parser [Task]
+tasksP = many taskP
 
 
 -- NOTE: Just an example of task
@@ -196,4 +189,3 @@ x = Task { taskHeading = Heading "New Heading Yuno Gasai" $ TaskTime (newTime 23
          , taskDesc = Just $ Desc "just a random description"
          , taskTags = Tags ["Yuno", "Gasai"]
          }
-
