@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Parser ( x
-              , Parser(..)
+module Parser ( Parser(..)
               , tasksP
               ) where
 
@@ -9,15 +8,15 @@ module Parser ( x
 -- The parser here is inspired by the following paper:
 -- Monadic Parsing in haskell (https://www.cmi.ac.in/~spsuresh/teaching/prgh15/papers/monadic-parsing.pdf)
 
-import Data.Bifunctor ( first
-                      )
+import Control.Monad
+import Control.Applicative
+import qualified Data.Text as T
+
+import Data.Bifunctor (first)
 
 import Data.Char ( isSpace
                  , isDigit
                  )
-import Control.Monad
-import Control.Applicative
-import qualified Data.Text as T
 
 import Types
 import Syntax
@@ -66,10 +65,11 @@ instance MonadPlus Parser where
 -- Utility Functions
 
 item :: Parser Char
-item = Parser (\input -> case input of
-                            "" -> Nothing
-                            _ -> Just (T.head input, T.tail input)
-               )
+item = Parser parse
+  where
+    parse "" = Nothing
+    parse input = Just (T.head input, T.tail input)
+
 
 predP :: (Char -> Bool) -> Parser Char
 predP p = item >>= (\c -> if p c
@@ -122,14 +122,6 @@ spanTokenP name = do
                        else T.append x <$> spanTokenP name
 
 
-sepby :: Char -> T.Text -> [T.Text]
-sepby _ "" = []
-sepby token str = i : sepby token (tail' is)
-  where
-    (i,is) = T.span (/= token) str
-    tail' "" = ""
-    tail' l = T.tail l
-
 -- Parsing Tasks
 
 timeP :: Parser Time
@@ -164,7 +156,7 @@ descP = do
 tagsP :: Parser Tags
 tagsP = do
           symbP tagsPrefix
-          tags <- sepby tagsSep <$> spanTokenP tagsSuffix
+          tags <- T.splitOn (T.singleton tagsSep) <$> spanTokenP tagsSuffix
           symbP tagsSuffix
           return (Tags $ map T.strip tags)
 
@@ -180,9 +172,3 @@ taskP = do
 tasksP :: Parser [Task]
 tasksP = many taskP
 
-
--- NOTE: Just an example of task
-x = Task { taskHeading = Heading "New Heading Yuno Gasai" $ TaskTime (newTime 23 30) Nothing
-         , taskDesc = Just $ Desc "just a random description"
-         , taskTags = Tags ["Yuno", "Gasai"]
-         }

@@ -51,8 +51,7 @@ newtype Tags = Tags [T.Text]
 instance Put Tags where
   put (Tags (tag:tags)) = T.concat [2 +> tagsPrefix, 2 +> tagsStr, tagsSuffix]
     where
-      -- tagsStr = tag ++ foldMap (T.append (T.cons tagsSep $ wSpace 1)) tags
-      tagsStr = "Yuno"
+      tagsStr = T.append tag $ foldMap (T.append ", ") tags
 
 
 newtype Desc = Desc T.Text
@@ -70,8 +69,8 @@ data Task = Task { taskHeading :: Heading
 
 instance Put Task where
   put (Task heading Nothing tags)     = T.concat [put heading, put tags,
-                                                newline 2, taskSep
-                                               ]
+                                                  newline 2, taskSep
+                                                 ]
   put (Task heading (Just desc) tags) = T.concat [put heading, put desc, put tags,
-                                                newline 2, taskSep, newline 2
-                                               ]
+                                                  newline 2, taskSep, newline 2
+                                                 ]
