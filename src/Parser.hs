@@ -20,9 +20,6 @@ import Data.Char ( isSpace
 
 import Types
 import Syntax
-import Time ( newTime
-            , Time
-            )
 
 newtype Parser a = Parser { runParser :: T.Text -> Maybe (a, T.Text)
                           }
@@ -171,4 +168,3 @@ taskP = do
 
 tasksP :: Parser [Task]
 tasksP = many taskP
-

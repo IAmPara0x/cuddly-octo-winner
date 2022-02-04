@@ -27,7 +27,6 @@ library
   exposed-modules:
       Parser
       Syntax
-      Time
       Types
   other-modules:
       Paths_timeTracker
@@ -36,6 +35,8 @@ library
   build-depends:
       base >=4.7 && <5
     , brick
+    , microlens
+    , microlens-th
     , text
   default-language: Haskell2010
 
@@ -49,6 +50,8 @@ executable timeTracker-exe
   build-depends:
       base >=4.7 && <5
     , brick
+    , microlens
+    , microlens-th
     , text
     , timeTracker
   default-language: Haskell2010
@@ -64,6 +67,8 @@ test-suite timeTracker-test
   build-depends:
       base >=4.7 && <5
     , brick
+    , microlens
+    , microlens-th
     , text
     , timeTracker
   default-language: Haskell2010

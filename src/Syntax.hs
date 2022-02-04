@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Syntax ( headingPrefix
+module Syntax ( timeHrs
+              , timeMins
+              , headingPrefix
               , headingSuffix
               , taskTimePrefix
               , taskTimeSuffix
@@ -25,6 +27,13 @@ wSpace = flip T.replicate " "
 
 newline :: Int -> T.Text
 newline = flip T.replicate "\n"
+
+timeHrs :: T.Text
+timeHrs = "H:"
+
+timeMins :: T.Text
+timeMins = "M"
+
 
 headingPrefix :: T.Text
 headingPrefix = "#### Task:"
