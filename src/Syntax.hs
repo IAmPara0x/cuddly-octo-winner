@@ -2,8 +2,8 @@
 
 module Syntax ( timeHrs
               , timeMins
+              , elemSuffix
               , headingPrefix
-              , headingSuffix
               , taskTimePrefix
               , taskTimeSuffix
               , taskTimeSep
@@ -11,12 +11,13 @@ module Syntax ( timeHrs
               , tagsSuffix
               , tagsSep
               , descPrefix
-              , descSuffix
               , taskSep
               , wSpace
               , newline
               , (+>)
               , (<+)
+              , newElem
+              , surroundElem
               )
               where
 
@@ -34,12 +35,11 @@ timeHrs = "H:"
 timeMins :: T.Text
 timeMins = "M"
 
+elemSuffix :: T.Text
+elemSuffix = "<br>"
 
 headingPrefix :: T.Text
 headingPrefix = "#### Task:"
-
-headingSuffix :: T.Text
-headingSuffix = "<br>"
 
 taskTimePrefix :: Char
 taskTimePrefix  = '('
@@ -54,7 +54,7 @@ tagsPrefix :: T.Text
 tagsPrefix = "`Tags:"
 
 tagsSuffix :: T.Text
-tagsSuffix = "`<br>"
+tagsSuffix = "`"
 
 tagsSep :: Char
 tagsSep = ','
@@ -62,15 +62,18 @@ tagsSep = ','
 descPrefix :: T.Text
 descPrefix = "Desc:"
 
-descSuffix :: T.Text
-descSuffix = "<br>"
-
 taskSep :: T.Text
 taskSep = T.replicate 8 "-"
 
 (+>) :: Int -> T.Text -> T.Text
 n +> str =  T.append (wSpace n) str
 
-
 (<+) :: T.Text -> Int -> T.Text
 str <+ n = T.append str (wSpace n)
+
+newElem :: T.Text -> T.Text
+newElem x = T.concat [x, elemSuffix, newline 2]
+
+surroundElem :: T.Text -> T.Text -> T.Text -> T.Text
+surroundElem encS encE x = T.concat [encS, x, encE]
+

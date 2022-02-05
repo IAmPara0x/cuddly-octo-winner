@@ -118,6 +118,11 @@ spanTokenP name = do
                        then Parser (\input -> Just ("", T.append x input))
                        else T.append x <$> spanTokenP name
 
+elemP :: Parser a -> Parser a
+elemP aP = do
+            a <- aP
+            symbP elemSuffix
+            return a
 
 -- Parsing Tasks
 
@@ -140,14 +145,12 @@ headingP = do
              symbP headingPrefix
              title <- T.strip <$> spanP taskTimePrefix
              taskTime <- tokenP taskTimeP
-             symbP headingSuffix
              return (Heading title taskTime)
 
 descP :: Parser Desc
 descP = do
           symbP descPrefix
-          descStr <- spanTokenP descSuffix
-          symbP descSuffix
+          descStr <- spanTokenP elemSuffix
           return (Desc $ T.strip descStr)
 
 tagsP :: Parser Tags
@@ -159,10 +162,10 @@ tagsP = do
 
 taskP :: Parser Task
 taskP = do
-          heading <- headingP
-          desc <- (Just <$> descP) `mplus`
+          heading <- elemP headingP
+          desc <- (Just <$> elemP descP) `mplus`
                   (Nothing <$ return "")
-          tags <- tagsP
+          tags <- elemP tagsP
           symbP taskSep
           return $ Task heading desc tags
 

@@ -76,13 +76,15 @@ makeLenses ''TaskTime
 
 instance Put TaskTime where
   put (TaskTime start end)
-    | isNothing end = T.concat [T.singleton taskTimePrefix, put start <+ 2,
-                                T.singleton taskTimeSep <+ 2, T.singleton taskTimeSuffix
-                               ]
-    | otherwise     = T.concat [T.singleton taskTimePrefix, T.pack (show start) <+ 2,
-                                T.singleton taskTimeSep <+ 2 , put (fromJust end),
-                                T.singleton taskTimeSuffix
-                               ]
+    | isNothing end = elem $ T.concat [put start <+ 2,
+                                       T.singleton taskTimeSep <+ 2
+                                      ]
+    | otherwise     = elem $ T.concat [T.pack (show start) <+ 2,
+                                       T.singleton taskTimeSep <+ 2,
+                                       put (fromJust end)
+                                      ]
+    where
+      elem = surroundElem (T.singleton taskTimePrefix) (T.singleton taskTimeSuffix)
 
 -- Heading
 
@@ -92,9 +94,10 @@ data Heading = Heading { _headingTitleL :: T.Text
                deriving (Show)
 
 instance Put Heading where
-  put (Heading name time) = T.concat [headingPrefix <+ 2, name <+ 2,
-                                      put time, headingSuffix, newline 2
-                                     ]
+  put (Heading name time) = newElem $ T.concat [headingPrefix <+ 2,
+                                                name <+ 2, put time
+                                               ]
+
 
 makeLenses ''Heading
 
@@ -107,7 +110,7 @@ newtype Tags = Tags { _tagsL :: [T.Text]
 makeLenses ''Tags
 
 instance Put Tags where
-  put (Tags (tag:tags)) = T.concat [2 +> tagsPrefix, 2 +> tagsStr, tagsSuffix]
+  put (Tags (tag:tags)) = newElem $ surroundElem (2 +> tagsPrefix) tagsSuffix (2 +> tagsStr)
     where
       tagsStr = T.append tag $ foldMap (T.append ", ") tags
 
@@ -116,7 +119,7 @@ newtype Desc = Desc T.Text
                deriving (Show)
 
 instance Put Desc where
-  put (Desc str) = T.concat [2 +> descPrefix, 2 +> str, descSuffix, newline 2]
+  put (Desc str) = newElem $ T.concat [2 +> descPrefix, 2 +> str]
 
 
 data Task = Task { _taskHeadingL :: Heading
@@ -128,9 +131,7 @@ makeLenses ''Task
 
 
 instance Put Task where
-  put (Task heading Nothing tags)     = T.concat [put heading, put tags,
-                                                  newline 2, taskSep
-                                                 ]
+  put (Task heading Nothing tags)     = T.concat [put heading, put tags, taskSep ]
   put (Task heading (Just desc) tags) = T.concat [put heading, put desc, put tags,
-                                                  newline 2, taskSep, newline 2
+                                                  taskSep, newline 2
                                                  ]

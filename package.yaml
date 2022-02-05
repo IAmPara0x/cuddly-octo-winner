@@ -25,6 +25,7 @@ dependencies:
 - text
 - microlens
 - microlens-th
+- time
 
 library:
   source-dirs: src
