@@ -26,6 +26,8 @@ dependencies:
 - microlens
 - microlens-th
 - time
+- transformers
+- mtl
 
 library:
   source-dirs: src

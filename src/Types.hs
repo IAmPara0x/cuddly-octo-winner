@@ -132,7 +132,7 @@ makeLenses ''Task
 
 
 instance Put Task where
-  put (Task heading Nothing tags)     = T.concat [put heading, put tags, taskSep ]
+  put (Task heading Nothing tags)     = T.concat [put heading, put tags, taskSep, taskSep, newline 2]
   put (Task heading (Just desc) tags) = T.concat [put heading, put desc, put tags,
                                                   taskSep, newline 2
                                                  ]
