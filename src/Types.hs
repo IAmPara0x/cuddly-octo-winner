@@ -3,16 +3,17 @@
 
 module Types ( Time
              , newTime
-             , Heading(..)
+             , Heading(Heading)
              , headingTitleL
              , headingTaskTimeL
-             , TaskTime(..)
+             , TaskTime(TaskTime)
              , tagsL
              , taskTimeStartL
              , taskTimeEndL
-             , Desc(..)
-             , Tags(..)
-             , Task(..)
+             , Desc(Desc)
+             , Tags(Tags)
+             , Task(Task)
+             , newTask
              , taskHeadingL
              , taskDescL
              , taskTagsL
@@ -79,7 +80,7 @@ instance Put TaskTime where
     | isNothing end = elem $ T.concat [put start <+ 2,
                                        T.singleton taskTimeSep <+ 2
                                       ]
-    | otherwise     = elem $ T.concat [T.pack (show start) <+ 2,
+    | otherwise     = elem $ T.concat [put start <+ 2,
                                        T.singleton taskTimeSep <+ 2,
                                        put (fromJust end)
                                       ]
@@ -135,3 +136,14 @@ instance Put Task where
   put (Task heading (Just desc) tags) = T.concat [put heading, put desc, put tags,
                                                   taskSep, newline 2
                                                  ]
+
+
+newTask :: T.Text -> TaskTime -> T.Text -> [T.Text] -> Task
+newTask title taskTime "" tags   = Task { _taskHeadingL = Heading title taskTime
+                                        , _taskDescL    = Nothing
+                                        , _taskTagsL    = Tags tags
+                                        }
+newTask title taskTime desc tags = Task { _taskHeadingL = Heading title taskTime
+                                        , _taskDescL    = Just $ Desc desc
+                                        , _taskTagsL    = Tags tags
+                                        }

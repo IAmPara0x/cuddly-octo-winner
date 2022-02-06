@@ -1,26 +1,26 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import qualified Data.Text.IO as IO
 import System.IO
-import Control.Monad (liftM)
-import Data.Time.LocalTime
+import qualified Data.Text.IO as IO
+
 import Parser
 import Types
-import Lens.Micro ((^.))
+import Utils
 
 
-f time = Task { _taskHeadingL = Heading "Updated Task" $ TaskTime time Nothing
-              , _taskDescL    = Just $ Desc "new description of new task"
-              , _taskTagsL    = Tags ["Yuno", "Gasai", "I Am Paradox", "Real Analysis"]
-              }
+title = "New Title V2"
+desc = "New Desc v2 with time.\n\t with some tabs."
+tags = ["Yuno", "Gasai"]
+
 
 main :: IO ()
 main = do
   str <- IO.readFile "stuff/test.md"
-  print $  map (^. taskTagsL) . fst <$> runParser tasksP str
-  time <- fmap (localTimeOfDay . zonedTimeToLocalTime) getZonedTime
+  time <- currTime
   hfile <- openFile "stuff/test.md" WriteMode
-  IO.hPutStr hfile $ put (f $ newTime (todHour time) (todMin time))
+  case updateTaskTime time . head . fst <$> runParser tasksP str of
+    Nothing -> print "lol"
+    (Just task) -> IO.hPutStr hfile $ put task
   hClose hfile
-  print "Yuno"
+
