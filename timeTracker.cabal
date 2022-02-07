@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Crud
       Parser
       Syntax
       Types
@@ -36,8 +37,7 @@ library
   build-depends:
       base >=4.7 && <5
     , brick
-    , microlens
-    , microlens-th
+    , lens
     , mtl
     , text
     , time
@@ -54,8 +54,7 @@ executable timeTracker-exe
   build-depends:
       base >=4.7 && <5
     , brick
-    , microlens
-    , microlens-th
+    , lens
     , mtl
     , text
     , time
@@ -74,8 +73,7 @@ test-suite timeTracker-test
   build-depends:
       base >=4.7 && <5
     , brick
-    , microlens
-    , microlens-th
+    , lens
     , mtl
     , text
     , time

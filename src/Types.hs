@@ -21,7 +21,7 @@ module Types ( Time
              ) where
 
 import qualified Data.Text as T
-import Lens.Micro.TH (makeLenses)
+import Control.Lens
 import Data.Bifunctor (bimap)
 import Data.Maybe ( fromJust
                   , isNothing

@@ -23,8 +23,7 @@ dependencies:
 - base >= 4.7 && < 5
 - brick
 - text
-- microlens
-- microlens-th
+- lens
 - time
 - transformers
 - mtl
