@@ -33,10 +33,11 @@ tagsSep = ','
 
 makeLenses ''Tags
 
-instance Put Tags where
-  put (Tags (tag:tags)) = newElem $ surroundElem (2 +> tagsPrefix) tagsSuffix (2 +> tagsStr)
-    where
-      tagsStr = T.append tag $ foldMap (T.append ", ") tags
+instance Element Tags where
+  prefix = const $ Just (2 +> tagsPrefix <+ 2)
+  sep (Tags (x:xs)) = Just $ x <> foldMap (", " <> ) xs
+  suffix    = const $ Just (tagsSuffix <> elemSuffix <> newline 2)
+  parse = tagsP
 
 
 tagsP :: Parser Tags

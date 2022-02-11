@@ -1,24 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Relude
+import Relude hiding (put)
 
-
-import System.IO
-import Control.Monad.Trans.Maybe
-
-import Control.Lens
-
+import Miku
+import Miku.Data.Time
 import Types
-import Crud
-import Utils
-import Miku.Data.Task
-import Miku.Data.TaskTime
-import Miku.Data.Heading
 
+main :: IO()
+main = go
 
-main :: IO ()
-main = do
-  time <- currTime
-  runMaybeT $ updateTaskIO "stuff/test.md" 0 ((timeEndL |. taskTimeL |. taskHeadingL) ?~ time)
-  return ()

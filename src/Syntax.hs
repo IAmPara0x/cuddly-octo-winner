@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Syntax ( elemSuffix
-              , taskSep
               , wSpace
               , newline
               , (+>)
@@ -23,15 +22,11 @@ newline = flip T.replicate "\n"
 elemSuffix :: Text
 elemSuffix = "<br>"
 
-
-taskSep :: Text
-taskSep = T.replicate 8 "-"
-
 (+>) :: Int -> Text -> Text
-n +> str =  T.append (wSpace n) str
+n +> str =  wSpace n <> str
 
 (<+) :: Text -> Int -> Text
-str <+ n = T.append str (wSpace n)
+str <+ n = str <> wSpace n
 
 newElem :: Text -> Text
 newElem x = T.concat [x, elemSuffix, newline 2]

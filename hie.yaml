@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "Miku:lib"
+
+    - path: "./app/Main.hs"
+      component: "Miku:exe:miku"
+
+    - path: "./app/Paths_Miku.hs"
+      component: "Miku:exe:miku"
+
+    - path: "./test"
+      component: "Miku:test:timeTracker-test"

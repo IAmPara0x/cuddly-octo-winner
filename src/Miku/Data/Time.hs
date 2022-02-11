@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Miku.Data.Time ( Time
                       , newTime
                       , timeP
@@ -28,23 +26,16 @@ newTime h m = Time hnew mnew
     hnew = h + div m mins
 
 -- Syntax for Time
-timeHrs :: Char
-timeHrs = 'H'
+timeHrs :: Text
+timeHrs = "H"
 
-timeSep :: Char
-timeSep = ':'
+timeSep :: Text
+timeSep = ":"
 
-timeMins :: Char
-timeMins = 'M'
+timeMins :: Text
+timeMins = "M"
+
 --
-
-instance Put Time where
-  put (Time h m) = T.concat [T.pack $ show h,
-                             T.singleton timeHrs,
-                             T.singleton timeSep,
-                             T.pack $ show m,
-                             T.singleton timeMins
-                             ]
 
 instance Eq Time where
   (==) (Time h1 m1) (Time h2 m2) = h1 == h2 && m1 == m2
@@ -61,8 +52,14 @@ instance Num Time where
   fromInteger                   = newTime 0 . fromIntegral
 
 
+instance Element Time where
+  prefix (Time h _) = Just $ T.pack (show h) <> timeHrs
+  sep               = const (Just timeSep)
+  suffix (Time _ m) = Just $ T.pack (show m) <> timeMins
+  parse             = timeP
+
 -- Parser Implementation for Time
 
 timeP :: Parser Time
-timeP = newTime <$> tokenP intP <* symbCharP timeHrs <* symbCharP timeSep <*>
-                    tokenP intP <* symbCharP 'M'
+timeP = newTime <$> tokenP intP <* symbP timeHrs <* symbP timeSep <*>
+                    tokenP intP <* symbP timeMins

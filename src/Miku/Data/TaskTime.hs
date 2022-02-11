@@ -29,35 +29,38 @@ makeLenses ''TaskTime
 -- Syntax
 --
 
-taskTimePrefix :: Char
-taskTimePrefix  = '('
+taskTimePrefix :: Text
+taskTimePrefix  = "("
 
-taskTimeSuffix :: Char
-taskTimeSuffix  = ')'
+taskTimeSuffix :: Text
+taskTimeSuffix  = ")"
 
-taskTimeSep :: Char
-taskTimeSep = '-'
+taskTimeSep :: Text
+taskTimeSep = "-"
 
 
-instance Put TaskTime where
-  put (TaskTime start end)
-    | isNothing end = elem $ T.concat [put start <+ 2,
-                                       T.singleton taskTimeSep <+ 2
+instance Element TaskTime where
+  prefix            = const $ Just taskTimePrefix
+
+  sep (TaskTime start end)
+    | isNothing end = Just $ T.concat [put start <+ 2,
+                                       taskTimeSep <+ 2
                                       ]
-    | otherwise     = elem $ T.concat [put start <+ 2,
-                                       T.singleton taskTimeSep <+ 2,
+    | otherwise     = Just $ T.concat [put start <+ 2,
+                                       taskTimeSep <+ 2,
                                        put (fromJust end)
                                       ]
-    where
-      elem = surroundElem (T.singleton taskTimePrefix) (T.singleton taskTimeSuffix)
+
+  suffix            = const $ Just taskTimeSuffix
+  parse             = taskTimeP
 
 
 taskTimeP :: Parser TaskTime
 taskTimeP = do
-              symbCharP taskTimePrefix
-              startT <- tokenP timeP
-              symbCharP taskTimeSep
-              endT <- (Just <$> tokenP timeP <* symbCharP taskTimeSuffix) `mplus`
-                      (Nothing <$ symbCharP taskTimeSuffix)
+              symbP taskTimePrefix
+              startT <- tokenP parse
+              symbP taskTimeSep
+              endT <- (Just <$> tokenP parse <* symbP taskTimeSuffix) `mplus`
+                      (Nothing <$ symbP taskTimeSuffix)
               return (TaskTime startT endT)
 

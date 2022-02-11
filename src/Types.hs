@@ -1,14 +1,14 @@
-{-# LANGUAGE TemplateHaskell #-}
-
-module Types ( Put(..)
+module Types ( Element(..)
              ) where
 
 import Relude
+import qualified Data.Text as T
 import Parser (Parser)
 
--- TODO: Find better way to implment the syntax!.
-class (Put a) where
-  put :: a -> Text
-
-class (Parse a) where
-  parse :: Parser a
+class (Element a) where
+  prefix :: a -> Maybe Text
+  sep    :: a -> Maybe Text
+  suffix :: a -> Maybe Text
+  parse  :: Parser a
+  put    :: a -> Text
+  put a = foldMap (fromMaybe "" . ($ a)) [prefix, sep, suffix]

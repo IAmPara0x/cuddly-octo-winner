@@ -22,12 +22,16 @@ makeLenses ''Desc
 descPrefix :: Text
 descPrefix = "Desc:"
 
-instance Put Desc where
-  put (Desc str) = newElem $ T.concat [2 +> descPrefix, 2 +> str]
+instance Element Desc where
+  prefix         = const $ Just (2 +> "Desc:" <+ 2)
+  sep (Desc str) = Just str
+  suffix         = const $ Just (elemSuffix <> newline 2)
+  parse          = descP
 
 descP :: Parser Desc
 descP = do
           symbP descPrefix
           descStr <- spanTokenP elemSuffix
           return (Desc $ T.strip descStr)
+
 

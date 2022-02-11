@@ -1,6 +1,6 @@
-name:                timeTracker
+name:                Miku
 version:             0.1.0.0
-github:              "githubuser/timeTracker"
+github:              "IAmParad0x/Miku"
 license:             MIT
 author:              "IAmParadox"
 maintainer:          "confusedstudent13@gmail.com"
@@ -17,7 +17,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/timeTracker#readme>
+description:         Please see the README on GitHub at <https://github.com/IAmParad0x/Mikur#readme>
 
 default-extensions:
 - OverloadedStrings
@@ -26,22 +26,23 @@ default-extensions:
 - RankNTypes
 - NoImplicitPrelude
 
-dependencies:
-- base >= 4.7 && < 5
-- brick
-- text
-- lens
-- time
-- transformers
-- mtl
-- containers
-- relude
-
 library:
   source-dirs: src
+  exposed-modules:
+  - Miku
+  dependencies:
+  - base >= 4.7 && < 5
+  - brick
+  - text
+  - lens
+  - time
+  - transformers
+  - mtl
+  - containers
+  - relude
 
 executables:
-  timeTracker-exe:
+  miku:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
@@ -49,7 +50,9 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - timeTracker
+    - base >= 4.7 && < 5
+    - Miku
+    - relude
 
 tests:
   timeTracker-test:
@@ -60,4 +63,6 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - timeTracker
+    - base >= 4.7 && < 5
+    - Miku
+    - relude
