@@ -19,6 +19,13 @@ extra-source-files:
 # common to point users to the README.md file.
 description:         Please see the README on GitHub at <https://github.com/githubuser/timeTracker#readme>
 
+default-extensions:
+- OverloadedStrings
+- TupleSections
+- LambdaCase
+- RankNTypes
+- NoImplicitPrelude
+
 dependencies:
 - base >= 4.7 && < 5
 - brick
@@ -27,6 +34,8 @@ dependencies:
 - time
 - transformers
 - mtl
+- containers
+- relude
 
 library:
   source-dirs: src

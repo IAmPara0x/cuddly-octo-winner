@@ -1,27 +1,42 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Parser ( Parser(..)
-              , tasksP
+              , item
+              , predP
+              , charP
+              , intP
+              , spanP
+              , spaceP
+              , stringP
+              , sepbyP
+              , tokenP
+              , symbP
+              , symbCharP
+              , spanTokenP
+              , elemP
               ) where
 
 
 -- The parser here is inspired by the following paper:
 -- Monadic Parsing in haskell (https://www.cmi.ac.in/~spsuresh/teaching/prgh15/papers/monadic-parsing.pdf)
 
+import Relude
 import Control.Monad
 import Control.Applicative
 import qualified Data.Text as T
 
+import Data.Maybe (fromJust)
 import Data.Bifunctor (first)
 
 import Data.Char ( isSpace
                  , isDigit
                  )
 
-import Types
+-- import Miku.Data.Task
+-- import Miku.Data.Time
 import Syntax
 
-newtype Parser a = Parser { runParser :: T.Text -> Maybe (a, T.Text)
+newtype Parser a = Parser { runParser :: Text -> Maybe (a, Text)
                           }
 
 instance Functor Parser where
@@ -81,15 +96,15 @@ intP :: Parser Int
 intP = many (predP isDigit) >>= parse
   where
     parse "" = mzero
-    parse digits = return (read digits::Int)
+    parse digits = return (fromJust $ readMaybe digits::Int)
 
-spanP :: Char -> Parser T.Text
+spanP :: Char -> Parser Text
 spanP c = Parser (Just . T.span (/= c))
 
-spaceP :: Parser T.Text
+spaceP :: Parser Text
 spaceP = T.pack <$> many (predP isSpace)
 
-stringP :: T.Text -> Parser T.Text
+stringP :: Text -> Parser Text
 stringP ""     = return ""
 stringP input = charP c >> stringP cs >> return input
   where
@@ -105,13 +120,13 @@ tokenP aP = do
             spaceP
             return a
 
-symbP :: T.Text -> Parser T.Text
+symbP :: Text -> Parser Text
 symbP symbN = tokenP (stringP symbN)
 
 symbCharP :: Char -> Parser Char
 symbCharP = tokenP . charP
 
-spanTokenP :: T.Text -> Parser T.Text
+spanTokenP :: Text -> Parser Text
 spanTokenP name = do
                     x <- stringP name `mplus` (T.singleton <$> item)
                     if x == name
@@ -123,51 +138,3 @@ elemP aP = do
             a <- aP
             symbP elemSuffix
             return a
-
--- Parsing Tasks
-
-timeP :: Parser Time
-timeP = newTime <$> tokenP intP <* symbP "H:" <*>
-                    tokenP intP <* symbCharP 'M'
-
-taskTimeP :: Parser TaskTime
-taskTimeP = do
-              symbCharP taskTimePrefix
-              startT <- tokenP timeP
-              symbCharP taskTimeSep
-              endT <- (Just <$> tokenP timeP <* symbCharP taskTimeSuffix) `mplus`
-                      (Nothing <$ symbCharP taskTimeSuffix)
-              return (TaskTime startT endT)
-
-
-headingP :: Parser Heading
-headingP = do
-             symbP headingPrefix
-             title <- T.strip <$> spanP taskTimePrefix
-             taskTime <- tokenP taskTimeP
-             return (Heading title taskTime)
-
-descP :: Parser Desc
-descP = do
-          symbP descPrefix
-          descStr <- spanTokenP elemSuffix
-          return (Desc $ T.strip descStr)
-
-tagsP :: Parser Tags
-tagsP = do
-          symbP tagsPrefix
-          tags <- T.splitOn (T.singleton tagsSep) <$> spanTokenP tagsSuffix
-          symbP tagsSuffix
-          return (Tags $ map T.strip tags)
-
-taskP :: Parser Task
-taskP = do
-          heading <- elemP headingP
-          desc <- (Just <$> elemP descP) `mplus`
-                  (Nothing <$ return "")
-          tags <- elemP tagsP
-          symbP taskSep
-          return $ Task heading desc tags
-
-tasksP :: Parser [Task]
-tasksP = many taskP

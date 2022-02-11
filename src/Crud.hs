@@ -1,9 +1,9 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Crud ( newTaskIO
             , updateTaskIO
             , readTasksIO
             ) where
+
+import Relude hiding (put)
 
 import System.IO
 
@@ -20,6 +20,8 @@ import Control.Lens ( (%~)
 
 import Parser
 import Types
+import Miku.Data.Task
+import Miku.Data.Time
 
 
 type FileName = String

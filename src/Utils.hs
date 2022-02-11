@@ -6,12 +6,13 @@ module Utils ( currTime
              ) where
 
 
+import Relude
 import System.IO
 import Data.Time.LocalTime
 
 import Control.Lens (Lens')
 
-import Types
+import Miku.Data.Time
 
 
 (|.) :: Lens' b c -> Lens' a b -> Lens' a c
