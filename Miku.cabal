@@ -27,17 +27,18 @@ library
   exposed-modules:
       Miku
   other-modules:
-      Crud
       Miku.Data.Desc
       Miku.Data.Heading
+      Miku.Data.Log
       Miku.Data.Tags
       Miku.Data.Task
       Miku.Data.TaskTime
       Miku.Data.Time
+      Miku.IO.Crud
+      Miku.IO.Utils
       Parser
       Syntax
       Types
-      Utils
       Paths_Miku
   hs-source-dirs:
       src

@@ -7,7 +7,7 @@ module Miku.Data.Heading ( Heading(Heading)
                          )
                          where
 import Relude hiding (put)
-import Control.Lens
+import Control.Lens (makeLenses)
 import qualified Data.Text as T
 
 import Parser
@@ -21,11 +21,12 @@ data Heading = Heading { _titleL    :: Text
                        }
                deriving (Show)
 
+makeLenses ''Heading
+--
 -- Syntax for heading
 headingPrefix :: Text
 headingPrefix = "#### Task:"
 
-makeLenses ''Heading
 
 instance Element Heading where
   prefix                  = const $ Just (headingPrefix <+2)

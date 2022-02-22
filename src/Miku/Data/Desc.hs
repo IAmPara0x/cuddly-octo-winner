@@ -7,7 +7,7 @@ module Miku.Data.Desc ( Desc(Desc)
 
 import Relude
 import qualified Data.Text as T
-import Control.Lens
+import Control.Lens (makeLenses)
 
 import Types
 import Parser
@@ -33,5 +33,3 @@ descP = do
           symbP descPrefix
           descStr <- spanTokenP elemSuffix
           return (Desc $ T.strip descStr)
-
-

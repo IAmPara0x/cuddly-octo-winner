@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 
-module Utils ( currTime
-             , (|.)
-             ) where
+module Miku.IO.Utils ( currTime
+                     , currDate
+                     ) where
 
 
 import Relude
 import System.IO
+
+import Data.Time(Day)
 import Data.Time.LocalTime
 
 import Control.Lens (Lens')
@@ -15,11 +16,10 @@ import Control.Lens (Lens')
 import Miku.Data.Time
 
 
-(|.) :: Lens' b c -> Lens' a b -> Lens' a c
-(|.) = flip (.)
-
-
 currTime :: IO Time
 currTime = do
            time <- fmap (localTimeOfDay . zonedTimeToLocalTime) getZonedTime
            return $ newTime (todHour time) (todMin time)
+
+currDate :: IO Day
+currDate = fmap (localDay . zonedTimeToLocalTime) getZonedTime

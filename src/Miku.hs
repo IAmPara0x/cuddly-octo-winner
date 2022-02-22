@@ -4,23 +4,10 @@ module Miku ( go
 
 import Relude
 
-import System.IO
-import Control.Monad.Trans.Maybe
+import Control.Monad.Trans
+import Miku.IO.Crud
 
-import Control.Lens
+task = newTask "This is a newTask v3" "This is a new description." ["Miku"]
 
-import Types
-import Crud
-import Utils
-import Miku.Data.Task
-import Miku.Data.TaskTime
-import Miku.Data.Heading
-import Miku.Data.Time
-
-x = newTask "This is Miku" (TaskTime (newTime 10 20) Nothing) "Just a random Desc." ["Yuno", "Gasai"]
-
-go :: IO ()
-go = do
-  time <- currTime
-  runMaybeT $ updateTaskIO "stuff/test.md" 0 ((timeEndL |. taskTimeL |. taskHeadingL) ?~ time)
-  return ()
+go :: IO()
+go = task >>= runMaybeT . insertTask "stuff/test.md" >> return ()

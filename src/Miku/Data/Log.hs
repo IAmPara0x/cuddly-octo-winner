@@ -1,0 +1,57 @@
+{-# LANGUAGE TemplateHaskell #-}
+
+module Miku.Data.Log ( Log
+                     , newLog
+                     , insertTask
+                     ) where
+
+import Relude hiding (put)
+
+import qualified Data.Text as T
+import Data.Sequence( Seq
+                    , (|>)
+                    )
+
+import Data.Time (Day)
+import Control.Lens ( makeLenses
+                    , (%~)
+                    )
+
+import Miku.Data.Task
+
+import Types
+import Syntax
+import Parser
+
+
+data Log = Log { _logDate  :: Text
+               , _logTasks :: Seq Task
+               }
+              deriving (Show)
+
+makeLenses ''Log
+-- Syntax
+
+datePrefix = "## Date:"
+
+instance Element Log where
+  prefix               = const $ Just (datePrefix <+ 2)
+  sep (Log date _)     = Just  $ newElem date
+  suffix (Log _ tasks) = Just  $ foldMap put tasks
+  parse                = logP
+
+
+logP :: Parser Log
+logP = do
+         spaceP
+         symbP datePrefix
+         date <- T.strip <$> spanTokenP elemSuffix
+         symbP elemSuffix
+         Log date . fromList <$> many parse
+
+
+newLog :: Day -> Log
+newLog day = Log (show day) empty
+
+insertTask :: Task -> Log -> Log
+insertTask task = logTasks %~ (|> task)

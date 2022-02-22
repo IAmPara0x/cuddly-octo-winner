@@ -4,6 +4,7 @@ module Miku.Data.TaskTime ( TaskTime(TaskTime)
                           , timeStartL
                           , timeEndL
                           , taskTimeP
+                          , newTaskTime
                           )
                           where
 
@@ -11,7 +12,7 @@ import Relude hiding (put)
 import qualified Data.Text as T
 
 import Data.Maybe (fromJust)
-import Control.Lens
+import Control.Lens (makeLenses)
 
 import Parser
 import Types
@@ -64,3 +65,5 @@ taskTimeP = do
                       (Nothing <$ symbP taskTimeSuffix)
               return (TaskTime startT endT)
 
+newTaskTime :: Time -> TaskTime
+newTaskTime time = TaskTime time Nothing

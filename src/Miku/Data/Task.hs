@@ -2,20 +2,26 @@
 
 module Miku.Data.Task ( Task(Task)
                       , newTask
+                      , completeTask
                       , taskHeadingL
                       , taskDescL
                       , taskTagsL
                       , taskP
-                      , tasksP
                       )
                       where
 
 import Relude hiding (put)
+
 import qualified Data.Text as T
-import Control.Lens
+import Data.Sequence (Seq)
+
+import Control.Lens ( makeLenses
+                    , (?~)
+                    )
 import Data.Maybe ( fromJust
                   , isNothing
                   )
+
 import Types
 import Parser
 
@@ -49,16 +55,6 @@ instance Element Task where
   parse                           = taskP
 
 
-newTask :: Text -> TaskTime -> Text -> [Text] -> Task
-newTask title taskTime "" tags   = Task { _taskHeadingL = Heading title taskTime
-                                        , _taskDescL    = Nothing
-                                        , _taskTagsL    = Tags tags
-                                        }
-newTask title taskTime desc tags = Task { _taskHeadingL = Heading title taskTime
-                                        , _taskDescL    = Just $ Desc desc
-                                        , _taskTagsL    = Tags tags
-                                        }
-
 taskP :: Parser Task
 taskP = do
           heading <- elemP parse
@@ -70,3 +66,17 @@ taskP = do
 
 tasksP :: Parser [Task]
 tasksP = many taskP
+
+newTask :: Text -> TaskTime -> Text -> Seq Text -> Task
+newTask title taskTime "" tags   = Task { _taskHeadingL = Heading title taskTime
+                                        , _taskDescL    = Nothing
+                                        , _taskTagsL    = Tags tags
+                                        }
+newTask title taskTime desc tags = Task { _taskHeadingL = Heading title taskTime
+                                        , _taskDescL    = Just $ Desc desc
+                                        , _taskTagsL    = Tags tags
+                                        }
+
+completeTask :: Time -> Task -> Task
+completeTask = (taskHeadingL . taskTimeL . timeEndL ?~)
+
