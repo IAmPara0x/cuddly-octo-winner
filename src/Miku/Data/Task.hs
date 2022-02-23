@@ -16,7 +16,7 @@ import qualified Data.Text as T
 import Data.Sequence (Seq)
 
 import Control.Lens ( makeLenses
-                    , (?~)
+                    , (%~)
                     )
 import Data.Maybe ( fromJust
                   , isNothing
@@ -78,5 +78,5 @@ newTask title taskTime desc tags = Task { _taskHeadingL = Heading title taskTime
                                         }
 
 completeTask :: Time -> Task -> Task
-completeTask = (taskHeadingL . taskTimeL . timeEndL ?~)
+completeTask t = taskHeadingL . taskTimeL . timeEndL %~ (Just . fromMaybe t)
 

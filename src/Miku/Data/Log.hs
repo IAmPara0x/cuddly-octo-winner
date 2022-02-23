@@ -3,6 +3,8 @@
 module Miku.Data.Log ( Log
                      , newLog
                      , insertTask
+                     , logDateL
+                     , logTasksL
                      ) where
 
 import Relude hiding (put)
@@ -24,8 +26,8 @@ import Syntax
 import Parser
 
 
-data Log = Log { _logDate  :: Text
-               , _logTasks :: Seq Task
+data Log = Log { _logDateL  :: Text
+               , _logTasksL :: Seq Task
                }
               deriving (Show)
 
@@ -54,4 +56,5 @@ newLog :: Day -> Log
 newLog day = Log (show day) empty
 
 insertTask :: Task -> Log -> Log
-insertTask task = logTasks %~ (|> task)
+insertTask task = logTasksL %~ (|> task)
+

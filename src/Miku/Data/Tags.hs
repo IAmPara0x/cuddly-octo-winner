@@ -41,10 +41,11 @@ tagsSep = ","
 makeLenses ''Tags
 
 instance Element Tags where
-  prefix = const $ Just (2 +> tagsPrefix <+ 2)
+  prefix             = const $ Just (2 +> tagsPrefix <+ 2)
   sep (Tags (x:<xs)) = Just $ x <> foldMap (", " <> ) xs
-  suffix    = const $ Just (tagsSuffix <> elemSuffix <> newline 2)
-  parse = tagsP
+  sep (Tags _)       = Just ""
+  suffix             = const $ Just (tagsSuffix <> elemSuffix <> newline 2)
+  parse              = tagsP
 
 
 tagsP :: Parser Tags
