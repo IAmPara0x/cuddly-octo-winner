@@ -2,6 +2,8 @@
 
 module Miku.IO.Utils ( currTime
                      , currDate
+                     , EitherIO
+                     , mCall
                      ) where
 
 
@@ -15,6 +17,7 @@ import Control.Lens (Lens')
 
 import Miku.Data.Time
 
+type EitherIO a = ExceptT String IO a
 
 currTime :: IO Time
 currTime = do
@@ -23,3 +26,7 @@ currTime = do
 
 currDate :: IO Day
 currDate = fmap (localDay . zonedTimeToLocalTime) getZonedTime
+
+mCall :: Maybe a -> (a -> EitherIO b) -> EitherIO b -> EitherIO b
+mCall Nothing _ v  = v
+mCall (Just a) f _ = f a

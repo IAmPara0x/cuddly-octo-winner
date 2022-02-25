@@ -18,9 +18,6 @@ import Data.Sequence (Seq)
 import Control.Lens ( makeLenses
                     , (%~)
                     )
-import Data.Maybe ( fromJust
-                  , isNothing
-                  )
 
 import Types
 import Parser
@@ -48,9 +45,9 @@ makeLenses ''Task
 
 
 instance Element Task where
-  prefix (Task heading _ _)       = Just $ put heading
-  sep  (Task _ Nothing tags)      = Just $ put tags
-  sep  (Task _ (Just desc) tags)  = Just $ put desc <> put tags
+  prefix (Task heading _ _)       = Just  $ put heading
+  sep  (Task _ Nothing tags)      = Just  $ put tags
+  sep  (Task _ (Just desc) tags)  = Just  $ put desc <> put tags
   suffix                          = const $ Just (taskSep <> newline 2)
   parse                           = taskP
 
@@ -78,5 +75,5 @@ newTask title taskTime desc tags = Task { _taskHeadingL = Heading title taskTime
                                         }
 
 completeTask :: Time -> Task -> Task
-completeTask t = taskHeadingL . taskTimeL . timeEndL %~ (Just . fromMaybe t)
+completeTask t = taskHeadingL . taskTimeL . timeEndL %~ (<|> Just t)
 

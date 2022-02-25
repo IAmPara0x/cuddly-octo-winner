@@ -27,6 +27,7 @@ library
   exposed-modules:
       Miku
   other-modules:
+      Miku.Data.Config
       Miku.Data.Desc
       Miku.Data.Heading
       Miku.Data.Log
@@ -34,7 +35,8 @@ library
       Miku.Data.Task
       Miku.Data.TaskTime
       Miku.Data.Time
-      Miku.IO.Crud
+      Miku.IO.Config
+      Miku.IO.Log
       Miku.IO.Utils
       Parser
       Syntax
@@ -58,6 +60,7 @@ library
     , text
     , time
     , transformers
+    , yaml
   default-language: Haskell2010
 
 executable miku

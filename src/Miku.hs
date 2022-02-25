@@ -7,18 +7,18 @@ import Relude
 
 import Control.Monad (void)
 import Control.Monad.Except (runExceptT)
-import Miku.IO.Crud
+import Miku.IO.Log
 
 task = newTask "This is a newTask v3" "This is a new description 3." ["Miku", "Yuno"]
 
+n = newLog
+d = filePath >>= completeTask
+i = filePath >>= (\f -> lift task >>= insertTask f)
+c = commitLog
+
 go :: IO()
--- go = newLog >>= writeLog "stuff/test.md"
--- go = task >>= runExceptT . insertTask "stuff/test.md" >> return ()
-go = void $ runExceptT (completeTask "stuff/test.md")
--- go = do
---        eitherV <- runExceptT $ readLog "stuff/test.md"
---        case eitherV of
---          (Left e) -> print e
---          (Right _) -> print "success"
---
---
+go = do
+       eitherV <- runExceptT d
+       case eitherV of
+         (Left  e) -> print e
+         (Right m) -> print m
