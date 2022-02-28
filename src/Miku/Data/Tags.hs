@@ -12,9 +12,9 @@ import qualified Data.Sequence as Seq
 
 import Control.Lens (makeLenses)
 
-import Parser
-import Types
-import Syntax
+import Miku.Data.Parser
+import Miku.Data.Types
+import Miku.Data.Syntax
 
 
 pattern Empty   <- (Seq.viewl -> Seq.EmptyL)  where Empty = Seq.empty

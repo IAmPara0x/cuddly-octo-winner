@@ -21,9 +21,9 @@ import Control.Lens ( makeLenses
 
 import Miku.Data.Task
 
-import Types
-import Syntax
-import Parser
+import Miku.Data.Parser
+import Miku.Data.Types
+import Miku.Data.Syntax
 
 
 data Log = Log { _logDateL  :: Text

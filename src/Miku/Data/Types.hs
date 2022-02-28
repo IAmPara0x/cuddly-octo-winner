@@ -1,9 +1,13 @@
-module Types ( Element(..)
-             ) where
+{-# Language GADTs #-}
+
+module Miku.Data.Types ( Element(..)
+                       ) where
 
 import Relude
 import qualified Data.Text as T
-import Parser (Parser)
+import Miku.Data.Parser ( Parser
+                        , runParser
+                        )
 
 class (Element a) where
   prefix :: a -> Maybe Text
@@ -11,4 +15,7 @@ class (Element a) where
   suffix :: a -> Maybe Text
   parse  :: Parser a
   put    :: a -> Text
+  toValue :: Text -> Maybe a
+  toValue = fmap fst . runParser parse
   put a = foldMap (fromMaybe "" . ($ a)) [prefix, sep, suffix]
+

@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
+{-# Language GADTs #-}
 
 module Miku.IO.Utils ( currTime
                      , currDate
-                     , EitherIO
                      , mCall
                      ) where
 
@@ -13,11 +14,10 @@ import System.IO
 import Data.Time(Day)
 import Data.Time.LocalTime
 
-import Control.Lens (Lens')
-
 import Miku.Data.Time
 
-type EitherIO a = ExceptT String IO a
+import Miku.IO.Types
+
 
 currTime :: IO Time
 currTime = do

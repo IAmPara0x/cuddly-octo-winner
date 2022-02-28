@@ -9,9 +9,9 @@ import Relude
 import qualified Data.Text as T
 import Control.Lens (makeLenses)
 
-import Types
-import Parser
-import Syntax
+import Miku.Data.Parser
+import Miku.Data.Types
+import Miku.Data.Syntax
 
 newtype Desc = Desc { _descL :: Text
                     } deriving (Show)

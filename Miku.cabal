@@ -31,16 +31,17 @@ library
       Miku.Data.Desc
       Miku.Data.Heading
       Miku.Data.Log
+      Miku.Data.Parser
+      Miku.Data.Syntax
       Miku.Data.Tags
       Miku.Data.Task
       Miku.Data.TaskTime
       Miku.Data.Time
+      Miku.Data.Types
       Miku.IO.Config
       Miku.IO.Log
+      Miku.IO.Types
       Miku.IO.Utils
-      Parser
-      Syntax
-      Types
       Paths_Miku
   hs-source-dirs:
       src

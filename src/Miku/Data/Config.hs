@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Miku.Data.Config ( Config(..)
-                        , filePathL
+                        , logFPathL
                         , logDirL
                         ) where
 
@@ -15,7 +15,8 @@ import Data.Yaml ( FromJSON(..)
                  )
 import Control.Lens (makeLenses)
 
-data Config = Config { _filePathL  :: Maybe FilePath
+
+data Config = Config { _logFPathL  :: Maybe FilePath
                      , _logDirL    :: FilePath
                      } deriving (Eq, Show)
 

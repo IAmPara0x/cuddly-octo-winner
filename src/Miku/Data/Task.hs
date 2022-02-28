@@ -19,10 +19,9 @@ import Control.Lens ( makeLenses
                     , (%~)
                     )
 
-import Types
-import Parser
-
-import Syntax
+import Miku.Data.Types
+import Miku.Data.Parser
+import Miku.Data.Syntax
 
 import Miku.Data.Time
 import Miku.Data.Heading

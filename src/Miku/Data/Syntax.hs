@@ -1,14 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Syntax ( elemSuffix
-              , wSpace
-              , newline
-              , (+>)
-              , (<+)
-              , newElem
-              , surroundElem
-              )
-              where
+module Miku.Data.Syntax ( elemSuffix
+                        , wSpace
+                        , newline
+                        , (+>)
+                        , (<+)
+                        , newElem
+                        , surroundElem
+                        )
+                        where
 
 import Relude
 import qualified Data.Text as T

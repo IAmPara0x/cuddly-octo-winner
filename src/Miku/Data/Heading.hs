@@ -10,9 +10,9 @@ import Relude hiding (put)
 import Control.Lens (makeLenses)
 import qualified Data.Text as T
 
-import Parser
-import Types
-import Syntax
+import Miku.Data.Types
+import Miku.Data.Parser
+import Miku.Data.Syntax
 
 import Miku.Data.TaskTime
 

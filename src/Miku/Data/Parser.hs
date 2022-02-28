@@ -1,20 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Parser ( Parser(..)
-              , item
-              , predP
-              , charP
-              , intP
-              , spanP
-              , spaceP
-              , stringP
-              , sepbyP
-              , tokenP
-              , symbP
-              , symbCharP
-              , spanTokenP
-              , elemP
-              ) where
+module Miku.Data.Parser ( Parser(..)
+                        , item
+                        , predP
+                        , charP
+                        , intP
+                        , spanP
+                        , spaceP
+                        , stringP
+                        , sepbyP
+                        , tokenP
+                        , symbP
+                        , symbCharP
+                        , spanTokenP
+                        , elemP
+                        ) where
 
 
 -- The parser here is inspired by the following paper:
@@ -32,9 +32,7 @@ import Data.Char ( isSpace
                  , isDigit
                  )
 
--- import Miku.Data.Task
--- import Miku.Data.Time
-import Syntax
+import Miku.Data.Syntax
 
 newtype Parser a = Parser { runParser :: Text -> Maybe (a, Text)
                           }

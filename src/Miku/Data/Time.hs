@@ -7,8 +7,9 @@ module Miku.Data.Time ( Time
 import Relude
 import qualified Data.Text as T
 
-import Types
-import Parser
+import Miku.Data.Types
+import Miku.Data.Parser
+
 
 mins :: Int
 mins = 60

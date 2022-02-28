@@ -14,9 +14,9 @@ import qualified Data.Text as T
 import Data.Maybe (fromJust)
 import Control.Lens (makeLenses)
 
-import Parser
-import Types
-import Syntax
+import Miku.Data.Types
+import Miku.Data.Parser
+import Miku.Data.Syntax
 
 import Miku.Data.Time
 
