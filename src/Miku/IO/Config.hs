@@ -40,9 +40,12 @@ writeConfig config = lift (encodeFile configPath config)
                      >> return config
 
 instance CmdL Config where
+  prefixMsg Err    = "Config Error:"
+  prefixMsg Suc    = "Config Success:"
+  
   readM         = createM readConfig (msg Suc "config has been read.")
   writeM config = createM (writeConfig config) (msg Suc "read the config file.")
-  newM          = error "`newM` is not implemented for `Config`."
+  newM          = createM (throwE $ msg Err "`newM` is not implemented for `Config`.") Err
 
 
 -- File Commands

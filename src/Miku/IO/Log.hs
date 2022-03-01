@@ -4,10 +4,13 @@ module Miku.IO.Log ( newTask
                    , writeLog
                    , commitLog
                    , completeTask
+                   , completeTaskM
+                   , commitLogM
                    , writeTask
                    , readTask
                    , Log
                    , Task
+                   , Config.Config
                    ) where
 
 import Relude hiding (put)
@@ -63,18 +66,27 @@ writeLog f log = do
                    lift (writeFileText f $ put log)
                    return log
 
-commitLog :: EitherIO (Msg Log)
+commitLog :: EitherIO Log
 commitLog = do
               config <- readL
               case config ^. Config.logFPathL of
                 Nothing  -> throwE $ msg Err "There's not current log to commit."
                 (Just f) -> writeL (config & Config.logFPathL .~ Nothing)
-                         >> return (msg Suc "commited the current log.")
+                         >> readLog f
+
+commitLogM :: Miku Log
+commitLogM = createM commitLog (msg Suc "commited the current log.")
 
 instance CmdL Log where
-  readM      = createM (logPath >>= readLog) (msg Suc "parsed tasks from current log.")
-  newM       = createM newLog  (msg Suc "created new empty log file.")
-  writeM log = createM (logPath >>= (`writeLog` log)) (msg Suc "written the current log.")
+  prefixMsg Err = "Log Error: "
+  prefixMsg Suc = "Log Success: "
+  
+  readM      = createM (logPath >>= readLog)
+             $ msg Suc "parsed tasks from current log."
+  newM       = createM newLog 
+             $ msg Suc "created new empty log file."
+  writeM log = createM (logPath >>= (`writeLog` log))
+             $ msg Suc "written the current log."
 
 
 -- Commands for task
@@ -98,16 +110,25 @@ writeTask f task = readLog f >>= writeLog f . Log.insertTask task
                   >> return task
 
 instance CmdL Task where
-  readM       = createM (logPath >>= readTask) (msg Suc "read the last task from the current log.")
-  writeM task = createM (logPath >>= (`writeTask` task)) (msg Suc "inserted the task.")
+  prefixMsg Err = "Task Error: "
+  prefixMsg Suc = "Task Success: "
+
+  readM       = createM (logPath >>= readTask)
+              $ msg Suc "read the last task from the current log."
+  writeM task = createM (logPath >>= (`writeTask` task))
+              $ msg Suc "inserted the task."
   newM        = error "Error: `newM` is not implemented for the `Task` type."
+  -- logPath >>= \f -> completeTask f >> 
   
-  
-completeTask :: FilePath -> EitherIO (Msg Task)
+completeTask :: FilePath -> EitherIO Task
 completeTask f = do
                    time <- lift currTime
                    log  <- update time <$> readLog f
-                   writeLog f log
-                   return (msg Suc "Current Task has been marked as completed.")
+                   writeLog f log >> readL
+                   
   where
     update t = Log.logTasksL . _last %~ Task.completeTask t
+
+completeTaskM :: Miku Task
+completeTaskM = createM (logPath >>= completeTask)
+              $ msg Suc "Current Task has been marked as completed."

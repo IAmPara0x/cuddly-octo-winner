@@ -14,7 +14,7 @@ import Relude hiding (show)
 import Text.Show (Show(..))
 import Control.Monad.Trans.Except (ExceptT)
 
-type EitherIO a1 = forall a. ExceptT (Msg a) IO a1
+type EitherIO a  = forall b. ExceptT (Msg b) IO a
 type Miku a      = forall f. Functor f => (a -> Msg a -> f a) -> EitherIO (f a)
 
 data (Msg t) where
@@ -26,15 +26,17 @@ msg :: Msg t -> String -> Msg t
 msg Err = Msg Err
 msg Suc = Msg Suc
 
-instance Show (Msg t) where
-  show Err     = "Error: "
-  show Suc     = "Success: "
+
+instance CmdL t => Show (Msg t) where
   show (Msg t m) = show t <> m
+  show t         = prefixMsg t
 
 class (CmdL a) where
   readM   :: Miku a
   newM    :: Miku a
   writeM  :: a -> Miku a
+
+  prefixMsg  :: Msg a -> String
   
   readL :: EitherIO a
   readL = runIdentity <$> readM (const . Identity)
