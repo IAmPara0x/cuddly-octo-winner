@@ -11,6 +11,7 @@ module Miku.IO.Log ( newTask
                    , Log
                    , Task
                    , Config.Config
+                   , LogPath
                    ) where
 
 import Relude hiding (put)
@@ -29,8 +30,8 @@ import Control.Monad.Trans (lift)
 
 import Miku.Data.Log (Log)
 import Miku.Data.Task (Task)
+import Miku.Data.Config (LogPath)
 import Miku.Data.TaskTime
-import Miku.Data.Tags
 
 import qualified Miku.Data.Log as Log
 import qualified Miku.Data.Task as Task
@@ -40,7 +41,6 @@ import Miku.IO.Config
 import Miku.IO.Utils
 import Miku.IO.Types
 
-import Miku.Data.Parser
 import Miku.Data.Types
 
 
@@ -50,20 +50,19 @@ import Miku.Data.Types
 newLog :: EitherIO Log
 newLog = do
            config    <- readL
-           path      <- newLogPath
            case config ^. Config.logFPathL of
-             Nothing  -> writeLogPath path
+             Nothing  -> (newL::(EitherIO LogPath))
                       >> lift currDate >>= (writeL . Log.newLog)
              (Just _) -> throwE (msg Err "There's already log created.")
 
-readLog :: FilePath -> EitherIO Log
+readLog :: LogPath -> EitherIO Log
 readLog f = do
-              log <- toValue <$> readFileText f
+              log <- toValue <$> readFileText (toString f)
               mCall log return (throwE $ msg Err "unable to parse the tasks from current log file.")
 
-writeLog :: FilePath -> Log -> EitherIO Log
+writeLog :: LogPath -> Log -> EitherIO Log
 writeLog f log = do
-                   lift (writeFileText f $ put log)
+                   lift (writeFileText (toString f) $ put log)
                    return log
 
 commitLog :: EitherIO Log
@@ -81,11 +80,11 @@ instance CmdL Log where
   prefixMsg Err = "Log Error: "
   prefixMsg Suc = "Log Success: "
   
-  readM      = createM (logPath >>= readLog)
+  readM      = createM (readL >>= readLog)
              $ msg Suc "parsed tasks from current log."
   newM       = createM newLog 
              $ msg Suc "created new empty log file."
-  writeM log = createM (logPath >>= (`writeLog` log))
+  writeM log = createM (readL >>= (`writeLog` log))
              $ msg Suc "written the current log."
 
 
@@ -97,15 +96,15 @@ newTask title desc tags = do
                             return $ Task.newTask title
                                    (newTaskTime time) desc (fromList tags)
 
-readTask :: FilePath -> EitherIO Task
+readTask :: LogPath -> EitherIO Task
 readTask f = do
                log <- readLog f
                case viewr (log ^. Log.logTasksL) of
                  _ :> task -> return task
-                 _         -> throwE (msg Err $ "There's no task to read from the log: " <> f)
+                 _         -> throwE (msg Err $ "There's no task to read from the log: " <> toString f)
 
 
-writeTask :: FilePath -> Task -> EitherIO Task
+writeTask :: LogPath -> Task -> EitherIO Task
 writeTask f task = readLog f >>= writeLog f . Log.insertTask task
                   >> return task
 
@@ -113,14 +112,13 @@ instance CmdL Task where
   prefixMsg Err = "Task Error: "
   prefixMsg Suc = "Task Success: "
 
-  readM       = createM (logPath >>= readTask)
+  readM       = createM (readL >>= readTask)
               $ msg Suc "read the last task from the current log."
-  writeM task = createM (logPath >>= (`writeTask` task))
+  writeM task = createM (readL >>= (`writeTask` task))
               $ msg Suc "inserted the task."
   newM        = error "Error: `newM` is not implemented for the `Task` type."
-  -- logPath >>= \f -> completeTask f >> 
   
-completeTask :: FilePath -> EitherIO Task
+completeTask :: LogPath -> EitherIO Task
 completeTask f = do
                    time <- lift currTime
                    log  <- update time <$> readLog f
@@ -130,5 +128,6 @@ completeTask f = do
     update t = Log.logTasksL . _last %~ Task.completeTask t
 
 completeTaskM :: Miku Task
-completeTaskM = createM (logPath >>= completeTask)
+completeTaskM = createM (readL >>= completeTask)
               $ msg Suc "Current Task has been marked as completed."
+

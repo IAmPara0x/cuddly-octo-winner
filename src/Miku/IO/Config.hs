@@ -1,8 +1,6 @@
-{-#Language RankNTypes#-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module Miku.IO.Config ( logDir
-                      , logPath
-                      , writeLogPath
-                      , newLogPath
                       ) where
 
 import Relude
@@ -43,27 +41,45 @@ instance CmdL Config where
   prefixMsg Err    = "Config Error:"
   prefixMsg Suc    = "Config Success:"
   
-  readM         = createM readConfig (msg Suc "config has been read.")
-  writeM config = createM (writeConfig config) (msg Suc "read the config file.")
-  newM          = createM (throwE $ msg Err "`newM` is not implemented for `Config`.") Err
+  readM            = createM readConfig
+                   $ msg Suc "config has been read."
+
+  writeM config    = createM (writeConfig config)
+                   $ msg Suc "read the config file."
+
+  newM             = createM (throwE $ msg Err "`newM` is not implemented for `Config`.") Err
 
 
 -- File Commands
 
-logPath :: EitherIO FilePath
-logPath = do
-            config <- readL
-            mCall (config ^. logFPathL) return (throwE $ msg Err "was not able to read the file path.")
+readLogPath :: EitherIO LogPath
+readLogPath = do
+                config <- readL
+                mCall (config ^. logFPathL) return (throwE $ msg Err "was not able to read the file path.")
 
-newLogPath :: EitherIO FilePath
+newLogPath :: EitherIO LogPath
 newLogPath = do
                dir  <- logDir
                date <- lift currDate
-               return (dir <> show date <> "_log.md")
+               return $ LogPath (dir <> show date <> "_log.md")
 
-writeLogPath :: FilePath -> EitherIO (Msg FilePath)
+writeLogPath :: LogPath -> EitherIO LogPath
 writeLogPath path = readL >>= writeL . (logFPathL ?~ path)
-                    >> return (msg Suc $ "updated the file path to the following: " <> path)
+                    >> return path
+
+instance CmdL LogPath where
+  prefixMsg  Err = "LogPath Error: "
+  prefixMsg  Suc = "LogPath Success: "
+
+  readM          = createM readLogPath
+                 $ msg Suc "read the current log path."
+
+  writeM path    = createM (writeLogPath path)
+                 $ msg Suc $ "log path has been updated to: " <> toString path
+
+  newM           = createM (newLogPath >>= writeL)
+                 $ msg Suc "new log path ."
+
 
 logDir :: EitherIO FilePath
 logDir = (^. logDirL) <$> readConfig

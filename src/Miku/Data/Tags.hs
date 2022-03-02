@@ -20,7 +20,7 @@ import Miku.Data.Syntax
 pattern Empty   <- (Seq.viewl -> Seq.EmptyL)  where Empty = Seq.empty
 pattern x :< xs <- (Seq.viewl -> x Seq.:< xs) where (:<)  = (Seq.<|)
 pattern xs :> x <- (Seq.viewr -> xs Seq.:> x) where (:>)  = (Seq.|>)
-
+-- 
 newtype Tags = Tags { _tagsL :: Seq Text
                     }
                deriving (Show)

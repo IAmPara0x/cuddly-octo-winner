@@ -16,17 +16,13 @@ import Miku.IO.Config
 
 x = newTask "This is a newTask v3" "This is a new description 3." ["Miku", "Yuno"]
 -- 
--- n = newLog
--- d = logPath >>= completeTask
--- i = filePath >>= (\f -> lift task >>= insertTask f)
--- c = commitLog
+
+type T = Msg Task
 
 go :: IO()
 go = do
        x' <- x
-       eitherV <- runExceptT (execM commitLogM)
+       eitherV <- runExceptT (execM $ completeTaskM)
        case eitherV of
-         (Left  e) -> print (e:: Msg Log)
-         (Right m) -> print (m:: (Msg Log))
--- go = print "Yuno"
---
+         (Left  e) -> print (e :: T)
+         (Right m) -> print (m :: T)

@@ -1,5 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving#-}
+
 module Miku.Data.Config ( Config(..)
+                        , LogPath(..)
                         , logFPathL
                         , logDirL
                         ) where
@@ -16,7 +19,15 @@ import Data.Yaml ( FromJSON(..)
 import Control.Lens (makeLenses)
 
 
-data Config = Config { _logFPathL  :: Maybe FilePath
+newtype LogPath = LogPath FilePath
+                  deriving (Show, Eq, Ord,
+                            FromJSON, ToJSON,
+                            Monoid, Semigroup,
+                            ToString
+                           )
+
+
+data Config = Config { _logFPathL  :: Maybe LogPath
                      , _logDirL    :: FilePath
                      } deriving (Eq, Show)
 
