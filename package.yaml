@@ -41,6 +41,7 @@ library:
   - containers
   - relude
   - yaml
+  - vty
 
 executables:
   miku:

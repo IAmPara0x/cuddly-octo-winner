@@ -16,7 +16,7 @@ import Data.Yaml ( FromJSON(..)
                  , (.:)
                  , (.=)
                  )
-import Control.Lens (makeLenses)
+import Control.Lens ( makeLenses)
 
 
 newtype LogPath = LogPath FilePath

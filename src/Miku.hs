@@ -1,11 +1,12 @@
-{-# Language FlexibleContexts #-}
-
-module Miku ( go
+module Miku (go
             )
             where
 
 
 import Relude
+
+import Miku.UI.App
+
 
 import Control.Monad (void)
 import Control.Monad.Except (runExceptT)
@@ -15,14 +16,13 @@ import Miku.IO.Types
 import Miku.IO.Config
 
 x = newTask "This is a newTask v3" "This is a new description 3." ["Miku", "Yuno"]
--- 
-
-type T = Msg Task
+type T = Msg Log
 
 go :: IO()
 go = do
        x' <- x
-       eitherV <- runExceptT (execM $ completeTaskM)
+       eitherV <- runExceptT (execM newM)
        case eitherV of
-         (Left  e) -> print (e :: T)
-         (Right m) -> print (m :: T)
+         (Left  e) -> print (e::T)
+         (Right m) -> print (m::T)
+       render

@@ -82,8 +82,10 @@ instance CmdL Log where
   
   readM      = createM (readL >>= readLog)
              $ msg Suc "parsed tasks from current log."
+
   newM       = createM newLog 
              $ msg Suc "created new empty log file."
+
   writeM log = createM (readL >>= (`writeLog` log))
              $ msg Suc "written the current log."
 
@@ -114,16 +116,17 @@ instance CmdL Task where
 
   readM       = createM (readL >>= readTask)
               $ msg Suc "read the last task from the current log."
+
   writeM task = createM (readL >>= (`writeTask` task))
               $ msg Suc "inserted the task."
-  newM        = error "Error: `newM` is not implemented for the `Task` type."
+
+  newM        = createM (throwE $ msg Err "`newM` is not implemented for the `Task` type.") Err
   
 completeTask :: LogPath -> EitherIO Task
 completeTask f = do
                    time <- lift currTime
                    log  <- update time <$> readLog f
                    writeLog f log >> readL
-                   
   where
     update t = Log.logTasksL . _last %~ Task.completeTask t
 
