@@ -27,23 +27,7 @@ library
   exposed-modules:
       Miku
   other-modules:
-      Miku.Data.Config
-      Miku.Data.Desc
       Miku.Data.Heading
-      Miku.Data.Log
-      Miku.Data.Parser
-      Miku.Data.Syntax
-      Miku.Data.Tags
-      Miku.Data.Task
-      Miku.Data.TaskTime
-      Miku.Data.Time
-      Miku.Data.Types
-      Miku.IO.Config
-      Miku.IO.Log
-      Miku.IO.Types
-      Miku.IO.Utils
-      Miku.UI.App
-      Miku.UI.State
       Paths_Miku
   hs-source-dirs:
       src
@@ -58,6 +42,7 @@ library
     , brick
     , containers
     , lens
+    , megaparsec
     , mtl
     , relude
     , text

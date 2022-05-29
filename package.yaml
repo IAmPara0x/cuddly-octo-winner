@@ -33,13 +33,14 @@ library:
   dependencies:
   - base >= 4.7 && < 5
   - brick
-  - text
+  - containers
   - lens
+  - mtl
+  - megaparsec
+  - relude
+  - text
   - time
   - transformers
-  - mtl
-  - containers
-  - relude
   - yaml
   - vty
 

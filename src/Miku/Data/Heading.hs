@@ -1,43 +1,38 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeApplications #-}
 
-module Miku.Data.Heading ( Heading(Heading)
-                         , titleL
-                         , taskTimeL
-                         , headingP
-                         )
-                         where
-import Relude hiding (put)
-import Control.Lens (makeLenses)
-import qualified Data.Text as T
+module Miku.Data.Heading (Parser, Heading, pHeading) where
 
-import Miku.Data.Types
-import Miku.Data.Parser
-import Miku.Data.Syntax
+import Relude
+import Prelude (Read(..))
+import Data.Void (Void)
 
-import Miku.Data.TaskTime
+import Text.Show (Show)
 
-data Heading = Heading { _titleL    :: Text
-                       , _taskTimeL :: TaskTime
-                       }
-               deriving (Show)
+import qualified Text.Megaparsec as P
+import Text.Megaparsec.Char
 
-makeLenses ''Heading
---
--- Syntax for heading
-headingPrefix :: Text
-headingPrefix = "#### Task:"
+import Data.Time
 
 
-instance Element Heading where
-  prefix                  = const $ Just (headingPrefix <+2)
-  sep (Heading name time) = Just $ name <+ 2 <> put time
-  suffix                  = const $ Just (elemSuffix <> newline 2)
-  parse                   = headingP
+type Parser = P.Parsec Void Text
 
-headingP :: Parser Heading
-headingP = do
-             symbP headingPrefix
-             title <- T.strip <$> spanP '(' -- TODO: This is wrong!. This parser is dependent on the syntax of tasktime.
-             taskTime <- tokenP parse
-             return (Heading title taskTime)
+newtype Heading = Heading { getHeading :: Day }
+                  deriving newtype (Show, Read)
 
+headingPrefix :: (IsString a) => a
+headingPrefix  = "# Date: "
+
+pHeading :: Parser Heading
+pHeading = do
+  void (string headingPrefix)
+  void (many $ char ' ')
+
+  year  <- some numberChar <* char '-'
+  month <- some numberChar <* char '-'
+  day   <- some numberChar
+
+  let mday  = readMaybe @Heading (intercalate "-" [year, month, day])
+  
+  return $ fromMaybe (error "Error: Not able to parse the day.") mday
