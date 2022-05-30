@@ -27,7 +27,9 @@ library
   exposed-modules:
       Miku
   other-modules:
-      Miku.Data.Heading
+      Miku.Types.Heading
+      Miku.Types.Log
+      Miku.Types.Parser
       Paths_Miku
   hs-source-dirs:
       src
