@@ -30,6 +30,8 @@ library
       Miku.Types.Heading
       Miku.Types.Log
       Miku.Types.Parser
+      Miku.Types.Task
+      Miku.Types.Time
       Paths_Miku
   hs-source-dirs:
       src

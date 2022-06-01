@@ -29,10 +29,11 @@ headingP = do
   void (string headingPrefix)
   void spaceP
 
-  year  <- some numberChar <* char '-' <?> "Year"
-  month <- some numberChar <* char '-' <?> "month"
-  day   <- unpack <$> takeWhileP (Just "day in the format of: 05.") isNumber
+  year  <- some digitChar <* char '-' <?> "Year"
+  month <- some digitChar <* char '-' <?> "month"
+  day   <- some digitChar <?> "day"
 
+  void (many $ char ' ')
   void eol
 
   let mdate  = readMaybe @Heading (intercalate "-" [year, month, day])

@@ -1,6 +1,8 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Miku.Types.Parser ( module X
                          , Parser
                          , spaceP
+                         , tokenP
                          ) where
 
 
@@ -15,4 +17,10 @@ import Relude
 type Parser = Parsec Text Text
 
 spaceP :: Parser String
-spaceP = many spaceChar
+spaceP = many $ char ' '
+
+tokenP :: Parser a -> Parser a
+tokenP p = spaceP *> p <* spaceP
+
+instance ShowErrorComponent Text where
+  showErrorComponent = show
