@@ -1,18 +1,22 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE KindSignatures      #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+
 module Miku.Types.Parser ( module X
+                         , Element(..)
                          , Parser
                          , spaceP
                          , tokenP
                          ) where
 
-
-import Data.Void (Void)
-import Data.Text (Text)
-
 import Text.Megaparsec         as X hiding (many, some)
 import Text.Megaparsec.Char    as X
 
 import Relude
+
+class Element (a :: *) where
+  parseElement :: Parser a
+  putElement   :: a -> Text
 
 type Parser = Parsec Text Text
 

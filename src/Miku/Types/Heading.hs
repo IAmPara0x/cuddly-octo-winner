@@ -3,26 +3,30 @@
 {-# LANGUAGE TypeApplications           #-}
 
 module Miku.Types.Heading ( Parser
-                          , Heading(Heading)
-                          , headingP
+                          , Heading(Heading, getHeading)
                           ) where
 
-import           Data.Char (isNumber)
-import           Text.Show (Show)
+import qualified Data.Text as T
+import           Text.Show (Show(..))
 import           Data.Time (Day)
-import           Data.Text (unpack)
 
-import           Relude
+import           Relude    hiding (show)
 
 import           Miku.Types.Parser
 
 
 newtype Heading = Heading { getHeading :: Day }
-                  deriving newtype (Show, Read)
+                  deriving newtype (Read)
+
+instance Show Heading where
+  show (Heading date) = headingPrefix <> show date <> "\n\n"
+
+instance Element Heading where
+  parseElement = headingP
+  putElement   = T.pack . show
 
 headingPrefix :: (IsString a) => a
 headingPrefix  = "# Date: "
-
 
 headingP :: Parser Heading
 headingP = do

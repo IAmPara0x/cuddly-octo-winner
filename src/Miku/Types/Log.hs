@@ -1,36 +1,48 @@
-module Miku.Types.Log (Log(Log), readLog) where
+module Miku.Types.Log ( Log(Log)
+                      , logHeading
+                      , logTasks
+                      , readLog
+                      , writeLog
+                      ) where
 
-import Text.Show(Show)
-import Data.Text (pack)
+import           Text.Show(Show(..))
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 
-import Relude
+import           Relude hiding (show)
 
-import Miku.Types.Parser
+import           Miku.Types.Parser
 
-import Miku.Types.Heading (Heading(Heading), headingP)
-import Miku.Types.Task    (Task(Task), taskP, taskSep)
+import           Miku.Types.Heading (Heading)
+import           Miku.Types.Task    (Task,taskSep)
 
 data Log = Log { logHeading :: Heading
                , logTasks   :: [Task]
-               } deriving (Show)
+               }
 
+instance Show Log where
+  show = T.unpack . putElement
+
+instance Element Log where
+  parseElement            = logP
+  putElement   (Log h ts) = putElement h <> foldMap (\t -> putElement t <> "\n\n---\n\n") ts
 
 logP :: Parser Log
 logP = do
-  heading <- headingP
+  heading <- parseElement
   void (many eol)
-  tasks   <- sepBy taskP taskSep
+  tasks   <- endBy parseElement taskSep
   void eof
   return $ Log heading tasks
 
 readLog :: IO Log
 readLog = do
-  input <- pack <$> readFile "dailyLog.md"
-  
-  print input
-
-  -- parseTest logP input
+  input <- T.pack <$> readFile "dailyLog.md"
 
   case runParser logP "dailyLog.md" input of
-    Left a    -> error $ show a
-    Right log -> print log >> return log
+    Left a    -> error $ T.pack $ show a
+    Right log -> return log
+
+
+writeLog :: FilePath -> Log -> IO ()
+writeLog f = T.writeFile f . putElement
