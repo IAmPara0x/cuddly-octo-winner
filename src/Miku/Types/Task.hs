@@ -32,7 +32,7 @@ instance Element Task where
   putElement  (Task name startT (Just endT)) = taskPrefix
                                              <> " " <> name <> " " 
                                              <> "(" <> putElement startT
-                                             <> " - " <> putElement endT <> " )\n"
+                                             <> " - " <> putElement endT <> ")"
 
 taskP :: Parser Task
 taskP = do

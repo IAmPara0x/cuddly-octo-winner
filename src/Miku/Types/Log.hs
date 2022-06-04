@@ -35,9 +35,9 @@ logP = do
   void eof
   return $ Log heading tasks
 
-readLog :: IO Log
-readLog = do
-  input <- T.pack <$> readFile "dailyLog.md"
+readLog :: FilePath -> IO Log
+readLog f = do
+  input <- T.pack <$> readFile f
 
   case runParser logP "dailyLog.md" input of
     Left a    -> error $ T.pack $ show a

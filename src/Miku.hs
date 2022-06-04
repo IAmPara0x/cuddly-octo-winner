@@ -1,8 +1,13 @@
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TypeOperators #-}
 
-module Miku (run) where
+module Miku where
 
+import Miku.Types.Parser
 import Relude
+
+
 
 run :: IO()
 run = print @Text "fresh start"
