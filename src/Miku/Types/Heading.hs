@@ -1,74 +1,49 @@
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeApplications           #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DerivingStrategies    #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 
-module Miku.Types.Heading ( Parser
-                          , Heading(Heading, getHeading)
-                          , HeadingP
-                          , HeadingF
-                          , DayP
-                          , DayF
-                          , dayP
-                          ) where
+module Miku.Types.Heading
+  ( Parser,
+    Heading (Heading, getHeading),
+    HeadingP,
+    DayP,
+    dayP,
+    headingP,
+  )
+where
 
 import qualified Data.Text as T
-import           Text.Read (read)
-import           Text.Show (Show(..))
-import           Data.Time (Day)
-
-import           Relude    hiding (show)
-
-import           Miku.Types.Parser
+import Data.Time (Day)
+import Miku.Types.Parser
+import Relude hiding (show)
+import Text.Read (read)
+import Text.Show (Show (..))
 
 
-newtype Heading = Heading { getHeading :: Day }
-                  deriving newtype (Read)
+type DayP = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
 
-type DayP = Digits :>> Literal "-" :>> Digits :>> Literal "-" :>> Digits
-type DayF = Integer -> () -> Integer -> () -> Integer -> Day
-
-dayP :: Integer -> () -> Integer -> () -> Integer -> Day
-dayP y () m () d = read (show y <> "-" <> m' <> "-" <> d')
+dayP :: Integer -> Integer -> Integer -> Day
+dayP y m d = read (show y <> "-" <> m' <> "-" <> d')
   where
     m' = if m < 10 then "0" <> show m else show m
     d' = if d < 10 then "0" <> show d else show d
 
-instance Element DayP DayF where 
-  elementF = dayP
+instance Atom DayP where
+  type AtomType DayP = Day
+  atomP = composeP @DayP dayP
 
-type HeadingP = Prefix "# Date: " :>> DayP :>> Spaces
-type HeadingF = () -> Integer -> () -> Integer -> () -> Integer -> () -> Day
+newtype Heading = Heading {getHeading :: Day}
+  deriving (Show)
 
+type HeadingP = (Prefix "# Date: " :> DayP <: Many Space) :>> Some Newline
 
-instance Show Heading where
-  show (Heading date) = headingPrefix <> show date <> "\n\n"
---
--- instance Element Heading where
---   parseElement = headingP
---   putElement   = T.pack . show
+headingP :: Day -> [()] -> Heading
+headingP day _ = Heading day
 
-headingPrefix :: (IsString a) => a
-headingPrefix  = "# Date: "
-
--- headingP :: Parser Heading
--- headingP = do
---   void (string headingPrefix)
---   void spaceP
---
---   year  <- some digitChar <* char '-' <?> "Year"
---   month <- some digitChar <* char '-' <?> "month"
---   day   <- some digitChar <?> "day"
---
---   void (many $ char ' ')
---   void eol
---
---   let mdate  = readMaybe @Heading (intercalate "-" [year, month, day])
---
---   case mdate of
---     (Just date) -> return date
---     Nothing     -> customFailure "Expected valid a heading like: 2022-05-27" 
+instance Atom HeadingP where
+  type AtomType HeadingP = Heading
+  atomP = composeP @HeadingP headingP

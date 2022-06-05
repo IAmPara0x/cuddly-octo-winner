@@ -1,56 +1,35 @@
-module Miku.Types.Task ( Task(Task)
-                       , taskName
-                       , taskStart
-                       , taskEnd
-                       , taskSep
-                       ) where
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE TypeOperators     #-}
+
+module Miku.Types.Task
+  ( Task (Task),
+    TaskP,
+    taskName,
+    taskStart,
+    taskEnd,
+  )
+where
 
 import qualified Data.Text as T
-import           Text.Show (Show(..))
-import           Relude hiding (show)
+import Miku.Types.Parser
+import Miku.Types.Time
+import Relude hiding (show)
+import Text.Show (Show (..))
 
-import           Miku.Types.Time
-import           Miku.Types.Parser
+data Task = Task
+  { taskName :: Text,
+    taskStart :: Time,
+    taskEnd :: Maybe Time
+  } deriving (Show)
 
-data Task = Task { taskName  :: Text
-                 , taskStart :: Time
-                 , taskEnd   :: Maybe Time
-                 }
+type TaskP =  (Prefix "###" :> TakeTill "(" <: Token "(")
+          :>> TimeP <: Token "-"
+          :>> Optional TimeP <: Token ")" <: Some Newline
+              <: Literal "---" <: Some Newline
 
-taskPrefix :: Text
-taskPrefix = "###"
-
-instance Show Task where
-  show = T.unpack . putElement
-
-
-instance Element Task where
-  parseElement = taskP
-  putElement  (Task name startT Nothing) = taskPrefix
-                                         <> " " <> name <> " " 
-                                         <> "(" <> putElement startT <> " - )"
-  putElement  (Task name startT (Just endT)) = taskPrefix
-                                             <> " " <> name <> " " 
-                                             <> "(" <> putElement startT
-                                             <> " - " <> putElement endT <> ")"
-
-taskP :: Parser Task
-taskP = do
-  void (tokenP $ string taskPrefix)
-
-  name   <- T.strip <$> takeWhileP (Just "an alpha numeric character") (/= '(')
-
-  void (tokenP $ char '(')
-
-  startT <- tokenP parseElement
-
-  void (tokenP $ char '-')
-
-  endT   <- optional (tokenP parseElement)
-
-  void $ tokenP (char ')') <* many eol
-
-  return $ Task name startT endT
-
-taskSep :: Parser Text
-taskSep = string "---" <* many eol
+instance Atom TaskP where
+  type AtomType TaskP = Task
+  atomP = composeP @TaskP Task

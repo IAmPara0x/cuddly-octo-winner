@@ -13,12 +13,14 @@ import           Relude hiding (show)
 
 import           Miku.Types.Parser
 
-import           Miku.Types.Heading (Heading)
-import           Miku.Types.Task    (Task,taskSep)
+import           Miku.Types.Heading
+import           Miku.Types.Task
 
 data Log = Log { logHeading :: Heading
                , logTasks   :: [Task]
                }
+
+-- type LogP = HeadingP :>
 
 instance Show Log where
   show = T.unpack . putElement
