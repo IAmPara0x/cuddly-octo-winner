@@ -22,13 +22,13 @@ data Time = Time
   }
   deriving (Show)
 
-type TimeP = Digits <: Literal "H" <: Token ":" :>> (Digits <: Literal "M")
+type TimeP = Digits <: Literal "H" <: Token ":" :>> Digits <: Literal "M"
 
 timeP :: Integer -> Integer -> Time
 timeP hrs mins = time (fromInteger hrs) (fromInteger mins)
 
 instance Atom TimeP where
-  type AtomType TimeP = Time
+  type AtomP TimeP = Time
   atomP = composeP @TimeP timeP
 
 instance Eq Time where
