@@ -72,24 +72,27 @@ data Task = Task
   { taskName  :: Text,
     taskStart :: Time,
     taskEnd   :: Maybe Time,
-    taskDesc  :: Maybe Text
+    taskDesc  :: Text,
+    taskTags  :: Text 
   }
   deriving (Show)
 
-type TaskF = Text -> Time -> Maybe Time -> Maybe Text -> Task
+type TaskF = Text -> Time -> Maybe Time -> Text -> Text -> Task
 
 
-type TaskSep = Many Newline :> Literal "---" <: Newline <: Newline <: Newline <: Many Newline
-type Desc    = (Literal "  " :> PrintChar <: Newline <: Newline)
+type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
+type Desc    = Repeat 2 Space :> PrintChar <: Repeat 2 Newline
+type Tags    = Repeat 2 Space :> Prefix "Tags: " :> PrintChar <: Repeat 2 Newline
 
 type TaskP = (Prefix "###" :> TakeTill "(" <: Token "(")
-          :>> TimeP <: Space <: Token "-" <: Space :>> Optional TimeP <: Token ")" <: Newline <: Newline <: Many Newline
-          :>> Optional Desc <: TaskSep
+          :>> TimeP <: Space <: Token "-" <: Space
+          :>> Optional TimeP <: Token ")" <: Repeat 2 Newline <: Many Newline
+          :>> Desc :>> Tags <: TaskSep
           -- <: TaskSep
 instance Atom TaskP where
   type AtomType TaskP = Task
   parseAtom = composeP @TaskP (Task . T.strip)
-  showAtom (Task name start end desc) = composeS @TaskP @TaskF "" name start end desc
+  showAtom (Task name start end desc tags) = composeS @TaskP @TaskF "" name start end desc tags
 
 -----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
@@ -101,7 +104,7 @@ data Log = Log
   }
   deriving (Show)
 
-type LogP = HeadingP <: Newline <: Newline <: Newline <: Many Newline :>> Many TaskP
+type LogP = HeadingP <: Repeat 3 Newline <: Many Newline :>> Many TaskP
 type LogF = Heading -> [Task] -> Log
 
 instance Atom LogP where
@@ -120,9 +123,6 @@ readLog f = do
 writeLog :: FilePath -> Log -> IO()
 writeLog f log = writeFile f $ T.unpack (showAtom @LogP log)
 
--- writeLog :: FilePath -> IO Log
--- writeLog 
-
 -- readLog :: FilePath -> IO ()
 -- readLog f = do
 --   input <- T.pack <$> readFile f
@@ -130,4 +130,4 @@ writeLog f log = writeFile f $ T.unpack (showAtom @LogP log)
 --   print input
 --
 --   parseTest (parseAtom @LogP) input
---
+
