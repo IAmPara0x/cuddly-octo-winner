@@ -8,11 +8,11 @@
 
 module Miku.Types.Log
   ( Log (Log, logHeading, logTasks),
-    LogP,
-    DayP,
+    LogFormat,
+    DayFormat,
     DayF,
     Heading(..),
-    HeadingP,
+    HeadingFormat,
     HeadingF,
     readLog,
     writeLog
@@ -30,7 +30,7 @@ import           Miku.Types.Parser
 import           Miku.Types.Time
 
 
-type DayP = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
+type DayFormat = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
 type DayF = Integer -> Integer -> Integer -> Day
 
 dayP :: DayF
@@ -39,9 +39,9 @@ dayP y m d = read (show y <> "-" <> m' <> "-" <> d')
     m' = if m < 10 then "0" <> show m else show m
     d' = if d < 10 then "0" <> show d else show d
 
-instance Atom DayP where
-  type AtomType DayP = Day
-  parseAtom    = composeP @DayP dayP
+instance Atom DayFormat where
+  type AtomType DayFormat = Day
+  parseAtom    = composeP @DayFormat dayP
   showAtom day = show day
   -- showAtom 
 
@@ -52,17 +52,17 @@ instance Atom DayP where
 newtype Heading = Heading {getHeading :: Day}
   deriving (Show)
 
-type HeadingP = Prefix "# Date:" :>> DayP <: Many Space
+type HeadingFormat = Prefix "# Date:" :>> DayFormat <: Many Space
 type HeadingF = () -> Day -> Heading
 
 headingP :: () -> Day -> Heading
 headingP _ = Heading
 
-instance Atom HeadingP where
-  type AtomType HeadingP = Heading
+instance Atom HeadingFormat where
+  type AtomType HeadingFormat = Heading
 
-  parseAtom              = composeP @HeadingP headingP
-  showAtom (Heading day) = composeS @HeadingP @HeadingF "" () day
+  parseAtom              = composeP @HeadingFormat headingP
+  showAtom (Heading day) = composeS @HeadingFormat @HeadingF mempty () day
 
 -----------------------------------------------------------------
 -- | 'Task'
@@ -72,27 +72,33 @@ data Task = Task
   { taskName  :: Text,
     taskStart :: Time,
     taskEnd   :: Maybe Time,
-    taskDesc  :: Text,
-    taskTags  :: Text 
+    taskDesc  :: Maybe Text,
+    taskTags  :: Text
   }
   deriving (Show)
 
-type TaskF = Text -> Time -> Maybe Time -> Text -> Text -> Task
+type TaskF = Text -> Time -> Maybe Time -> Maybe Text -> Text -> Task
 
+type Desc  = (Repeat 2 Space :> AlphaNum) :>> (PrintChar <: Repeat 2 Newline)
 
+instance Atom Desc where
+  type AtomType Desc = Text
+  parseAtom = composeP @Desc (<>)
+  showAtom  = composeS @Desc @(Text -> Text -> Text) mempty mempty
+  
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
-type Desc    = Repeat 2 Space :> PrintChar <: Repeat 2 Newline
-type Tags    = Repeat 2 Space :> Prefix "Tags: " :> PrintChar <: Repeat 2 Newline
 
-type TaskP = (Prefix "###" :> TakeTill "(" <: Token "(")
+type Tags    = Repeat 4 Space :> Prefix "Tags: " :> PrintChar <: Repeat 2 Newline
+
+type TaskFormat = (Prefix "###" :> TakeTill "(" <: Token "(")
           :>> TimeP <: Space <: Token "-" <: Space
           :>> Optional TimeP <: Token ")" <: Repeat 2 Newline <: Many Newline
-          :>> Desc :>> Tags <: TaskSep
+          :>> Optional (Try Desc) :>> Tags <: TaskSep
           -- <: TaskSep
-instance Atom TaskP where
-  type AtomType TaskP = Task
-  parseAtom = composeP @TaskP (Task . T.strip)
-  showAtom (Task name start end desc tags) = composeS @TaskP @TaskF "" name start end desc tags
+instance Atom TaskFormat where
+  type AtomType TaskFormat = Task
+  parseAtom = composeP @TaskFormat (Task . T.strip)
+  showAtom (Task name start end desc tags) = composeS @TaskFormat @TaskF mempty name start end desc tags
 
 -----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
@@ -104,24 +110,24 @@ data Log = Log
   }
   deriving (Show)
 
-type LogP = HeadingP <: Repeat 3 Newline <: Many Newline :>> Many TaskP
+type LogFormat = HeadingFormat <: Repeat 3 Newline <: Many Newline :>> Many TaskFormat
 type LogF = Heading -> [Task] -> Log
 
-instance Atom LogP where
-  type AtomType LogP = Log
-  parseAtom = composeP @LogP Log
-  showAtom (Log h ts) = composeS @LogP @LogF "" h ts
+instance Atom LogFormat where
+  type AtomType LogFormat = Log
+  parseAtom = composeP @LogFormat Log
+  showAtom (Log h ts) = composeS @LogFormat @LogF mempty h ts
 
 readLog :: FilePath -> IO Log
 readLog f = do
   input <- T.pack <$> readFile f
 
-  case runParser (parseAtom @LogP) "dailyLog.md" input of
+  case runParser (parseAtom @LogFormat) "dailyLog.md" input of
     Left a    -> error $ T.pack $ show a
     Right log -> return log
 
 writeLog :: FilePath -> Log -> IO()
-writeLog f log = writeFile f $ T.unpack (showAtom @LogP log)
+writeLog f log = writeFile f $ T.unpack (showAtom @LogFormat log)
 
 -- readLog :: FilePath -> IO ()
 -- readLog f = do
@@ -129,5 +135,5 @@ writeLog f log = writeFile f $ T.unpack (showAtom @LogP log)
 --
 --   print input
 --
---   parseTest (parseAtom @LogP) input
-
+--   parseTest (parseAtom @LogFormat) input
+--

@@ -3,18 +3,16 @@
 
 ### This is my task(10H:20M - 11H:20M)
 
-  This is a desc dadao dada
+  This is my 1st descriptions
 
-  Tags:  Study, Test
+    Tags:  Study, Test
 
 ---
 
 
-### This is my task(10H:20M - 11H:20M)
+### This is my task(10H:20M - )
 
-  This is my 2nd desc.
-
-  Tags:  Study, Test
+    Tags:  Study, Test
 
 ---
 
