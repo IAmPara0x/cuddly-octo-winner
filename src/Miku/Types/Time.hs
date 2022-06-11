@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans   #-}
+
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeApplications  #-}
@@ -6,7 +8,7 @@
 
 module Miku.Types.Time
   ( Time,
-    TimeP,
+    TimeP , 
     time,
     timeHrs,
     timeMins,
@@ -17,19 +19,21 @@ import Miku.Types.Parser
 import Relude
 
 data Time = Time
-  { timeHrs :: Int,
-    timeMins :: Int
+  { timeHrs :: Integer,
+    timeMins :: Integer
   }
   deriving (Show)
 
 type TimeP = Digits <: Literal "H" <: Token ":" :>> Digits <: Literal "M"
+type TimeF = Integer -> Integer -> Time
 
-timeP :: Integer -> Integer -> Time
-timeP hrs mins = time (fromInteger hrs) (fromInteger mins)
+time :: TimeF
+time h m = Time (h + div m 60) (mod m 60)
 
 instance Atom TimeP where
-  type AtomP TimeP = Time
-  atomP = composeP @TimeP timeP
+  type AtomType TimeP = Time
+  parseAtom                 = composeP @TimeP time
+  showAtom (Time hrs mins)  = composeS @TimeP @TimeF "" hrs mins
 
 instance Eq Time where
   (Time h1 m1) == (Time h2 m2) = h1 == h2 && m1 == m2
@@ -52,6 +56,3 @@ instance Semigroup Time where
 
 instance Monoid Time where
   mempty = time 0 0
-
-time :: Int -> Int -> Time
-time h m = Time (h + div m 60) (mod m 60)

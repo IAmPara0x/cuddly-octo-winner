@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeApplications  #-}
@@ -7,7 +9,13 @@
 module Miku.Types.Log
   ( Log (Log, logHeading, logTasks),
     LogP,
+    DayP,
+    DayF,
+    Heading(..),
+    HeadingP,
+    HeadingF,
     readLog,
+    writeLog
   )
 where
 
@@ -23,17 +31,19 @@ import           Miku.Types.Time
 
 
 type DayP = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
+type DayF = Integer -> Integer -> Integer -> Day
 
-dayP :: Integer -> Integer -> Integer -> Day
+dayP :: DayF
 dayP y m d = read (show y <> "-" <> m' <> "-" <> d')
   where
     m' = if m < 10 then "0" <> show m else show m
     d' = if d < 10 then "0" <> show d else show d
 
 instance Atom DayP where
-  type AtomP DayP = Day
-  atomP = composeP @DayP dayP
-
+  type AtomType DayP = Day
+  parseAtom    = composeP @DayP dayP
+  showAtom day = show day
+  -- showAtom 
 
 -----------------------------------------------------------------
 -- | 'Heading'
@@ -42,39 +52,44 @@ instance Atom DayP where
 newtype Heading = Heading {getHeading :: Day}
   deriving (Show)
 
-type HeadingP = Prefix "# Date: " :>> DayP <: Many Space
+type HeadingP = Prefix "# Date:" :>> DayP <: Many Space
+type HeadingF = () -> Day -> Heading
 
 headingP :: () -> Day -> Heading
 headingP _ = Heading
 
 instance Atom HeadingP where
-  type AtomP HeadingP = Heading
-  atomP = composeP @HeadingP headingP
+  type AtomType HeadingP = Heading
+
+  parseAtom              = composeP @HeadingP headingP
+  showAtom (Heading day) = composeS @HeadingP @HeadingF "" () day
 
 -----------------------------------------------------------------
 -- | 'Task'
 -----------------------------------------------------------------
 
 data Task = Task
-  { taskName :: Text,
+  { taskName  :: Text,
     taskStart :: Time,
-    taskEnd :: Maybe Time,
-    taskDesc :: Maybe Text
+    taskEnd   :: Maybe Time,
+    taskDesc  :: Maybe Text
   }
   deriving (Show)
 
-type TaskSep = Many Newline :> Literal "---" <: Some Newline
-type Desc    = Some (Literal "  " :> PrintChar <: Newline)
+type TaskF = Text -> Time -> Maybe Time -> Maybe Text -> Task
+
+
+type TaskSep = Many Newline :> Literal "---" <: Newline <: Newline <: Newline <: Many Newline
+type Desc    = (Literal "  " :> PrintChar <: Newline <: Newline)
 
 type TaskP = (Prefix "###" :> TakeTill "(" <: Token "(")
-          :>> TimeP <: Token "-"
-          :>> Optional TimeP <: Token ")" <: Many Newline
+          :>> TimeP <: Space <: Token "-" <: Space :>> Optional TimeP <: Token ")" <: Newline <: Newline <: Many Newline
           :>> Optional Desc <: TaskSep
           -- <: TaskSep
-
 instance Atom TaskP where
-  type AtomP TaskP = Task
-  atomP = composeP @TaskP (\name startT endT xs -> Task (T.strip name) startT endT $ foldMap (<> "\n") <$> xs)
+  type AtomType TaskP = Task
+  parseAtom = composeP @TaskP (Task . T.strip)
+  showAtom (Task name start end desc) = composeS @TaskP @TaskF "" name start end desc
 
 -----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
@@ -86,19 +101,27 @@ data Log = Log
   }
   deriving (Show)
 
-type LogP = HeadingP <: Some Newline :>> Many TaskP
+type LogP = HeadingP <: Newline <: Newline <: Newline <: Many Newline :>> Many TaskP
+type LogF = Heading -> [Task] -> Log
 
 instance Atom LogP where
-  type AtomP LogP = Log
-  atomP = composeP @LogP Log
+  type AtomType LogP = Log
+  parseAtom = composeP @LogP Log
+  showAtom (Log h ts) = composeS @LogP @LogF "" h ts
 
 readLog :: FilePath -> IO Log
 readLog f = do
   input <- T.pack <$> readFile f
 
-  case runParser (atomP @LogP) "dailyLog.md" input of
+  case runParser (parseAtom @LogP) "dailyLog.md" input of
     Left a    -> error $ T.pack $ show a
     Right log -> return log
+
+writeLog :: FilePath -> Log -> IO()
+writeLog f log = writeFile f $ T.unpack (showAtom @LogP log)
+
+-- writeLog :: FilePath -> IO Log
+-- writeLog 
 
 -- readLog :: FilePath -> IO ()
 -- readLog f = do
@@ -106,5 +129,5 @@ readLog f = do
 --
 --   print input
 --
---   parseTest (atomP @LogP) input
+--   parseTest (parseAtom @LogP) input
 --
