@@ -30,6 +30,8 @@ import           Miku.Types.Parser
 import           Miku.Types.Time
 
 
+-- TODO: Find a way to eliminate types like HeadingFormat and HeadingF.
+
 type DayFormat = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
 type DayF = Integer -> Integer -> Integer -> Day
 
@@ -73,31 +75,34 @@ data Task = Task
     taskStart :: Time,
     taskEnd   :: Maybe Time,
     taskDesc  :: Maybe Text,
-    taskTags  :: Text
+    taskTags  :: [Text]
   }
   deriving (Show)
 
-type TaskF = Text -> Time -> Maybe Time -> Maybe Text -> Text -> Task
+type TaskF = Text -> Time -> Maybe Time -> Maybe Text -> [Text] -> Task
 
-type Desc  = (Repeat 2 Space :> AlphaNum) :>> (PrintChar <: Repeat 2 Newline)
+type Desc  = (Repeat 2 Space :> AlphaNum)
+         :>> (PrintChar <: Repeat 2 Newline)
 
 instance Atom Desc where
   type AtomType Desc = Text
   parseAtom = composeP @Desc (<>)
   showAtom  = composeS @Desc @(Text -> Text -> Text) mempty mempty
-  
+
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
-type Tags    = Repeat 2 Space :> Literal "**" :> Prefix "Tags: " :> TakeTill "*" <: Literal "**" <: Repeat 2 Newline
+type Tags    = Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
+            :> SepBy1 AlphaNum (Token "," <: Space <: Many Space) 
+            <: Literal "**" <: Repeat 2 Newline
 
 type TaskFormat = (Prefix "###" :> TakeTill "(" <: Token "(")
-          :>> TimeP <: Space <: Token "-" <: Space
-          :>> Optional TimeP <: Token ")" <: Repeat 2 Newline <: Many Newline
-          :>> Optional (Try Desc) :>> Tags <: TaskSep
-          -- <: TaskSep
+              :>> TimeP <: Space <: Token "-" <: Space
+              :>> Optional TimeP <: Token ")" <: Repeat 2 Newline <: Many Newline
+              :>> Optional (Try Desc) :>> Tags <: TaskSep
+
 instance Atom TaskFormat where
   type AtomType TaskFormat = Task
-  parseAtom = composeP @TaskFormat (Task . T.strip)
+  parseAtom = composeP @TaskFormat @TaskF (Task . T.strip)
   showAtom (Task name start end desc tags) = composeS @TaskFormat @TaskF mempty name start end desc tags
 
 -----------------------------------------------------------------
