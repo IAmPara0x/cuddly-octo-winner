@@ -24,7 +24,7 @@ data Time = Time
   }
   deriving (Show)
 
-type TimeP = Digits <: Literal "H" <: Token ":" :>> Digits <: Literal "M"
+type TimeP = Digits <: Literal "h" <: Token ":" :>> Digits <: Literal "m"
 type TimeF = Integer -> Integer -> Time
 
 time :: TimeF

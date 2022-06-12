@@ -88,7 +88,7 @@ instance Atom Desc where
   
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
-type Tags    = Repeat 4 Space :> Prefix "Tags: " :> PrintChar <: Repeat 2 Newline
+type Tags    = Repeat 2 Space :> Literal "**" :> Prefix "Tags: " :> TakeTill "*" <: Literal "**" <: Repeat 2 Newline
 
 type TaskFormat = (Prefix "###" :> TakeTill "(" <: Token "(")
           :>> TimeP <: Space <: Token "-" <: Space
