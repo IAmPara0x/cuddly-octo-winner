@@ -33,13 +33,14 @@ library:
   dependencies:
   - base >= 4.7 && < 5
   - brick
-  - text
+  - containers
   - lens
+  - mtl
+  - megaparsec
+  - relude
+  - text
   - time
   - transformers
-  - mtl
-  - containers
-  - relude
   - yaml
   - vty
 
@@ -48,6 +49,7 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
+    - -Wall
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
