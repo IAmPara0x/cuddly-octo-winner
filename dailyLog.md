@@ -1,18 +1,18 @@
 # Date: 2022-05-30
 
 
-### This is my task(10h:20m - 11h:20m)
+### Learning Brick haskell(10h:20m - 11h:20m)
 
-  This is my 1st descriptions
+  learning brick haskell for mikus UI.
 
-  **Tags:  Study, Test**
+  **Tags:  Haskell, Miku**
 
 ---
 
 
-### This is my task(10h:20m - )
+### Working on miku(10h:20m - )
 
-  **Tags:  Study, Test**
+  **Tags:  Haskell, Miku**
 
 ---
 

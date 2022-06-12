@@ -25,6 +25,7 @@ module Miku.Types.Parser
   , Prefix
   , PrintChar
   , Repeat
+  , SepBy1
   , Some
   , Space
   , Tab
@@ -260,6 +261,28 @@ instance (Atom p, Monoid(AtomType p), KnownNat n) => Composeable (Repeat n p) ((
   composeP f  = f <$> parseAtom @(Repeat n p)
   composeS s  = s <> showAtom @(Repeat n p) ()
 
+data SepBy1 (p :: Type) (s :: Type)
+
+
+instance (Atom p, Atom s, Monoid (AtomType s))
+  => Atom (SepBy1 p s)
+  where
+  
+  type AtomType (SepBy1 p s) = [AtomType p]
+
+  parseAtom       = sepBy1 (parseAtom @p) (parseAtom @s)
+  showAtom  []    = ""
+  showAtom (x:xs) = showAtom @p x <> showAtom @s mempty <> showAtom @(SepBy1 p s) xs
+
+instance (Atom p, [AtomType p] ~ a, Atom s, Monoid (AtomType s))
+  => Composeable (SepBy1 p s) (a -> b)
+  where
+  
+  type ComposeP (SepBy1 p s) (a -> b) = b
+  type ComposeS (SepBy1 p s)          = [AtomType p] -> Text
+
+  composeP f   = f <$> parseAtom @(SepBy1 p s)
+  composeS s a = s <> showAtom @(SepBy1 p s) a
 
 data Some (p :: Type)
 
