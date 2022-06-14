@@ -45,7 +45,7 @@ instance Atom DayFormat where
   type AtomType DayFormat = Day
   parseAtom    = composeP @DayFormat dayP
   showAtom day = show day
-  -- showAtom 
+  -- showAtom
 
 -----------------------------------------------------------------
 -- | 'Heading'
@@ -81,18 +81,24 @@ data Task = Task
 
 type TaskF = Text -> Time -> Maybe Time -> Maybe Text -> [Text] -> Task
 
-type Desc  = (Repeat 2 Space :> AlphaNum)
-         :>> (PrintChar <: Repeat 2 Newline)
+type DescLine = (Repeat 2 Space :> AlphaNum) :>> PrintChar <: Newline
+
+instance Atom DescLine where
+  type AtomType DescLine = Text
+  parseAtom = composeP @DescLine (<>)
+  showAtom  = composeS @DescLine @(Text -> Text -> Text) mempty mempty
+
+type Desc  =  Many DescLine :>> Repeat 1 Newline
 
 instance Atom Desc where
   type AtomType Desc = Text
-  parseAtom = composeP @Desc (<>)
-  showAtom  = composeS @Desc @(Text -> Text -> Text) mempty mempty
+  parseAtom = composeP @Desc (\a () -> T.unlines a)
+  showAtom  t = composeS @Desc @([Text] -> () -> Text) mempty (T.lines t)
 
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
 type Tags    = Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
-            :> SepBy1 AlphaNum (Token "," <: Space <: Many Space) 
+            :> SepBy1 AlphaNum (Token "," <: Space <: Many Space)
             <: Literal "**" <: Repeat 2 Newline
 
 type TaskFormat = (Prefix "###" :> TakeTill "(" <: Token "(")
