@@ -8,7 +8,7 @@
 
 module Miku.Types.Time
   ( Time,
-    TimeP , 
+    TimeP ,
     time,
     timeHrs,
     timeMins,

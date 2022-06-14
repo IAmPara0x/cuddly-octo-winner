@@ -119,7 +119,7 @@ instance Atom AlphaNum where
 
   parseAtom = T.pack <$> some alphaNumChar
   showAtom  = id
-  
+
 instance Composeable AlphaNum (Text -> a) where
   type ComposeP AlphaNum (Text -> a) = a
   type ComposeS AlphaNum             = Text -> Text
@@ -135,7 +135,7 @@ instance Atom Digits where
 
   parseAtom = read <$> some digitChar
   showAtom  = show
-  
+
 instance Composeable Digits (Integer -> a) where
   type ComposeP Digits (Integer -> a) = a
   type ComposeS Digits = Integer -> Text
@@ -184,7 +184,7 @@ instance Atom Newline where
 
   parseAtom   = void eol
   showAtom () = "\n"
-  
+
 instance Composeable Newline (() -> a) where
   type ComposeP Newline (() -> a) = a
   type ComposeS Newline           = Text
@@ -201,7 +201,7 @@ instance (Atom p) => Atom (Optional p) where
   parseAtom         = optional (parseAtom @p)
   showAtom Nothing  = ""
   showAtom (Just a) = showAtom @p a
-  
+
 instance (Atom p, Maybe (AtomType p) ~ a) => Composeable (Optional p) (a -> b) where
   type ComposeP (Optional p) (a -> b) = b
   type ComposeS (Optional p)          = Maybe (AtomType p) -> Text
@@ -233,7 +233,7 @@ instance Atom PrintChar where
 
   parseAtom = T.pack <$> some printChar
   showAtom  = id
-  
+
 instance Composeable PrintChar (Text -> a) where
   type ComposeP PrintChar (Text -> a) = a
   type ComposeS PrintChar             = Text -> Text
@@ -267,17 +267,18 @@ data SepBy1 (p :: Type) (s :: Type)
 instance (Atom p, Atom s, Monoid (AtomType s))
   => Atom (SepBy1 p s)
   where
-  
+
   type AtomType (SepBy1 p s) = [AtomType p]
 
   parseAtom       = sepBy1 (parseAtom @p) (parseAtom @s)
   showAtom  []    = ""
+  showAtom  [x]   = showAtom @p x
   showAtom (x:xs) = showAtom @p x <> showAtom @s mempty <> showAtom @(SepBy1 p s) xs
 
 instance (Atom p, [AtomType p] ~ a, Atom s, Monoid (AtomType s))
   => Composeable (SepBy1 p s) (a -> b)
   where
-  
+
   type ComposeP (SepBy1 p s) (a -> b) = b
   type ComposeS (SepBy1 p s)          = [AtomType p] -> Text
 
@@ -308,7 +309,7 @@ instance Atom Space where
 
   parseAtom   = void (char ' ')
   showAtom () = " "
-  
+
 instance Composeable Space (() -> a) where
   type ComposeP Space (() -> a) = a
   type ComposeS Space           = Text
@@ -344,7 +345,7 @@ instance (KnownSymbol p) => Atom (TakeTill p) where
       [c] -> takeWhileP (Just "Take till c") (/= c)
       s   -> customFailure $ "a just a single character instead got: " <> T.pack s
   showAtom = id
-  
+
 instance (KnownSymbol p) => Composeable (TakeTill p) (Text -> a) where
   type ComposeP (TakeTill p) (Text -> a) = a
   type ComposeS (TakeTill p)             = Text -> Text
