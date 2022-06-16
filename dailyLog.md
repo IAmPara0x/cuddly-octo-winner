@@ -23,7 +23,7 @@
   Learning Type level programming in haskell.
   Reading book: Thinking with types.
 
-  **Tags:  Haskell, Miku**
+  **Tags:  Haskell, Learning**
 
 ---
 

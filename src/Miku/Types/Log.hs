@@ -7,27 +7,26 @@
 {-# LANGUAGE TypeOperators     #-}
 
 module Miku.Types.Log
-  ( Log (Log, logHeading, logTasks),
-    LogFormat,
-    DayFormat,
-    DayF,
-    Heading(..),
+  ( Heading(..),
     HeadingFormat,
-    HeadingF,
+    Task(..),
+    TaskFormat,
+    LogFormat,
+    Log (Log, logHeading, logTasks),
     readLog,
     writeLog
   )
 where
 
-import qualified Data.Text as T
-import           Data.Time (Day)
-import           Text.Megaparsec (runParser, parseTest)
-import           Text.Read (read)
+import  Data.Text qualified as T
+import  Data.Time              (Day)
+import  Text.Megaparsec        (runParser, parseTest)
+import  Text.Read              (read)
 
-import           Relude
+import  Relude
 
-import           Miku.Types.Parser
-import           Miku.Types.Time
+import  Miku.Types.Parser
+import  Miku.Types.Time
 
 
 -- TODO: Find a way to eliminate types like HeadingFormat and HeadingF.
@@ -102,14 +101,17 @@ type Tags    = Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
             <: Literal "**" <: Repeat 2 Newline
 
 type TaskFormat = (Prefix "###" :> TakeTill "(" <: Token "(")
-              :>> TimeP <: Space <: Token "-" <: Space
-              :>> Optional TimeP <: Token ")" <: Repeat 2 Newline <: Many Newline
+              :>> TimeFormat <: Space <: Token "-" <: Space
+              :>> Optional TimeFormat <: Token ")" <: Repeat 2 Newline <: Many Newline
               :>> Optional (Try Desc) :>> Tags <: TaskSep
 
 instance Atom TaskFormat where
   type AtomType TaskFormat = Task
   parseAtom = composeP @TaskFormat @TaskF (Task . T.strip)
   showAtom (Task name start end desc tags) = composeS @TaskFormat @TaskF mempty name start end desc tags
+
+instance Element Task where
+  type ElementFormat Task = TaskFormat
 
 -----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
@@ -128,6 +130,9 @@ instance Atom LogFormat where
   type AtomType LogFormat = Log
   parseAtom = composeP @LogFormat Log
   showAtom (Log h ts) = composeS @LogFormat @LogF mempty h ts
+
+instance Element Log where
+  type ElementFormat Log = LogFormat
 
 readLog :: FilePath -> IO Log
 readLog f = do

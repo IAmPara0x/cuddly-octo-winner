@@ -25,6 +25,7 @@ default-extensions:
 - LambdaCase
 - RankNTypes
 - NoImplicitPrelude
+- ImportQualifiedPost 
 
 library:
   source-dirs: src
