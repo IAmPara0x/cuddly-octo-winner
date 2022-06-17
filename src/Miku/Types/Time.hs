@@ -7,11 +7,11 @@
 {-# LANGUAGE TypeOperators     #-}
 
 module Miku.Types.Time
-  ( Time,
-    TimeP ,
-    time,
-    timeHrs,
-    timeMins,
+  ( Time
+  , TimeFormat
+  , time
+  , timeHrs
+  , timeMins
   )
 where
 
@@ -24,16 +24,19 @@ data Time = Time
   }
   deriving (Show)
 
-type TimeP = Digits <: Literal "h" <: Token ":" :>> Digits <: Literal "m"
+type TimeFormat = Digits <: Literal "h" <: Token ":" :>> Digits <: Literal "m"
 type TimeF = Integer -> Integer -> Time
 
 time :: TimeF
 time h m = Time (h + div m 60) (mod m 60)
 
-instance Atom TimeP where
-  type AtomType TimeP = Time
-  parseAtom                 = composeP @TimeP time
-  showAtom (Time hrs mins)  = composeS @TimeP @TimeF "" hrs mins
+instance Atom TimeFormat where
+  type AtomType TimeFormat = Time
+  parseAtom                 = composeP @TimeFormat time
+  showAtom (Time hrs mins)  = composeS @TimeFormat @TimeF "" hrs mins
+
+instance Element Time where
+  type ElementFormat Time = TimeFormat
 
 instance Eq Time where
   (Time h1 m1) == (Time h2 m2) = h1 == h2 && m1 == m2

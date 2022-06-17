@@ -13,6 +13,7 @@
 module Miku.Types.Parser
   ( Atom(..)
   , Composeable(..)
+  , Element(..)
   , type (:>>)
   , type (<:)
   , type (:>)
@@ -35,12 +36,13 @@ module Miku.Types.Parser
   )
   where
 
-import qualified Data.Text as T
-import           GHC.TypeLits
-import           Text.Megaparsec hiding (Token, many, some)
-import           Text.Megaparsec.Char
-import           Text.Read (read)
-import           Relude hiding (natVal, Alt)
+import  Data.Text       qualified as T
+import  GHC.TypeLits
+import  Text.Megaparsec           hiding (Token, many, some)
+import  Text.Megaparsec.Char
+import  Text.Read                        (read)
+
+import  Relude                    hiding (natVal, Alt)
 
 
 class Composeable (a :: Type) (f :: Type) where
@@ -54,7 +56,16 @@ class Atom (a :: Type) where
   type AtomType a :: Type
 
   parseAtom :: Parser (AtomType a)
-  showAtom :: AtomType a -> Text
+  showAtom  :: AtomType a -> Text
+
+class Element (a :: Type) where
+  type ElementFormat a :: Type
+  
+  showElement :: (Atom (ElementFormat a), AtomType (ElementFormat a) ~ a) => a -> Text
+  showElement = showAtom @(ElementFormat a)
+  
+  parseElement :: (Atom (ElementFormat a), AtomType (ElementFormat a) ~ a) => Parser a
+  parseElement = parseAtom @(ElementFormat a)
 
 
 data (p :: k1) :> (a :: k2)
