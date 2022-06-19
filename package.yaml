@@ -38,13 +38,10 @@ library:
   - brick >= 0.69
   - containers
   - lens
-  - mtl
   - megaparsec
   - relude
   - text
   - time
-  - transformers
-  - yaml
   - vty >= 5.35.1
 
 executables:
@@ -54,6 +51,7 @@ executables:
     ghc-options:
     - -Wall
     - -threaded
+    - -O1
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:

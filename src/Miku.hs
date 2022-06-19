@@ -1,8 +1,7 @@
-{-# LANGUAGE TypeApplications #-}
-module Miku where
+module Miku (run) where
 
 import Relude
+import Miku.UI.Log
 
-
-run :: IO()
-run = print @String "moshi moshi"
+run :: IO ()
+run = app
