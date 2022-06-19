@@ -5,21 +5,24 @@
 {-# LANGUAGE TypeApplications   #-}
 {-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE DerivingStrategies #-}
 
 module Miku.Types.Log
-  ( Task(..),
-    TaskFormat,
-    Log (..),
-    LogFormat,
-    readLog,
-    writeLog
+  ( Description(..)
+  , Heading(..)
+  , Goal(..)
+  , Log (..)
+  , Name(..)
+  , Tag
+  , Task(..)
+  , Time
+  , time
+  , readLog
+  , writeLog
   )
 where
 
 import  Data.Text    qualified as T
 import  Data.Text.IO qualified as T
-import  Data.Coerce            (coerce)
 import  Data.Time              (Day)
 import  Text.Megaparsec        (runParser, parseTest)
 import  Text.Read              (read)
@@ -33,7 +36,7 @@ import  Miku.Types.Time
 -- TODO: Find a way to eliminate types like HeadingFormat and HeadingF.
 
 type DayFormat = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
-type DayF = Integer -> Integer -> Integer -> Day
+type DayF      = Integer -> Integer -> Integer -> Day
 
 dayP :: DayF
 dayP y m d = read (show y <> "-" <> m' <> "-" <> d')
@@ -66,6 +69,9 @@ instance Atom HeadingFormat where
   parseAtom              = composeP @HeadingFormat headingP
   showAtom (Heading day) = composeS @HeadingFormat @HeadingF mempty () day
 
+instance Element Heading where
+  type ElementFormat Heading = HeadingFormat
+
 -----------------------------------------------------------------
 -- | 'Name'
 -----------------------------------------------------------------
@@ -73,7 +79,7 @@ instance Atom HeadingFormat where
 newtype Name = Name Text
                deriving stock (Show, Eq)
 
-type NameFormat = (Prefix "###" :>> TakeTill "(" <: Token "(")
+type NameFormat = Prefix "###" :>> TakeTill "(" <: Token "("
 type NameF      = () -> Text -> Name
 
 instance Atom NameFormat where
@@ -81,6 +87,8 @@ instance Atom NameFormat where
   parseAtom = composeP @NameFormat @NameF (const $ Name . T.strip)
   showAtom  = composeS @NameFormat @NameF mempty () . coerce
   
+instance Element Name where
+  type ElementFormat Name = NameFormat
   
 -----------------------------------------------------------------
 -- | 'Description'
@@ -90,7 +98,8 @@ newtype Description = Description Text
                       deriving stock (Show, Eq)
 
 
-type DescLine = (Repeat 2 Space :> AlphaNum) :>> PrintChar <: Newline
+type DescLine = Repeat 2 Space :> AlphaNums
+            :>> PrintChars <: Newline
 
 instance Atom DescLine where
   type AtomType DescLine = Text
@@ -105,6 +114,9 @@ instance Atom DescriptionFormat where
   parseAtom = composeP @DescriptionFormat @DescriptionF (\a () -> Description $ T.unlines a)
   showAtom  = composeS @DescriptionFormat @DescriptionF mempty . T.lines . coerce
 
+instance Element Description where
+  type ElementFormat Description = DescriptionFormat
+
 -----------------------------------------------------------------
 -- | 'Tags'
 -----------------------------------------------------------------
@@ -112,8 +124,8 @@ instance Atom DescriptionFormat where
 newtype Tag = Tag Text
               deriving stock (Show, Eq)
 
-type TagsFormat   = (Repeat 2 Space :> Literal "**" :> Prefix "Tags: ")
-                 :>> SepBy1 AlphaNum (Token "," <: Space <: Many Space)
+type TagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
+                :>> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
                  <: Literal "**" <: Repeat 2 Newline
 
 type TagF         = () -> [Text] -> [Tag]
@@ -123,16 +135,19 @@ instance Atom TagsFormat where
   parseAtom = composeP @TagsFormat @TagF (const $ map Tag)
   showAtom  = composeS @TagsFormat @TagF  mempty () . coerce
 
+instance Element Tag where
+  type ElementFormat Tag = TagsFormat
+
 -----------------------------------------------------------------
 -- | 'Task'
 -----------------------------------------------------------------
 
 data Task = Task
-  { taskName  :: Name,
-    taskStart :: Time,
-    taskEnd   :: Maybe Time,
-    taskDesc  :: Maybe Description,
-    taskTags  :: [Tag]
+  { taskName  :: Name
+  , taskStart :: Time
+  , taskEnd   :: Maybe Time
+  , taskDesc  :: Maybe Description
+  , taskTags  :: [Tag]
   }
   deriving (Show)
 
@@ -148,49 +163,84 @@ type TaskFormat = NameFormat
 
 instance Atom TaskFormat where
   type AtomType TaskFormat = Task
-  parseAtom = composeP @TaskFormat @TaskF Task
+  parseAtom                                = composeP @TaskFormat @TaskF Task
   showAtom (Task name start end desc tags) = composeS @TaskFormat @TaskF mempty name start end desc tags
 
 instance Element Task where
   type ElementFormat Task = TaskFormat
 
 -----------------------------------------------------------------
+-- | 'Goals'
+-----------------------------------------------------------------
+
+data GoalStatus = Done
+                | NotDone
+                | Other Char
+                  deriving stock (Show)
+
+data Goal = Goal
+  { goalStatus :: GoalStatus
+  , goalDesc   :: Text
+  } deriving stock (Show)
+
+type GoalFormat =  Repeat 2 Space :> Literal "-" :> Space
+               :>  Literal "[" :> PrintChar <: Literal "]" <: Space
+               :>> PrintChars <: Repeat 2 Newline
+
+type GoalF = Char -> Text -> Goal
+
+goal :: Char -> Text -> Goal
+goal ' ' = Goal NotDone
+goal 'X' = Goal Done
+goal c   = Goal (Other c)
+
+instance Atom GoalFormat where
+  type AtomType GoalFormat = Goal
+  parseAtom                       = composeP @GoalFormat @GoalF goal
+  showAtom  (Goal Done desc)      = composeS @GoalFormat @GoalF mempty 'X' desc
+  showAtom  (Goal NotDone desc)   = composeS @GoalFormat @GoalF mempty ' ' desc
+  showAtom  (Goal (Other c) desc) = composeS @GoalFormat @GoalF mempty c desc
+
+instance Element Goal where
+  type ElementFormat Goal = GoalFormat
+
+-----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
 -----------------------------------------------------------------
 
 data Log = Log
-  { logHeading :: Heading,
-    logTasks   :: [Task]
+  { logHeading :: Heading
+  , logTasks   :: [Task]
+  , logGoals   :: [Goal]
   }
   deriving (Show)
 
-type LogFormat = HeadingFormat <: Repeat 3 Newline <: Many Newline :>> Many TaskFormat
-type LogF = Heading -> [Task] -> Log
+type LogFormat = HeadingFormat <: Repeat 3 Newline <: Many Newline
+             :>> Many TaskFormat
+             :>> (Prefix "## Goals:" :> Repeat 2 Newline :> Many GoalFormat)
+             
+type LogF = Heading -> [Task] -> [Goal] -> Log
 
 instance Atom LogFormat where
   type AtomType LogFormat = Log
-  parseAtom = composeP @LogFormat Log
-  showAtom (Log h ts) = composeS @LogFormat @LogF mempty h ts
+  parseAtom                          = composeP @LogFormat Log
+  showAtom (Log heading tasks goals) = composeS @LogFormat @LogF mempty heading tasks goals
 
 instance Element Log where
   type ElementFormat Log = LogFormat
 
+-----------------------------------------------------------------
+-- | IO Stuff
+-----------------------------------------------------------------
+
 readLog :: FilePath -> IO Log
 readLog f = do
   input <- T.readFile f
-
+  -- parseTest (parseAtom @LogFormat) input
+  
   case runParser parseElement "dailyLog.md" input of
     Left a    -> error $ T.pack $ show a
     Right log -> return log
 
 writeLog :: FilePath -> Log -> IO ()
 writeLog f = T.writeFile f . showElement
-
--- readLog :: FilePath -> IO ()
--- readLog f = do
---   input <- T.pack <$> readFile f
---
---   print input
---
---   parseTest (parseAtom @LogFormat) input
---
