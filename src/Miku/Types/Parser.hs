@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-orphans       #-}
+
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -18,6 +20,7 @@ module Miku.Types.Parser
   , type (<:)
   , type (:>)
   , AlphaNum
+  , AlphaNums
   , Digits
   , Literal
   , Many
@@ -25,6 +28,7 @@ module Miku.Types.Parser
   , Optional
   , Prefix
   , PrintChar
+  , PrintChars
   , Repeat
   , SepBy1
   , Some
@@ -70,7 +74,7 @@ class Element (a :: Type) where
 
 data (p :: k1) :> (a :: k2)
 
-infixr 5 :>
+infixr 6 :>
 
 instance (Atom p1, Monoid (AtomType p1), Atom p2) => Atom (p1 :> p2) where
   type AtomType (p1 :> p2) = AtomType p2
@@ -100,7 +104,7 @@ instance (Atom p1, AtomType p1 ~ a, Composeable p2 b) => Composeable (p1 :>> p2)
 
 data (p :: k1) <: (a :: k2)
 
-infixl 6 <:
+infixl 7 <:
 
 instance (Atom p1, Atom p2, Monoid (AtomType p2)) => Atom (p1 <: p2) where
   type AtomType (p1 <: p2) = AtomType p1
@@ -122,22 +126,35 @@ instance (Atom p1, AtomType p1 ~ a, Atom p2, Monoid (AtomType p2)) => Composeabl
 
   composeS s a = s <> showAtom @(p1 <: p2) a
 
-
 data AlphaNum
 
 instance Atom AlphaNum where
-  type AtomType AlphaNum = Text
+  type AtomType AlphaNum = Char
 
-  parseAtom = T.pack <$> some alphaNumChar
-  showAtom  = id
+  parseAtom = alphaNumChar
+  showAtom  = T.singleton
 
-instance Composeable AlphaNum (Text -> a) where
-  type ComposeP AlphaNum (Text -> a) = a
-  type ComposeS AlphaNum             = Text -> Text
+instance Composeable AlphaNum (Char -> a) where
+  type ComposeP AlphaNum (Char -> a) = a
+  type ComposeS AlphaNum             = Char -> Text
 
   composeP f   = f <$> parseAtom @AlphaNum
   composeS s a = s <> showAtom @AlphaNum a
 
+data AlphaNums
+
+instance Atom AlphaNums where
+  type AtomType AlphaNums = Text
+
+  parseAtom = T.pack <$> some alphaNumChar
+  showAtom  = id
+
+instance Composeable AlphaNums (Text -> a) where
+  type ComposeP AlphaNums (Text -> a) = a
+  type ComposeS AlphaNums             = Text -> Text
+
+  composeP f   = f <$> parseAtom @AlphaNums
+  composeS s a = s <> showAtom @AlphaNums a
 
 data Digits
 
@@ -236,21 +253,36 @@ instance (KnownSymbol p) => Composeable (Prefix p) (() -> a) where
   composeP f = f <$> parseAtom @(Prefix p)
   composeS s = s <> showAtom @(Prefix p) ()
 
-
 data PrintChar
 
 instance Atom PrintChar where
-  type AtomType PrintChar = Text
+  type AtomType PrintChar = Char
+
+  parseAtom = printChar
+  showAtom  = T.singleton
+
+instance Composeable PrintChar (Char -> a) where
+  type ComposeP PrintChar (Char -> a) = a
+  type ComposeS PrintChar             = Char -> Text
+
+  composeP f   = f <$> parseAtom @PrintChar
+  composeS s a = s <> showAtom @PrintChar a
+
+
+data PrintChars
+
+instance Atom PrintChars where
+  type AtomType PrintChars = Text
 
   parseAtom = T.pack <$> some printChar
   showAtom  = id
 
-instance Composeable PrintChar (Text -> a) where
-  type ComposeP PrintChar (Text -> a) = a
-  type ComposeS PrintChar             = Text -> Text
+instance Composeable PrintChars (Text -> a) where
+  type ComposeP PrintChars (Text -> a) = a
+  type ComposeS PrintChars             = Text -> Text
 
-  composeP f   = f <$> parseAtom @PrintChar
-  composeS s a = s <> showAtom @PrintChar a
+  composeP f   = f <$> parseAtom @PrintChars
+  composeS s a = s <> showAtom @PrintChars a
 
 
 data Repeat (n :: Nat) (p :: Type)

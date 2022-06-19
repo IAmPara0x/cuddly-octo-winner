@@ -26,6 +26,8 @@ default-extensions:
 - RankNTypes
 - NoImplicitPrelude
 - ImportQualifiedPost 
+- RecordWildCards
+- DerivingStrategies
 
 library:
   source-dirs: src
@@ -33,7 +35,7 @@ library:
   - Miku
   dependencies:
   - base >= 4.7 && < 5
-  - brick
+  - brick >= 0.69
   - containers
   - lens
   - mtl
@@ -43,7 +45,7 @@ library:
   - time
   - transformers
   - yaml
-  - vty
+  - vty >= 5.35.1
 
 executables:
   miku:
