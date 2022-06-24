@@ -7,7 +7,6 @@
 
 module Miku.Types.Time
   ( Time
-  , TimeFormat
   , time
   , timeHrs
   , timeMins
@@ -24,15 +23,17 @@ data Time = Time
   deriving (Show)
 
 type TimeFormat = Digits <: Literal "h" <: Token ":" :>> Digits <: Literal "m"
-type TimeF = Integer -> Integer -> Time
+type TimeF      = Integer -> Integer -> Time
+
+instance MkBluePrint Time where
+  type Format Time   = TimeFormat
+  type Function Time = TimeF
+
+  parseBP = time
+  showBP (Time hrs mins)  = composeS @TimeFormat @TimeF "" hrs mins
 
 time :: TimeF
 time h m = Time (h + div m 60) (mod m 60)
-
-instance Atom TimeFormat where
-  type AtomType TimeFormat = Time
-  parseAtom                 = composeP @TimeFormat time
-  showAtom (Time hrs mins)  = composeS @TimeFormat @TimeF "" hrs mins
 
 instance Element Time where
   type ElementFormat Time = TimeFormat
