@@ -28,6 +28,7 @@ default-extensions:
 - ImportQualifiedPost 
 - RecordWildCards
 - DerivingStrategies
+- TypeApplications
 
 library:
   source-dirs: src

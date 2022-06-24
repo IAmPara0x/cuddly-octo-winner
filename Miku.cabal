@@ -31,6 +31,7 @@ library
       Miku.Types.Parser
       Miku.Types.Time
       Miku.UI.Log
+      Miku.UI.Utils
       Paths_Miku
   hs-source-dirs:
       src
@@ -43,6 +44,7 @@ library
       ImportQualifiedPost
       RecordWildCards
       DerivingStrategies
+      TypeApplications
   build-depends:
       base >=4.7 && <5
     , brick >=0.69
@@ -70,6 +72,7 @@ executable miku
       ImportQualifiedPost
       RecordWildCards
       DerivingStrategies
+      TypeApplications
   ghc-options: -Wall -threaded -O1 -rtsopts -with-rtsopts=-N
   build-depends:
       Miku
@@ -93,6 +96,7 @@ test-suite timeTracker-test
       ImportQualifiedPost
       RecordWildCards
       DerivingStrategies
+      TypeApplications
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Miku

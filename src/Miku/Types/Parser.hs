@@ -7,7 +7,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
@@ -40,7 +39,7 @@ module Miku.Types.Parser
   )
   where
 
-import  Data.Text       qualified as T
+import  Data.Text                 qualified as T
 import  GHC.TypeLits
 import  Text.Megaparsec           hiding (Token, many, some)
 import  Text.Megaparsec.Char
