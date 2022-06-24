@@ -28,7 +28,7 @@
 ---
 
 
-## Goals: 
+## Goals:
 
   - [X] This is my goal which is completed.
 

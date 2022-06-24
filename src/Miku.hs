@@ -1,8 +1,6 @@
-{-# LANGUAGE TypeApplications #-}
-module Miku where
+module Miku (run) where
 
 import Relude
 
-
-run :: IO()
-run = print @String "moshi moshi"
+run :: IO ()
+run = print @Text "Yuno"

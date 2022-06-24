@@ -1,8 +1,7 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -Wno-orphans    #-}
 
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE TypeApplications   #-}
 {-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE TypeOperators      #-}
 
@@ -33,22 +32,21 @@ import  Miku.Types.Parser
 import  Miku.Types.Time
 
 
--- TODO: Find a way to eliminate types like HeadingFormat and HeadingF.
-
-type DayFormat = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
-type DayF      = Integer -> Integer -> Integer -> Day
-
 dayP :: DayF
 dayP y m d = read (show y <> "-" <> m' <> "-" <> d')
   where
     m' = if m < 10 then "0" <> show m else show m
     d' = if d < 10 then "0" <> show d else show d
 
-instance Atom DayFormat where
-  type AtomType DayFormat = Day
-  parseAtom    = composeP @DayFormat dayP
-  showAtom day = show day
-  -- showAtom
+type DayFormat = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
+type DayF      = Integer -> Integer -> Integer -> Day
+
+instance MkBluePrint Day where
+  type Format Day   = DayFormat
+  type Function Day = DayF
+
+  parseBP = dayP
+  showBP day = show day
 
 -----------------------------------------------------------------
 -- | 'Heading'
@@ -57,20 +55,15 @@ instance Atom DayFormat where
 newtype Heading = Heading {getHeading :: Day}
   deriving (Show)
 
-type HeadingFormat = Prefix "# Date:" :>> DayFormat <: Many Space
-type HeadingF = () -> Day -> Heading
+type HeadingFormat = Prefix "# Date:" :> BluePrint Day <: Many Space
+type HeadingF      = Day -> Heading
 
-headingP :: () -> Day -> Heading
-headingP _ = Heading
+instance MkBluePrint Heading where
+  type Format Heading = HeadingFormat
+  type Function Heading = HeadingF
 
-instance Atom HeadingFormat where
-  type AtomType HeadingFormat = Heading
-
-  parseAtom              = composeP @HeadingFormat headingP
-  showAtom (Heading day) = composeS @HeadingFormat @HeadingF mempty () day
-
-instance Element Heading where
-  type ElementFormat Heading = HeadingFormat
+  parseBP              = Heading
+  showBP (Heading day) = composeS @(Format Heading) @(Function Heading) mempty day
 
 -----------------------------------------------------------------
 -- | 'Name'
@@ -79,17 +72,16 @@ instance Element Heading where
 newtype Name = Name Text
                deriving stock (Show, Eq)
 
-type NameFormat = Prefix "###" :>> TakeTill "(" <: Token "("
-type NameF      = () -> Text -> Name
+type NameFormat = Prefix "###" :> TakeTill "(" <: Token "("
+type NameF      = Text -> Name
 
-instance Atom NameFormat where
-  type AtomType NameFormat = Name
-  parseAtom = composeP @NameFormat @NameF (const $ Name . T.strip)
-  showAtom  = composeS @NameFormat @NameF mempty () . coerce
-  
-instance Element Name where
-  type ElementFormat Name = NameFormat
-  
+instance MkBluePrint Name where
+  type Format Name   = NameFormat
+  type Function Name = NameF
+
+  parseBP = Name
+  showBP  = composeS @(Format Name) @(Function Name) mempty . coerce
+
 -----------------------------------------------------------------
 -- | 'Description'
 -----------------------------------------------------------------
@@ -106,16 +98,16 @@ instance Atom DescLine where
   parseAtom = composeP @DescLine (<>)
   showAtom  = composeS @DescLine @(Text -> Text -> Text) mempty mempty
 
-type DescriptionFormat  =  Many DescLine :>> Repeat 1 Newline
-type DescriptionF       =  [Text] -> () -> Description
+type DescriptionFormat  =  Many DescLine <: Repeat 1 Newline
+type DescriptionF       =  [Text] -> Description
 
-instance Atom DescriptionFormat where
-  type AtomType DescriptionFormat = Description
-  parseAtom = composeP @DescriptionFormat @DescriptionF (\a () -> Description $ T.unlines a)
-  showAtom  = composeS @DescriptionFormat @DescriptionF mempty . T.lines . coerce
 
-instance Element Description where
-  type ElementFormat Description = DescriptionFormat
+instance MkBluePrint Description where
+  type Format Description   = DescriptionFormat
+  type Function Description = DescriptionF
+
+  parseBP                    = Description . T.unlines
+  showBP  (Description desc) = composeS @DescriptionFormat @DescriptionF mempty (T.lines desc)
 
 -----------------------------------------------------------------
 -- | 'Tags'
@@ -125,18 +117,17 @@ newtype Tag = Tag Text
               deriving stock (Show, Eq)
 
 type TagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
-                :>> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
+                :> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
                  <: Literal "**" <: Repeat 2 Newline
+type TagsF         = [Text] -> [Tag]
 
-type TagF         = () -> [Text] -> [Tag]
+instance MkBluePrint [Tag] where
+  type Format [Tag] = TagsFormat
+  type Function [Tag] = TagsF
 
-instance Atom TagsFormat where
-  type AtomType TagsFormat = [Tag]
-  parseAtom = composeP @TagsFormat @TagF (const $ map Tag)
-  showAtom  = composeS @TagsFormat @TagF  mempty () . coerce
+  parseBP = map Tag
+  showBP  = composeS @TagsFormat @TagsF mempty . coerce
 
-instance Element Tag where
-  type ElementFormat Tag = TagsFormat
 
 -----------------------------------------------------------------
 -- | 'Task'
@@ -155,19 +146,18 @@ type TaskF = Name -> Time -> Maybe Time -> Maybe Description -> [Tag] -> Task
 
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
-type TaskFormat = NameFormat
-              :>> TimeFormat <: Space <: Token "-" <: Space
-              :>> Optional TimeFormat <: Token ")" <: Repeat 2 Newline <: Many Newline
-              :>> Optional (Try DescriptionFormat)
-              :>> TagsFormat <: TaskSep
+type TaskFormat = BluePrint Name
+              :>> BluePrint Time <: Space <: Token "-" <: Space
+              :>> Optional (BluePrint Time) <: Token ")" <: Repeat 2 Newline <: Many Newline
+              :>> Optional (Try (BluePrint Description))
+              :>> BluePrint [Tag] <: TaskSep
 
-instance Atom TaskFormat where
-  type AtomType TaskFormat = Task
-  parseAtom                                = composeP @TaskFormat @TaskF Task
-  showAtom (Task name start end desc tags) = composeS @TaskFormat @TaskF mempty name start end desc tags
+instance MkBluePrint Task where
+  type Format Task = TaskFormat
+  type Function Task = TaskF
 
-instance Element Task where
-  type ElementFormat Task = TaskFormat
+  parseBP                                = Task
+  showBP (Task name start end desc tags) = composeS @TaskFormat @TaskF mempty name start end desc tags
 
 -----------------------------------------------------------------
 -- | 'Goals'
@@ -194,15 +184,14 @@ goal ' ' = Goal NotDone
 goal 'X' = Goal Done
 goal c   = Goal (Other c)
 
-instance Atom GoalFormat where
-  type AtomType GoalFormat = Goal
-  parseAtom                       = composeP @GoalFormat @GoalF goal
-  showAtom  (Goal Done desc)      = composeS @GoalFormat @GoalF mempty 'X' desc
-  showAtom  (Goal NotDone desc)   = composeS @GoalFormat @GoalF mempty ' ' desc
-  showAtom  (Goal (Other c) desc) = composeS @GoalFormat @GoalF mempty c desc
+instance MkBluePrint Goal where
+  type Format Goal   = GoalFormat
+  type Function Goal = GoalF
 
-instance Element Goal where
-  type ElementFormat Goal = GoalFormat
+  parseBP = goal
+  showBP  (Goal Done desc)      = composeS @GoalFormat @GoalF mempty 'X' desc
+  showBP  (Goal NotDone desc)   = composeS @GoalFormat @GoalF mempty ' ' desc
+  showBP  (Goal (Other c) desc) = composeS @GoalFormat @GoalF mempty c desc
 
 -----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
@@ -215,19 +204,19 @@ data Log = Log
   }
   deriving (Show)
 
-type LogFormat = HeadingFormat <: Repeat 3 Newline <: Many Newline
-             :>> Many TaskFormat
-             :>> (Prefix "## Goals:" :> Repeat 2 Newline :> Many GoalFormat)
-             
+type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline
+             :>> Many (BluePrint Task)
+             :>> (Prefix "## Goals:" :> Repeat 2 Newline :> Many (BluePrint Goal))
+
 type LogF = Heading -> [Task] -> [Goal] -> Log
 
-instance Atom LogFormat where
-  type AtomType LogFormat = Log
-  parseAtom                          = composeP @LogFormat Log
-  showAtom (Log heading tasks goals) = composeS @LogFormat @LogF mempty heading tasks goals
+instance MkBluePrint Log where
+  type Format Log   = LogFormat
+  type Function Log = LogF
 
-instance Element Log where
-  type ElementFormat Log = LogFormat
+  parseBP = Log
+  showBP (Log heading tasks goals) = composeS @LogFormat @LogF mempty heading tasks goals
+
 
 -----------------------------------------------------------------
 -- | IO Stuff
@@ -237,10 +226,10 @@ readLog :: FilePath -> IO Log
 readLog f = do
   input <- T.readFile f
   -- parseTest (parseAtom @LogFormat) input
-  
-  case runParser parseElement "dailyLog.md" input of
+
+  case runParser (parseAtom @(BluePrint Log)) "dailyLog.md" input of
     Left a    -> error $ T.pack $ show a
     Right log -> return log
 
 writeLog :: FilePath -> Log -> IO ()
-writeLog f = T.writeFile f . showElement
+writeLog f = T.writeFile f . showAtom @(BluePrint Log)

@@ -7,7 +7,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
@@ -15,12 +14,13 @@
 module Miku.Types.Parser
   ( Atom(..)
   , Composeable(..)
-  , Element(..)
+  , MkBluePrint(..)
   , type (:>>)
   , type (<:)
   , type (:>)
   , AlphaNum
   , AlphaNums
+  , BluePrint
   , Digits
   , Literal
   , Many
@@ -37,10 +37,11 @@ module Miku.Types.Parser
   , TakeTill
   , Token
   , Try
+
   )
   where
 
-import  Data.Text       qualified as T
+import  Data.Text                 qualified as T
 import  GHC.TypeLits
 import  Text.Megaparsec           hiding (Token, many, some)
 import  Text.Megaparsec.Char
@@ -62,14 +63,13 @@ class Atom (a :: Type) where
   parseAtom :: Parser (AtomType a)
   showAtom  :: AtomType a -> Text
 
-class Element (a :: Type) where
-  type ElementFormat a :: Type
-  
-  showElement :: (Atom (ElementFormat a), AtomType (ElementFormat a) ~ a) => a -> Text
-  showElement = showAtom @(ElementFormat a)
-  
-  parseElement :: (Atom (ElementFormat a), AtomType (ElementFormat a) ~ a) => Parser a
-  parseElement = parseAtom @(ElementFormat a)
+class MkBluePrint a where
+
+  type Format a :: Type
+  type Function a :: Type
+
+  parseBP :: (Composeable (Format a) (Function a)) => Function a
+  showBP :: (Composeable (Format a) (Function a)) => a -> Text
 
 
 data (p :: k1) :> (a :: k2)
@@ -155,6 +155,24 @@ instance Composeable AlphaNums (Text -> a) where
 
   composeP f   = f <$> parseAtom @AlphaNums
   composeS s a = s <> showAtom @AlphaNums a
+
+data BluePrint (a :: Type)
+--
+instance ( MkBluePrint a
+         , Composeable (Format a) (Function a)
+         , ComposeP (Format a) (Function a) ~ a
+         ) => Atom (BluePrint a) where
+
+  type AtomType (BluePrint a) = a
+  parseAtom = composeP @(Format a) @(Function a) (parseBP @a)
+  showAtom  = showBP
+
+instance (MkBluePrint p, Atom p, AtomType p ~ a) => Composeable (BluePrint p) (a -> b) where
+  type ComposeP (BluePrint p) (a -> b) = b
+  type ComposeS (BluePrint p)          = AtomType p -> Text
+
+  composeP f  = f <$> parseAtom @p
+  composeS t a = t <> showAtom @p a
 
 data Digits
 
