@@ -32,8 +32,6 @@ import  Miku.Types.Parser
 import  Miku.Types.Time
 
 
--- TODO: Find a way to eliminate types like HeadingFormat and HeadingF.
-
 dayP :: DayF
 dayP y m d = read (show y <> "-" <> m' <> "-" <> d')
   where
@@ -67,9 +65,6 @@ instance MkBluePrint Heading where
   parseBP              = Heading
   showBP (Heading day) = composeS @(Format Heading) @(Function Heading) mempty day
 
-instance Element Heading where
-  type ElementFormat Heading = HeadingFormat
-
 -----------------------------------------------------------------
 -- | 'Name'
 -----------------------------------------------------------------
@@ -86,9 +81,6 @@ instance MkBluePrint Name where
 
   parseBP = Name
   showBP  = composeS @(Format Name) @(Function Name) mempty . coerce
-
-instance Element Name where
-  type ElementFormat Name = NameFormat
 
 -----------------------------------------------------------------
 -- | 'Description'
@@ -125,18 +117,17 @@ newtype Tag = Tag Text
               deriving stock (Show, Eq)
 
 type TagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
-                :>> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
+                :> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
                  <: Literal "**" <: Repeat 2 Newline
+type TagsF         = [Text] -> [Tag]
 
-type TagF         = () -> [Text] -> [Tag]
+instance MkBluePrint [Tag] where
+  type Format [Tag] = TagsFormat
+  type Function [Tag] = TagsF
 
-instance Atom TagsFormat where
-  type AtomType TagsFormat = [Tag]
-  parseAtom = composeP @TagsFormat @TagF (const $ map Tag)
-  showAtom  = composeS @TagsFormat @TagF  mempty () . coerce
+  parseBP = map Tag
+  showBP  = composeS @TagsFormat @TagsF mempty . coerce
 
-instance Element Tag where
-  type ElementFormat Tag = TagsFormat
 
 -----------------------------------------------------------------
 -- | 'Task'
@@ -159,7 +150,7 @@ type TaskFormat = BluePrint Name
               :>> BluePrint Time <: Space <: Token "-" <: Space
               :>> Optional (BluePrint Time) <: Token ")" <: Repeat 2 Newline <: Many Newline
               :>> Optional (Try (BluePrint Description))
-              :>> TagsFormat <: TaskSep
+              :>> BluePrint [Tag] <: TaskSep
 
 instance MkBluePrint Task where
   type Format Task = TaskFormat

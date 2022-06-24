@@ -35,9 +35,6 @@ instance MkBluePrint Time where
 time :: TimeF
 time h m = Time (h + div m 60) (mod m 60)
 
-instance Element Time where
-  type ElementFormat Time = TimeFormat
-
 instance Eq Time where
   (Time h1 m1) == (Time h2 m2) = h1 == h2 && m1 == m2
 
