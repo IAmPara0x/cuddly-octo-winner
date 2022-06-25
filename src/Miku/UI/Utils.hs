@@ -1,4 +1,4 @@
-module Miku.UI.Utils (hexColorToRGB, hexToInteger, emoji) where
+module Miku.UI.Utils (hexColorToRGB, hexToInteger, emojiWidth1, emojiWidth2) where
 
 import Graphics.Vty                qualified as V
 import Graphics.Vty.Image.Internal qualified as VI
@@ -53,5 +53,8 @@ hexCodes 'f' = 15
 hexCodes  c  = error $ toText @String $ printf "ERROR: %c is not a hex character." c
 
 
-emoji :: Text -> Widget n
-emoji s = raw $ VI.HorizText V.defAttr (toLazy s) 2 1
+emojiWidth2 :: Text -> Widget n
+emojiWidth2 s = raw $ VI.HorizText V.defAttr (toLazy s) 2 1
+
+emojiWidth1 :: Text -> Widget n
+emojiWidth1 s = raw $ VI.HorizText V.defAttr (toLazy s) 1 1

@@ -10,6 +10,7 @@ module Miku.Types.Log
   ( Goal(Goal)
   , goalStatusL
   , goalDescL
+  , GoalStatus(..)
   
   , Heading(Heading)
   , headingL
@@ -41,6 +42,8 @@ module Miku.Types.Log
   , timeMinsL
 
   -- * Helper functions
+  , goalsDone
+  , goalsNotDone
   , ongoingTask
   
   -- * IO Stuff
@@ -209,8 +212,7 @@ makeLenses ''Task
 
 data GoalStatus = Done
                 | NotDone
-                | Other Char
-                  deriving stock (Show)
+                  deriving stock (Show, Eq)
 
 data Goal = Goal
   { _goalStatusL :: !GoalStatus
@@ -226,7 +228,7 @@ type GoalF = Char -> Text -> Goal
 goal :: Char -> Text -> Goal
 goal ' ' = Goal NotDone
 goal 'X' = Goal Done
-goal c   = Goal (Other c)
+goal _   = Goal NotDone
 
 instance MkBluePrint Goal where
   type Format Goal   = GoalFormat
@@ -235,7 +237,6 @@ instance MkBluePrint Goal where
   parseBP = goal
   showBP  (Goal Done desc)      = composeS @GoalFormat @GoalF mempty 'X' desc
   showBP  (Goal NotDone desc)   = composeS @GoalFormat @GoalF mempty ' ' desc
-  showBP  (Goal (Other c) desc) = composeS @GoalFormat @GoalF mempty c desc
 
 makeLenses ''Goal
 
@@ -274,6 +275,12 @@ makeLenses ''Log
 ongoingTask :: Log -> Maybe Task
 ongoingTask log = log ^. logTasksL ^? ix 0
               >>= \t -> if isNothing (t ^. taskEndL) then return t else Nothing
+
+goalsNotDone :: [Goal] -> [Goal]
+goalsNotDone = filter (\g -> (g ^. goalStatusL) == NotDone)
+
+goalsDone :: [Goal] -> [Goal]
+goalsDone = filter (\g -> (g ^. goalStatusL) == Done)
 
 -----------------------------------------------------------------
 -- | IO Stuff

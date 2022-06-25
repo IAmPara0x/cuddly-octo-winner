@@ -74,7 +74,7 @@ import Relude
 import Miku.Types.Parser (showAtom, BluePrint)
 import Miku.Types.Log
 
-import Miku.UI.Utils     (emoji, hexColorToRGB)
+import Miku.UI.Utils     (emojiWidth1, emojiWidth2,hexColorToRGB)
 
 data Mode  = Main
              deriving stock (Show)
@@ -105,7 +105,7 @@ drawCurrentTask :: Maybe Task -> Widget n
 drawCurrentTask Nothing  = hLimitPercent 60 $ vLimitPercent 50
                           $ withBorderStyle B.unicodeRounded $ B.border
                           $ vBox [ titleBar "Current Task"
-                                 , C.hCenter $ txt "You are currently not doing any tasks."
+                                 , C.center $ txt "You are currently not doing any tasks."
                                  ]
 
 drawCurrentTask (Just task) = hLimitPercent 60 $ vLimitPercent 50
@@ -119,7 +119,7 @@ drawCurrentTask (Just task) = hLimitPercent 60 $ vLimitPercent 50
                                     , vLimitPercent 8 $ hBox [ padLeft (Pad 2) $ txt $ "From: "
                                             <> showAtom @(BluePrint Time) (task ^. taskStartL)
                                            , fill ' '
-                                           , padRight (Pad 2) $ txt "To: " <+> emoji "🕗"
+                                           , padRight (Pad 2) $ txt "To: " <+> emojiWidth2 "🕗"
                                            ]
 
                                    , withBorderStyle B.ascii B.hBorder
@@ -127,20 +127,41 @@ drawCurrentTask (Just task) = hLimitPercent 60 $ vLimitPercent 50
                                    , padTopBottom 1 $ padLeft  (Pad 4)
                                      $ txt $ maybe "" (^. descL) (task ^. taskDescL)
 
+                                   , fill ' '
+                                   , withBorderStyle B.ascii B.hBorder
+                                   
+                                   , padTopBottom 1 $ padLeft (Pad 2) $ txt "Tags: Haskell, Miku"
+
                                    ]
 
+drawGoalStatus :: GoalStatus -> Widget n
+drawGoalStatus Done    = padTopBottom 1 $ txt "[" <+> emojiWidth2 "✅" <+> txt "]" 
+drawGoalStatus NotDone = padTopBottom 1 $ txt "[" <+> emojiWidth2 "❌" <+> txt "]" 
+
+drawGoal :: Goal -> Widget n
+drawGoal goal = hBox [ drawGoalStatus (goal ^. goalStatusL)
+                     , padTopBottom 1 $ padLeft (Pad 2) $ txt (goal ^. goalDescL)
+                     ]
+
 drawGoals :: [Goal] -> Widget n
-drawGoals _ = vLimitPercent 50 $ withBorderStyle B.unicodeRounded $ B.border
-            $ vBox [ titleBar "Today's Goals"
-                   , C.center $ txt "These are my goals"
-                   ]
+drawGoals goals = vLimitPercent 50 $ withBorderStyle B.unicodeRounded $ B.border
+            $ vBox $ [ titleBar "Today's Goals"
+                     , padTop (Pad 1) $ C.hCenter $ txt "Not Completed"
+                     , withBorderStyle B.ascii B.hBorder
+                     ] <> map drawGoal (goalsNotDone goals) <>
+                     [ fill ' '
+                     , withBorderStyle B.unicode B.hBorder
+                     , padTop (Pad 1) $ C.hCenter $ txt "Completed"
+                     , withBorderStyle B.ascii B.hBorder
+                     ] <> map drawGoal (goalsDone goals) <>
+                     [ fill ' ' ]
+                     
 
 
 drawUI :: UI -> [Widget ResourceName]
 drawUI (UI Main log) = [ vBox [ drawHeading (log ^. logHeadingL)
                               ,   drawCurrentTask (ongoingTask log)
                               <+> drawGoals       (log ^. logGoalsL)
-
                               ]
                        ]
 
