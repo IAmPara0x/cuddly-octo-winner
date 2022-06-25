@@ -1,24 +1,25 @@
-{-# OPTIONS_GHC -Wno-orphans   #-}
-
 {-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Miku.Types.Time
   ( Time
   , time
-  , timeHrs
-  , timeMins
+  , timeHrsL
+  , timeMinsL
   )
 where
 
-import Miku.Types.Parser
+import Control.Lens (makeLenses)
 import Relude
 
+import Miku.Types.Parser
+
 data Time = Time
-  { timeHrs  :: Integer,
-    timeMins :: Integer
+  { _timeHrsL  :: !Integer,
+    _timeMinsL :: !Integer
   }
   deriving (Show)
 
@@ -56,3 +57,5 @@ instance Semigroup Time where
 
 instance Monoid Time where
   mempty = time 0 0
+
+makeLenses ''Time

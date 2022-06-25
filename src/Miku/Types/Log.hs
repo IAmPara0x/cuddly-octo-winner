@@ -4,17 +4,46 @@
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE TypeOperators      #-}
+{-# LANGUAGE TemplateHaskell    #-}
 
 module Miku.Types.Log
-  ( Description(..)
-  , Heading(..)
-  , Goal(..)
-  , Log (..)
-  , Name(..)
-  , Tag
-  , Task(..)
+  ( Goal(Goal)
+  , goalStatusL
+  , goalDescL
+  
+  , Heading(Heading)
+  , headingL
+  
+  , Log (Log)
+  , logHeadingL
+  , logTasksL
+  , logGoalsL
+
+  , Task(Task)
+  , taskNameL
+  , taskStartL
+  , taskDescL
+  , taskEndL
+  , taskTagsL
+  
+  , TaskDesc(TaskDesc)
+  , descL
+  
+  , TaskName(TaskName)
+  , nameL
+  
+  , TaskTag(TaskTag)
+  , tagL
+  
   , Time
   , time
+  , timeHrsL
+  , timeMinsL
+
+  -- * Helper functions
+  , ongoingTask
+  
+  -- * IO Stuff
   , readLog
   , writeLog
   )
@@ -22,8 +51,14 @@ where
 
 import  Data.Text    qualified as T
 import  Data.Text.IO qualified as T
+import  Control.Lens          
+  ( (^?)
+  , (^.)
+  , ix
+  , makeLenses
+  )
 import  Data.Time              (Day)
-import  Text.Megaparsec        (runParser, parseTest)
+import  Text.Megaparsec        (runParser)
 import  Text.Read              (read)
 
 import  Relude
@@ -52,8 +87,8 @@ instance MkBluePrint Day where
 -- | 'Heading'
 -----------------------------------------------------------------
 
-newtype Heading = Heading {getHeading :: Day}
-  deriving (Show)
+newtype Heading = Heading { _headingL :: Day }
+                  deriving stock (Show, Eq)
 
 type HeadingFormat = Prefix "# Date:" :> BluePrint Day <: Many Space
 type HeadingF      = Day -> Heading
@@ -65,28 +100,32 @@ instance MkBluePrint Heading where
   parseBP              = Heading
   showBP (Heading day) = composeS @(Format Heading) @(Function Heading) mempty day
 
+makeLenses ''Heading
+
 -----------------------------------------------------------------
--- | 'Name'
+-- | 'TaskName'
 -----------------------------------------------------------------
 
-newtype Name = Name Text
+newtype TaskName = TaskName { _nameL :: Text }
                deriving stock (Show, Eq)
 
-type NameFormat = Prefix "###" :> TakeTill "(" <: Token "("
-type NameF      = Text -> Name
+type TaskNameFormat = Prefix "###" :> TakeTill "(" <: Token "("
+type TaskNameF      = Text -> TaskName
 
-instance MkBluePrint Name where
-  type Format Name   = NameFormat
-  type Function Name = NameF
+instance MkBluePrint TaskName where
+  type Format TaskName   = TaskNameFormat
+  type Function TaskName = TaskNameF
 
-  parseBP = Name
-  showBP  = composeS @(Format Name) @(Function Name) mempty . coerce
+  parseBP = TaskName
+  showBP  = composeS @(Format TaskName) @(Function TaskName) mempty . coerce
+
+makeLenses ''TaskName
 
 -----------------------------------------------------------------
--- | 'Description'
+-- | 'TaskDesc'
 -----------------------------------------------------------------
 
-newtype Description = Description Text
+newtype TaskDesc = TaskDesc { _descL :: Text }
                       deriving stock (Show, Eq)
 
 
@@ -98,59 +137,62 @@ instance Atom DescLine where
   parseAtom = composeP @DescLine (<>)
   showAtom  = composeS @DescLine @(Text -> Text -> Text) mempty mempty
 
-type DescriptionFormat  =  Many DescLine <: Repeat 1 Newline
-type DescriptionF       =  [Text] -> Description
+type TaskDescFormat  =  Many DescLine <: Repeat 1 Newline
+type TaskDescF       =  [Text] -> TaskDesc
 
 
-instance MkBluePrint Description where
-  type Format Description   = DescriptionFormat
-  type Function Description = DescriptionF
+instance MkBluePrint TaskDesc where
+  type Format TaskDesc   = TaskDescFormat
+  type Function TaskDesc = TaskDescF
 
-  parseBP                    = Description . T.unlines
-  showBP  (Description desc) = composeS @DescriptionFormat @DescriptionF mempty (T.lines desc)
+  parseBP                    = TaskDesc . T.unlines
+  showBP  (TaskDesc desc) = composeS @TaskDescFormat @TaskDescF mempty (T.lines desc)
+
+makeLenses ''TaskDesc
 
 -----------------------------------------------------------------
--- | 'Tags'
+-- | 'TaskTags'
 -----------------------------------------------------------------
 
-newtype Tag = Tag Text
+newtype TaskTag = TaskTag { _tagL :: Text}
               deriving stock (Show, Eq)
 
-type TagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
+type TaskTagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
                 :> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
                  <: Literal "**" <: Repeat 2 Newline
-type TagsF         = [Text] -> [Tag]
+type TaskTagsF         = [Text] -> [TaskTag]
 
-instance MkBluePrint [Tag] where
-  type Format [Tag] = TagsFormat
-  type Function [Tag] = TagsF
+instance MkBluePrint [TaskTag] where
+  type Format [TaskTag] = TaskTagsFormat
+  type Function [TaskTag] = TaskTagsF
 
-  parseBP = map Tag
-  showBP  = composeS @TagsFormat @TagsF mempty . coerce
+  parseBP = map TaskTag
+  showBP  = composeS @TaskTagsFormat @TaskTagsF mempty . coerce
 
+makeLenses ''TaskTag
 
 -----------------------------------------------------------------
 -- | 'Task'
 -----------------------------------------------------------------
 
 data Task = Task
-  { taskName  :: Name
-  , taskStart :: Time
-  , taskEnd   :: Maybe Time
-  , taskDesc  :: Maybe Description
-  , taskTags  :: [Tag]
+  { _taskNameL  :: TaskName
+  , _taskStartL :: Time
+  , _taskEndL   :: Maybe Time
+  , _taskDescL  :: Maybe TaskDesc
+  , _taskTagsL  :: [TaskTag]
   }
   deriving (Show)
 
-type TaskF = Name -> Time -> Maybe Time -> Maybe Description -> [Tag] -> Task
+type TaskF = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
 
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
-type TaskFormat = BluePrint Name
+type TaskFormat = BluePrint TaskName
               :>> BluePrint Time <: Space <: Token "-" <: Space
               :>> Optional (BluePrint Time) <: Token ")" <: Repeat 2 Newline <: Many Newline
-              :>> Optional (Try (BluePrint Description))
-              :>> BluePrint [Tag] <: TaskSep
+              :>> Optional (Try (BluePrint TaskDesc))
+              :>> BluePrint [TaskTag] <: TaskSep
 
 instance MkBluePrint Task where
   type Format Task = TaskFormat
@@ -158,6 +200,8 @@ instance MkBluePrint Task where
 
   parseBP                                = Task
   showBP (Task name start end desc tags) = composeS @TaskFormat @TaskF mempty name start end desc tags
+
+makeLenses ''Task
 
 -----------------------------------------------------------------
 -- | 'Goals'
@@ -169,8 +213,8 @@ data GoalStatus = Done
                   deriving stock (Show)
 
 data Goal = Goal
-  { goalStatus :: GoalStatus
-  , goalDesc   :: Text
+  { _goalStatusL :: !GoalStatus
+  , _goalDescL   :: !Text
   } deriving stock (Show)
 
 type GoalFormat =  Repeat 2 Space :> Literal "-" :> Space
@@ -193,20 +237,23 @@ instance MkBluePrint Goal where
   showBP  (Goal NotDone desc)   = composeS @GoalFormat @GoalF mempty ' ' desc
   showBP  (Goal (Other c) desc) = composeS @GoalFormat @GoalF mempty c desc
 
+makeLenses ''Goal
+
 -----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
 -----------------------------------------------------------------
 
 data Log = Log
-  { logHeading :: Heading
-  , logTasks   :: [Task]
-  , logGoals   :: [Goal]
+  { _logHeadingL :: !Heading
+  , _logTasksL   :: ![Task]
+  , _logGoalsL   :: ![Goal]
   }
   deriving (Show)
 
 type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline
              :>> Many (BluePrint Task)
-             :>> (Prefix "## Goals:" :> Repeat 2 Newline :> Many (BluePrint Goal))
+             :>> Prefix "## Goals:" :> Repeat 2 Newline
+              :> Many (BluePrint Goal)
 
 type LogF = Heading -> [Task] -> [Goal] -> Log
 
@@ -217,6 +264,16 @@ instance MkBluePrint Log where
   parseBP = Log
   showBP (Log heading tasks goals) = composeS @LogFormat @LogF mempty heading tasks goals
 
+
+makeLenses ''Log
+
+-----------------------------------------------------------------
+-- | Helper functions
+-----------------------------------------------------------------
+
+ongoingTask :: Log -> Maybe Task
+ongoingTask log = log ^. logTasksL ^? ix 0
+              >>= \t -> if isNothing (t ^. taskEndL) then return t else Nothing
 
 -----------------------------------------------------------------
 -- | IO Stuff

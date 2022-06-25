@@ -30,18 +30,21 @@ library
       Miku.Types.Log
       Miku.Types.Parser
       Miku.Types.Time
+      Miku.UI.Log
+      Miku.UI.Utils
       Paths_Miku
   hs-source-dirs:
       src
   default-extensions:
-      OverloadedStrings
-      TupleSections
-      LambdaCase
-      RankNTypes
-      NoImplicitPrelude
-      ImportQualifiedPost
-      RecordWildCards
+      DataKinds
       DerivingStrategies
+      OverloadedStrings
+      ImportQualifiedPost
+      LambdaCase
+      NoImplicitPrelude
+      RankNTypes
+      RecordWildCards
+      TupleSections
       TypeApplications
   build-depends:
       base >=4.7 && <5
@@ -62,14 +65,15 @@ executable miku
   hs-source-dirs:
       app
   default-extensions:
-      OverloadedStrings
-      TupleSections
-      LambdaCase
-      RankNTypes
-      NoImplicitPrelude
-      ImportQualifiedPost
-      RecordWildCards
+      DataKinds
       DerivingStrategies
+      OverloadedStrings
+      ImportQualifiedPost
+      LambdaCase
+      NoImplicitPrelude
+      RankNTypes
+      RecordWildCards
+      TupleSections
       TypeApplications
   ghc-options: -Wall -threaded -O1 -rtsopts -with-rtsopts=-N
   build-depends:
@@ -86,14 +90,15 @@ test-suite timeTracker-test
   hs-source-dirs:
       test
   default-extensions:
-      OverloadedStrings
-      TupleSections
-      LambdaCase
-      RankNTypes
-      NoImplicitPrelude
-      ImportQualifiedPost
-      RecordWildCards
+      DataKinds
       DerivingStrategies
+      OverloadedStrings
+      ImportQualifiedPost
+      LambdaCase
+      NoImplicitPrelude
+      RankNTypes
+      RecordWildCards
+      TupleSections
       TypeApplications
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:

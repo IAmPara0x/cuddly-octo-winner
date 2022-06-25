@@ -20,14 +20,15 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/IAmParad0x/Mikur#readme>
 
 default-extensions:
-- OverloadedStrings
-- TupleSections
-- LambdaCase
-- RankNTypes
-- NoImplicitPrelude
-- ImportQualifiedPost
-- RecordWildCards
+- DataKinds
 - DerivingStrategies
+- OverloadedStrings
+- ImportQualifiedPost
+- LambdaCase
+- NoImplicitPrelude
+- RankNTypes
+- RecordWildCards
+- TupleSections
 - TypeApplications
 
 library:
