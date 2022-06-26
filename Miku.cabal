@@ -27,10 +27,12 @@ library
   exposed-modules:
       Miku
   other-modules:
+      Miku.Draw
+      Miku.Draw.Main
       Miku.Types.Log
       Miku.Types.Parser
       Miku.Types.Time
-      Miku.UI.Log
+      Miku.UI
       Miku.UI.Utils
       Paths_Miku
   hs-source-dirs:

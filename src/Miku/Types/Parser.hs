@@ -37,7 +37,6 @@ module Miku.Types.Parser
   , TakeTill
   , Token
   , Try
-
   )
   where
 

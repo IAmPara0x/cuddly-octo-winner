@@ -3,16 +3,26 @@
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE TemplateHaskell   #-}
+{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 module Miku.Types.Time
   ( Time
-  , time
+  , mkTime
   , timeHrsL
   , timeMinsL
+  , currentTime
   )
 where
 
 import Control.Lens (makeLenses)
+import Data.Time   
+  ( getZonedTime
+  , zonedTimeToLocalTime
+  , localTimeOfDay
+  , todHour
+  , todMin
+  )
+
 import Relude
 
 import Miku.Types.Parser
@@ -30,11 +40,11 @@ instance MkBluePrint Time where
   type Format Time   = TimeFormat
   type Function Time = TimeF
 
-  parseBP = time
+  parseBP = mkTime
   showBP (Time hrs mins)  = composeS @TimeFormat @TimeF "" hrs mins
 
-time :: TimeF
-time h m = Time (h + div m 60) (mod m 60)
+mkTime :: TimeF
+mkTime h m = Time (h + div m 60) (mod m 60)
 
 instance Eq Time where
   (Time h1 m1) == (Time h2 m2) = h1 == h2 && m1 == m2
@@ -45,17 +55,20 @@ instance Ord Time where
     | otherwise = h1 <= h2
 
 instance Num Time where
-  (+) (Time h1 m1) (Time h2 m2) = time (h1 + h2) (m1 + m2)
-  (*) (Time h1 m1) (Time h2 m2) = time (h1 * h2) (m1 * m2)
-  abs (Time h m)                = time (abs h) (abs m)
+  (+) (Time h1 m1) (Time h2 m2) = mkTime (h1 + h2) (m1 + m2)
+  (*) (Time h1 m1) (Time h2 m2) = mkTime (h1 * h2) (m1 * m2)
+  abs (Time h m)                = mkTime (abs h) (abs m)
   signum (Time h m)             = if h < 0 || m < 0 then Time 0 (-1) else Time 0 1
-  negate (Time h m)             = time (- h) (- m)
-  fromInteger                   = time 0 . fromIntegral
+  negate (Time h m)             = mkTime (- h) (- m)
+  fromInteger                   = mkTime 0 . fromIntegral
 
 instance Semigroup Time where
   (Time h1 m1) <> (Time h2 m2) = Time (h1 + h2) (m1 + m2)
 
 instance Monoid Time where
-  mempty = time 0 0
+  mempty = mkTime 0 0
 
 makeLenses ''Time
+
+currentTime :: IO Time
+currentTime = (\t -> mkTime (toInteger $ todHour t) (toInteger $ todMin t)) . localTimeOfDay . zonedTimeToLocalTime <$> getZonedTime

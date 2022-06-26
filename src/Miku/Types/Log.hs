@@ -37,9 +37,10 @@ module Miku.Types.Log
   , tagL
   
   , Time
-  , time
+  , mkTime
   , timeHrsL
   , timeMinsL
+  , currentTime
 
   -- * Helper functions
   , goalsDone
@@ -161,9 +162,9 @@ newtype TaskTag = TaskTag { _tagL :: Text}
               deriving stock (Show, Eq)
 
 type TaskTagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
-                :> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
-                 <: Literal "**" <: Repeat 2 Newline
-type TaskTagsF         = [Text] -> [TaskTag]
+                     :> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
+                     <: Literal "**" <: Repeat 2 Newline
+type TaskTagsF       = [Text] -> [TaskTag]
 
 instance MkBluePrint [TaskTag] where
   type Format [TaskTag] = TaskTagsFormat
@@ -187,8 +188,7 @@ data Task = Task
   }
   deriving (Show)
 
-type TaskF = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
-
+type TaskF   = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
 type TaskFormat = BluePrint TaskName

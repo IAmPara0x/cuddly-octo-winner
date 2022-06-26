@@ -1,11 +1,42 @@
-module Miku.UI.Utils (hexColorToRGB, hexToInteger, emojiWidth1, emojiWidth2) where
+module Miku.UI.Utils
+  ( emojiWidth1
+  , emojiWidth2
+  , fillEmpty
+  , hexColorToRGB
+  , hexToInteger
+  , padAll
+  , padBottom
+  , padLeft
+  , padLeftRight
+  , padRight
+  , padTop
+  , padTopBottom
+  , titleBar
+  ) where
 
+import Brick.Widgets.Border        qualified as B
+import Brick.Widgets.Center        qualified as C
 import Graphics.Vty                qualified as V
 import Graphics.Vty.Image.Internal qualified as VI
 import Data.Text                   qualified as T
 
-import Brick.Types                   (Widget)
-import Brick.Widgets.Core            (raw)
+import Brick.Types
+  ( Widget
+  , Padding(Pad)
+  )
+import Brick.Widgets.Core qualified as C
+  ( fill
+  , padAll
+  , padBottom
+  , padLeft
+  , padLeftRight
+  , padRight
+  , padTop
+  , padTopBottom
+  , raw
+  , txt
+  , vBox
+  )
 import Graphics.Vty.Attributes.Color (Color, rgbColor)
 import Text.Printf                   (printf)
 
@@ -54,7 +85,37 @@ hexCodes  c  = error $ toText @String $ printf "ERROR: %c is not a hex character
 
 
 emojiWidth2 :: Text -> Widget n
-emojiWidth2 s = raw $ VI.HorizText V.defAttr (toLazy s) 2 1
+emojiWidth2 s = C.raw $ VI.HorizText V.defAttr (toLazy s) 2 1
 
 emojiWidth1 :: Text -> Widget n
-emojiWidth1 s = raw $ VI.HorizText V.defAttr (toLazy s) 1 1
+emojiWidth1 s = C.raw $ VI.HorizText V.defAttr (toLazy s) 1 1
+
+
+titleBar :: Text -> Widget n
+titleBar t = C.vBox [ C.hCenter $ C.padTop (Pad 1)  $ C.txt t
+                    , B.hBorder
+                    ]
+
+padTop :: Integer -> Widget n -> Widget n
+padTop = C.padTop . Pad . fromInteger
+
+padBottom :: Integer -> Widget n -> Widget n
+padBottom = C.padBottom . Pad . fromInteger
+
+padTopBottom :: Integer -> Widget n -> Widget n
+padTopBottom = C.padTopBottom . fromInteger
+
+padLeft :: Integer -> Widget n -> Widget n
+padLeft = C.padLeft . Pad . fromInteger
+
+padRight :: Integer -> Widget n -> Widget n
+padRight = C.padRight . Pad . fromInteger
+
+padLeftRight :: Integer -> Widget n -> Widget n
+padLeftRight = C.padLeftRight . fromInteger
+
+padAll :: Integer -> Widget n -> Widget n
+padAll = C.padAll . fromInteger
+
+fillEmpty :: Widget n
+fillEmpty = C.fill ' '
