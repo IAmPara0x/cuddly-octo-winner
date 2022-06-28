@@ -1,6 +1,5 @@
 module Miku.UI.Utils
-  ( emojiWidth1
-  , emojiWidth2
+  ( emoji
   , fillEmpty
   , hexColorToRGB
   , hexToInteger
@@ -17,7 +16,6 @@ module Miku.UI.Utils
 import Brick.Widgets.Border        qualified as B
 import Brick.Widgets.Center        qualified as C
 import Graphics.Vty                qualified as V
-import Graphics.Vty.Image.Internal qualified as VI
 import Data.Text                   qualified as T
 
 import Brick.Types
@@ -84,15 +82,13 @@ hexCodes 'f' = 15
 hexCodes  c  = error $ toText @String $ printf "ERROR: %c is not a hex character." c
 
 
-emojiWidth2 :: Text -> Widget n
-emojiWidth2 s = C.raw $ VI.HorizText V.defAttr (toLazy s) 2 1
-
-emojiWidth1 :: Text -> Widget n
-emojiWidth1 s = C.raw $ VI.HorizText V.defAttr (toLazy s) 1 1
+emoji :: V.Attr -> Char -> Widget n
+-- emoji = C.raw . VI.char V.defAttr
+emoji attr c = C.raw $ V.charFill attr c (V.wcwidth c) 1
 
 
 titleBar :: Text -> Widget n
-titleBar t = C.vBox [ C.hCenter $ C.padTop (Pad 1)  $ C.txt t
+titleBar t = C.vBox [ C.hCenter $ C.padTop (Pad 1) $ C.txt t
                     , B.hBorder
                     ]
 

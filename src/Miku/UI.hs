@@ -5,6 +5,7 @@
 module Miku.UI
   ( Layout(Main)
   , MainState(MainState)
+  , msClockAnimationStateL
   , msCurrentLogL
   , msCurrentTimeL
   , ResourceName
@@ -24,14 +25,15 @@ data Layout  = Main
 
 type ResourceName = ()
 
-data MainState = MainState { _msCurrentLogL  :: Log
-                           , _msCurrentTimeL :: Time
+data MainState = MainState { _msCurrentLogL          :: Log
+                           , _msCurrentTimeL         :: Time
+                           , _msClockAnimationStateL :: Integer
                            } deriving stock (Show)
 
 makeLenses ''MainState
 
 data UI (mode :: Layout) where
   MainUI :: MainState -> UI 'Main
-  
+
 data Tick = Tick
             deriving stock (Show)

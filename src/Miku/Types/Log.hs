@@ -11,10 +11,10 @@ module Miku.Types.Log
   , goalStatusL
   , goalDescL
   , GoalStatus(..)
-  
+
   , Heading(Heading)
   , headingL
-  
+
   , Log (Log)
   , logHeadingL
   , logTasksL
@@ -26,27 +26,27 @@ module Miku.Types.Log
   , taskDescL
   , taskEndL
   , taskTagsL
-  
+
   , TaskDesc(TaskDesc)
   , descL
-  
+
   , TaskName(TaskName)
   , nameL
-  
+
   , TaskTag(TaskTag)
   , tagL
-  
+
   , Time
   , mkTime
   , timeHrsL
   , timeMinsL
-  , currentTime
+  , getCurrentTime
 
   -- * Helper functions
   , goalsDone
   , goalsNotDone
   , ongoingTask
-  
+
   -- * IO Stuff
   , readLog
   , writeLog
@@ -55,7 +55,7 @@ where
 
 import  Data.Text    qualified as T
 import  Data.Text.IO qualified as T
-import  Control.Lens          
+import  Control.Lens
   ( (^?)
   , (^.)
   , ix

@@ -179,7 +179,9 @@ instance Atom Digits where
   type AtomType Digits = Integer
 
   parseAtom = read <$> some digitChar
-  showAtom  = show
+  showAtom i
+    | i < 10    = "0" <> show i
+    | otherwise = show i
 
 instance Composeable Digits (Integer -> a) where
   type ComposeP Digits (Integer -> a) = a

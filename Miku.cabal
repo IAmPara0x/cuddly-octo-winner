@@ -28,7 +28,7 @@ library
       Miku
   other-modules:
       Miku.Draw
-      Miku.Draw.Main
+      Miku.Draw.MainLayout
       Miku.Types.Log
       Miku.Types.Parser
       Miku.Types.Time

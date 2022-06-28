@@ -10,12 +10,12 @@ module Miku.Types.Time
   , mkTime
   , timeHrsL
   , timeMinsL
-  , currentTime
+  , getCurrentTime
   )
 where
 
 import Control.Lens (makeLenses)
-import Data.Time   
+import Data.Time
   ( getZonedTime
   , zonedTimeToLocalTime
   , localTimeOfDay
@@ -54,6 +54,7 @@ instance Ord Time where
     | h1 == h2  = m1 <= m2
     | otherwise = h1 <= h2
 
+-- TODO: Test time arithmetic
 instance Num Time where
   (+) (Time h1 m1) (Time h2 m2) = mkTime (h1 + h2) (m1 + m2)
   (*) (Time h1 m1) (Time h2 m2) = mkTime (h1 * h2) (m1 * m2)
@@ -70,5 +71,5 @@ instance Monoid Time where
 
 makeLenses ''Time
 
-currentTime :: IO Time
-currentTime = (\t -> mkTime (toInteger $ todHour t) (toInteger $ todMin t)) . localTimeOfDay . zonedTimeToLocalTime <$> getZonedTime
+getCurrentTime :: IO Time
+getCurrentTime = (\t -> mkTime (toInteger $ todHour t) (toInteger $ todMin t)) . localTimeOfDay . zonedTimeToLocalTime <$> getZonedTime

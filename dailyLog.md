@@ -1,7 +1,7 @@
 # Date: 2022-05-30
 
 
-### Doing type level programming(12h:20m - )
+### Doing type level programming(01h:20m - )
 
   Learning Type level programming in haskell.
   Reading book: Thinking with types.
