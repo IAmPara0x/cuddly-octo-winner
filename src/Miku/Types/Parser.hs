@@ -48,7 +48,6 @@ import  Text.Read                        (read)
 
 import  Relude                    hiding (natVal, Alt)
 
-
 class Composeable (a :: Type) (f :: Type) where
   type ComposeP a f :: Type
   type ComposeS a :: Type
@@ -69,7 +68,6 @@ class MkBluePrint a where
 
   parseBP :: (Composeable (Format a) (Function a)) => Function a
   showBP :: (Composeable (Format a) (Function a)) => a -> Text
-
 
 data (p :: k1) :> (a :: k2)
 
@@ -99,7 +97,6 @@ instance (Atom p1, AtomType p1 ~ a, Composeable p2 b) => Composeable (p1 :>> p2)
 
   composeP f    = parseAtom @p1 >>= composeP @p2 @b . f
   composeS s p1 = composeS @p2 @b (s <> showAtom @p1 p1)
-
 
 data (p :: k1) <: (a :: k2)
 
@@ -206,7 +203,6 @@ instance (KnownSymbol p) => Composeable (Literal p) (() -> a) where
   composeP f = f <$> parseAtom @(Literal p)
   composeS s = s <> showAtom @(Literal p) ()
 
-
 data Many (p :: Type)
 
 instance (Atom p) => Atom (Many p) where
@@ -222,7 +218,6 @@ instance (Atom p, [AtomType p] ~ a) => Composeable (Many p) (a -> b) where
 
   composeP f   = f <$> parseAtom @(Many p)
   composeS s a = s <> showAtom @(Many p) a
-
 
 data Newline
 
@@ -451,4 +446,3 @@ spaceP = many $ char ' '
 
 instance ShowErrorComponent Text where
   showErrorComponent = show
-

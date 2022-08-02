@@ -15,14 +15,14 @@ import Brick.Types
 import Miku.UI
   ( UI(..)
   , Layout(Main)
-  , ResourceName
+  , Resource
   , Tick(Tick)
   )
 import Miku.Draw.MainLayout (drawUIMain, handleEventMain)
 
-drawUI :: UI layout -> [Widget ResourceName]
+drawUI :: UI layout -> [Widget (Resource layout)]
 drawUI ui@(MainUI _) = drawUIMain ui
 
-handleEvent :: UI layout -> BrickEvent ResourceName Tick -> EventM ResourceName (Next (UI layout))
+handleEvent :: UI layout -> BrickEvent (Resource layout) Tick -> EventM (Resource layout) (Next (UI layout))
 handleEvent ui (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt ui
 handleEvent ui@(MainUI _) e                          = handleEventMain ui e

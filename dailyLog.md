@@ -30,7 +30,23 @@
 
 ## Goals:
 
-  - [X] This is my goal which is completed.
+  - [X] This is my goal which is completed 1.
 
-  - [ ] This is my goal which is not completed.
+  - [ ] This is my goal which is not completed 1.
+
+  - [X] This is my goal which is completed 2.
+
+  - [ ] This is my goal which is not completed 2.
+
+  - [X] This is my goal which is completed 3.
+
+  - [ ] This is my goal which is not completed 3.
+
+  - [X] This is my goal which is completed 4.
+
+  - [ ] This is my goal which is not completed 4.
+
+  - [X] This is my goal which is completed 5.
+
+  - [ ] This is my goal which is not completed 5.
 

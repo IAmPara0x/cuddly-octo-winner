@@ -13,11 +13,18 @@ import Prelude                     qualified as P
 
 import Data.Text                   qualified as T
 
-import Brick.Main (continue)
+import Brick.Main
+  ( ViewportScroll
+  , continue
+  , viewportScroll
+  , vScrollBy
+  )
+
 import Brick.Types
-  ( BrickEvent(AppEvent)
+  ( BrickEvent(AppEvent, VtyEvent)
   , EventM
   , Next
+  , ViewportType(Vertical)
   , Widget
   )
 
@@ -40,6 +47,7 @@ import Brick.Widgets.Core
   , txtWrap
   , vBox
   , vLimitPercent
+  , viewport
   , withBorderStyle
   )
 
@@ -53,7 +61,9 @@ import Miku.UI
   , msClockAnimationStateL
   , msCurrentLogL
   , msCurrentTimeL
-  , ResourceName
+  , msCurrentWindowL
+  , MainRes(..)
+  , Resource(MainRes)
   , Tick(Tick)
   )
 
@@ -70,50 +80,50 @@ import Miku.UI.Utils
 clockAnimationStates :: [Char]
 clockAnimationStates = ['◴','◷','◶','◵','◴']
 
-clockAnimation :: Integer -> Widget n
+clockAnimation :: Integer -> Widget (Resource 'Main)
 clockAnimation n = emoji (fg V.brightGreen) (clockAnimationStates P.!! fromInteger n)
 
-
-drawHeading :: Heading -> Widget n
+drawHeading :: Heading -> Widget (Resource 'Main)
 drawHeading = vLimitPercent 5 . titleBar . showAtom @(BluePrint Heading)
 
-drawTaskName :: TaskName -> Widget n
+drawTaskName :: TaskName -> Widget (Resource 'Main)
 drawTaskName taskName =
     padTopBottom 1
   $ C.hCenter
   $ txt $ "### " <> taskName ^. nameL
 
-drawCurrentTaskTime :: Time -> Time -> Integer -> Widget n
+drawCurrentTaskTime :: Time -> Time -> Integer -> Widget (Resource 'Main)
 drawCurrentTaskTime startTime currTime animState =
     vLimitPercent 10
   $ hBox
-  [ padLeft 2 $ txt $ "Started On: " <> showAtom @(BluePrint Time) startTime
+  [ padLeft 2 $ txt $ "started on: " <> showAtom @(BluePrint Time) startTime
   , fill ' '
-  , padRight 2 $ txt ("Ongoing: " <> showAtom @(BluePrint Time) (abs (currTime - startTime)) <> " ")
+  , padRight 2 $ txt ("ongoing: " <> showAtom @(BluePrint Time) (abs (currTime - startTime)) <> " ")
     <+> clockAnimation animState
   ]
 
-drawTaskDesc :: Maybe TaskDesc -> Widget n
+drawTaskDesc :: Maybe TaskDesc -> Widget (Resource 'Main)
 drawTaskDesc desc =
-    padTopBottom 1 $ padLeft 4
+    padTopBottom 1
+  $ padLeft 4
   $ C.vCenter
   $ txtWrap
   $ maybe "This Task has no description." (^. descL) desc
 
 
-drawTaskTags :: [TaskTag] -> Widget n
-drawTaskTags = padTopBottom 1 . padLeft 2 . txtWrap . T.filter (/= '*') . showAtom @(BluePrint [TaskTag])
+drawTaskTags :: [TaskTag] -> Widget (Resource 'Main)
+drawTaskTags = padTopBottom 1 . padLeft 2 . txtWrap . T.init . showAtom @(BluePrint [TaskTag])
 
-drawCurrentTask :: Maybe Task -> Time -> Integer -> Widget n
+drawCurrentTask :: Maybe Task -> Time -> Integer -> Widget (Resource 'Main)
 drawCurrentTask mtask currTime clockAnimState =
-    hLimitPercent 60 $ vLimitPercent 50
+    hLimitPercent 55 $ vLimitPercent 50
   $ withBorderStyle B.unicodeRounded $ B.border
   $ vBox [ titleBar "Current Task"
          , maybe drawNoOngoinTask drawTask mtask
          ]
 
   where
-    drawTask :: Task -> Widget n
+    drawTask :: Task -> Widget (Resource 'Main)
     drawTask task =
       vBox [ drawTaskName (task ^. taskNameL)
            , drawCurrentTaskTime (task ^. taskStartL) currTime clockAnimState
@@ -122,39 +132,45 @@ drawCurrentTask mtask currTime clockAnimState =
            , withBorderStyle B.ascii B.hBorder
            , drawTaskTags (task ^. taskTagsL)
            ]
-    drawNoOngoinTask :: Widget n
-    drawNoOngoinTask = C.center $ txt "There's current not any ongoing task."
+    drawNoOngoinTask :: Widget (Resource 'Main)
+    drawNoOngoinTask = C.center $ txt "There's currently not any ongoing task."
 
-drawGoalStatus :: GoalStatus -> Widget n
+drawGoalStatus :: GoalStatus -> Widget (Resource 'Main)
 drawGoalStatus Done    = padTopBottom 1 $ txt "[" <+> emoji (fg V.green) '✓' <+> txt "]"
 drawGoalStatus NotDone = padTopBottom 1 $ txt "[" <+> emoji (fg V.red) '✕' <+> txt "]"
 
 
-drawGoal :: Goal -> Widget n
+drawGoal :: Goal -> Widget (Resource 'Main)
 drawGoal goal =
   hBox [ drawGoalStatus (goal ^. goalStatusL)
        , padTopBottom 1 $ padLeft 1
          $ txtWrap $ goal ^. goalDescL
        ]
 
-drawCompletedGoals :: [Goal] -> Widget n
+drawCompletedGoals :: [Goal] -> Widget (Resource 'Main)
 drawCompletedGoals goals =
-  vBox
+    vLimitPercent 100
+  $ viewport (MainRes CompletedGoals) Vertical
+  $ vBox
      $ [ padTop 1 $ C.hCenter $ txt "Completed"
        , withBorderStyle B.ascii B.hBorder
        ] <> map drawGoal goals
 
-drawNotCompletedGoals :: [Goal] -> Widget n
+drawNotCompletedGoals :: [Goal] -> Widget (Resource 'Main)
 drawNotCompletedGoals goals =
-  vBox
+      vLimitPercent 50
+    $ viewport (MainRes NotCompletedGoals) Vertical
+    $ vBox
     $ [ padTop 1 $ C.hCenter $ txt "Not Completed"
       , withBorderStyle B.ascii B.hBorder
       ] <> map drawGoal goals
 
-drawTodaysGoals :: [Goal] -> Widget n
+drawTodaysGoals :: [Goal] -> Widget (Resource 'Main)
 drawTodaysGoals goals =
-    vLimitPercent 50 $ withBorderStyle B.unicodeRounded $ B.border
-    $ vBox [ titleBar "Todays' Goals"
+      vLimitPercent 50
+    $ withBorderStyle B.unicodeRounded
+    $ B.border
+    $ vBox [ titleBar "Today's Goals"
            , drawNotCompletedGoals (goalsNotDone goals)
            , fillEmpty
            , withBorderStyle B.unicode B.hBorder
@@ -162,17 +178,17 @@ drawTodaysGoals goals =
            , fillEmpty
            ]
 
-drawUIMain :: UI 'Main -> [Widget ResourceName]
-drawUIMain (MainUI ms) = 
+drawUIMain :: UI 'Main -> [Widget (Resource 'Main)]
+drawUIMain (MainUI ms) =
    [ vBox [  drawHeading     (ms ^. (msCurrentLogL . logHeadingL))
-        
+
           ,  drawCurrentTask (ongoingTask (ms ^. msCurrentLogL))
                              (ms ^. msCurrentTimeL)
                              (ms ^. msClockAnimationStateL)
          <+> drawTodaysGoals (ms ^. (msCurrentLogL . logGoalsL))
           ]
    ]
-  
+
 
 updateUI :: UI 'Main -> IO (UI 'Main)
 updateUI (MainUI ms) = do
@@ -180,6 +196,18 @@ updateUI (MainUI ms) = do
    return $ MainUI $ ms & msCurrentTimeL .~ time
                         & msClockAnimationStateL  %~ (\n -> mod (n + 1) 4)
 
-handleEventMain :: UI 'Main -> BrickEvent ResourceName Tick -> EventM ResourceName (Next (UI 'Main))
-handleEventMain ui (AppEvent Tick)   = liftIO (updateUI ui) >>= continue
-handleEventMain ui            _      = continue ui
+scrollCurrentWindow :: UI 'Main -> ViewportScroll (Resource 'Main)
+scrollCurrentWindow (MainUI ms) = viewportScroll (ms ^. msCurrentWindowL)
+
+changeCurrentWindow :: UI 'Main -> UI 'Main
+changeCurrentWindow (MainUI ms) = MainUI (ms & msCurrentWindowL .~ MainRes CompletedGoals)
+
+handleEventMain :: UI 'Main -> BrickEvent (Resource 'Main) Tick -> EventM (Resource 'Main) (Next (UI 'Main))
+handleEventMain ui (AppEvent Tick)                           = liftIO (updateUI ui)
+                                                           >>= continue
+handleEventMain ui (VtyEvent (V.EvKey (V.KChar 'j') []))     = vScrollBy (scrollCurrentWindow ui) 1
+                                                            >> continue ui
+handleEventMain ui (VtyEvent (V.EvKey (V.KChar 'k') []))     = vScrollBy (scrollCurrentWindow ui) (-1)
+                                                            >> continue ui
+handleEventMain ui (VtyEvent (V.EvKey (V.KChar 'k') [V.MCtrl]))    = continue (changeCurrentWindow ui)
+handleEventMain ui            _                              = continue ui
