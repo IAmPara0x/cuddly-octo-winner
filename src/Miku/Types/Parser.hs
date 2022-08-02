@@ -15,7 +15,7 @@ module Miku.Types.Parser
   ( Atom(..)
   , Composeable(..)
   , MkBluePrint(..)
-  , type (:>>)
+  , type (:+>)
   , type (<:)
   , type (:>)
   , AlphaNum
@@ -87,13 +87,13 @@ instance (Atom p1, Monoid (AtomType p1), Atom p2, AtomType p2 ~ a) => Composeabl
   composeS s a = s <> showAtom @(p1 :> p2) a
 
 
-data (p :: k1) :>> (a :: k2)
+data (p :: k1) :+> (a :: k2)
 
-infixr 5 :>>
+infixr 5 :+>
 
-instance (Atom p1, AtomType p1 ~ a, Composeable p2 b) => Composeable (p1 :>> p2) (a -> b) where
-  type ComposeP (p1 :>> p2) (a -> b) = ComposeP p2 b
-  type ComposeS (p1 :>> p2) = AtomType p1 -> ComposeS p2
+instance (Atom p1, AtomType p1 ~ a, Composeable p2 b) => Composeable (p1 :+> p2) (a -> b) where
+  type ComposeP (p1 :+> p2) (a -> b) = ComposeP p2 b
+  type ComposeS (p1 :+> p2) = AtomType p1 -> ComposeS p2
 
   composeP f    = parseAtom @p1 >>= composeP @p2 @b . f
   composeS s p1 = composeS @p2 @b (s <> showAtom @p1 p1)

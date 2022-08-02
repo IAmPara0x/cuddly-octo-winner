@@ -27,13 +27,12 @@ library
   exposed-modules:
       Miku
   other-modules:
-      Miku.Draw
-      Miku.Draw.MainLayout
-      Miku.Types.Log
+      Miku.Templates.Log
       Miku.Types.Parser
       Miku.Types.Time
       Miku.UI
-      Miku.UI.Utils
+      Miku.UI.State
+      Miku.UI.State.Welcome
       Paths_Miku
   hs-source-dirs:
       src
@@ -48,6 +47,8 @@ library
       RecordWildCards
       TupleSections
       TypeApplications
+      KindSignatures
+  ghc-options: -Wall
   build-depends:
       base >=4.7 && <5
     , brick >=0.69
@@ -77,6 +78,7 @@ executable miku
       RecordWildCards
       TupleSections
       TypeApplications
+      KindSignatures
   ghc-options: -Wall -threaded -O1 -rtsopts -with-rtsopts=-N
   build-depends:
       Miku
@@ -102,6 +104,7 @@ test-suite timeTracker-test
       RecordWildCards
       TupleSections
       TypeApplications
+      KindSignatures
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Miku

@@ -1,16 +1,17 @@
-{-# OPTIONS_GHC -Wno-orphans    #-}
-
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE TypeOperators      #-}
 {-# LANGUAGE TemplateHaskell    #-}
 
-module Miku.Types.Log
+{-# OPTIONS_GHC -Wno-orphans #-}
+
+
+module Miku.Templates.Log
   ( Goal(Goal)
   , goalStatusL
   , goalDescL
-  , GoalStatus(..)
+  , GoalStatus(Done, NotDone)
 
   , Heading(Heading)
   , headingL
@@ -36,12 +37,6 @@ module Miku.Types.Log
   , TaskTag(TaskTag)
   , tagL
 
-  , Time
-  , mkTime
-  , timeHrsL
-  , timeMinsL
-  , getCurrentTime
-
   -- * Helper functions
   , goalsDone
   , goalsNotDone
@@ -65,10 +60,10 @@ import  Data.Time              (Day)
 import  Text.Megaparsec        (runParser)
 import  Text.Read              (read)
 
-import  Relude
-
 import  Miku.Types.Parser
-import  Miku.Types.Time
+import  Miku.Types.Time (Time)
+
+import  Relude
 
 
 dayP :: DayF
@@ -77,7 +72,7 @@ dayP y m d = read (show y <> "-" <> m' <> "-" <> d')
     m' = if m < 10 then "0" <> show m else show m
     d' = if d < 10 then "0" <> show d else show d
 
-type DayFormat = Digits <: Literal "-" :>> Digits <: Literal "-" :>> Digits
+type DayFormat = Digits <: Literal "-" :+> Digits <: Literal "-" :+> Digits
 type DayF      = Integer -> Integer -> Integer -> Day
 
 instance MkBluePrint Day where
@@ -134,7 +129,7 @@ newtype TaskDesc = TaskDesc { _descL :: Text }
 
 
 type DescLine = Repeat 2 Space :> AlphaNums
-            :>> PrintChars <: Newline
+            :+> PrintChars <: Newline
 
 instance Atom DescLine where
   type AtomType DescLine = Text
@@ -192,10 +187,10 @@ type TaskF   = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> 
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
 type TaskFormat = BluePrint TaskName
-              :>> BluePrint Time <: Space <: Token "-" <: Space
-              :>> Optional (BluePrint Time) <: Token ")" <: Repeat 2 Newline <: Many Newline
-              :>> Optional (Try (BluePrint TaskDesc))
-              :>> BluePrint [TaskTag] <: TaskSep
+              :+> BluePrint Time <: Space <: Token "-" <: Space
+              :+> Optional (BluePrint Time) <: Token ")" <: Repeat 2 Newline <: Many Newline
+              :+> Optional (Try (BluePrint TaskDesc))
+              :+> BluePrint [TaskTag] <: TaskSep
 
 instance MkBluePrint Task where
   type Format Task = TaskFormat
@@ -215,13 +210,13 @@ data GoalStatus = Done
                   deriving stock (Show, Eq)
 
 data Goal = Goal
-  { _goalStatusL :: !GoalStatus
-  , _goalDescL   :: !Text
+  { _goalStatusL :: GoalStatus
+  , _goalDescL   :: Text
   } deriving stock (Show)
 
 type GoalFormat =  Repeat 2 Space :> Literal "-" :> Space
                :>  Literal "[" :> PrintChar <: Literal "]" <: Space
-               :>> PrintChars <: Repeat 2 Newline
+               :+> PrintChars <: Repeat 2 Newline
 
 type GoalF = Char -> Text -> Goal
 
@@ -252,8 +247,8 @@ data Log = Log
   deriving (Show)
 
 type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline
-             :>> Many (BluePrint Task)
-             :>> Prefix "## Goals:" :> Repeat 2 Newline
+             :+> Many (BluePrint Task)
+             :+> Prefix "## Goals:" :> Repeat 2 Newline
               :> Many (BluePrint Goal)
 
 type LogF = Heading -> [Task] -> [Goal] -> Log
@@ -289,7 +284,6 @@ goalsDone = filter (\g -> (g ^. goalStatusL) == Done)
 readLog :: FilePath -> IO Log
 readLog f = do
   input <- T.readFile f
-  -- parseTest (parseAtom @LogFormat) input
 
   case runParser (parseAtom @(BluePrint Log)) "dailyLog.md" input of
     Left a    -> error $ T.pack $ show a

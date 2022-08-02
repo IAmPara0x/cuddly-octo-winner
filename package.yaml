@@ -30,8 +30,11 @@ default-extensions:
 - RecordWildCards
 - TupleSections
 - TypeApplications
+- KindSignatures 
 
 library:
+  ghc-options:
+    -Wall
   source-dirs: src
   exposed-modules:
   - Miku

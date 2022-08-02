@@ -1,61 +1,27 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE GADTs           #-}
-{-# LANGUAGE KindSignatures  #-}
+{-# LANGUAGE GADTs #-}
 
-module Miku.UI
-  ( Layout(Main)
-  , MainState(MainState)
-  , msClockAnimationStateL
-  , msCurrentLogL
-  , msCurrentTimeL
-  , msCurrentWindowL
-  , MainRes(..)
-  , Resource(MainRes)
-  , Tick(Tick)
-  , UI(MainUI)
+module Miku.UI (drawUI, handleEvent) where
+
+import Brick.Main (continue, halt)
+
+import Brick.Types
+  ( BrickEvent(VtyEvent)
+  , EventM
+  , Next
+  , Widget
   )
-  where
 
+import Graphics.Vty qualified as Vty
 
-import Text.Show qualified
-import Control.Lens (makeLenses)
-import Relude
+import Miku.UI.State (AppState(WState), Name, Tick)
+import Miku.UI.State.Welcome (drawWelcomeState)
 
-import Miku.Types.Log
+import Relude ()
 
-data Layout  = Main
-             deriving stock (Show, Eq, Ord)
+  
+drawUI :: AppState -> [Widget n]
+drawUI (WState wconfig wstate)= drawWelcomeState wconfig wstate
 
-data MainRes = CurrentTask
-             | NotCompletedGoals
-             | CompletedGoals
-             | CurrentLogStats
-             deriving stock (Show, Eq, Ord)
-
-data Resource (layout :: Layout) where
-  MainRes :: MainRes -> Resource 'Main
-
-instance Show (Resource layout) where
-  show (MainRes mainres) = show mainres
-
-instance Eq (Resource layout) where
-  (MainRes mainres1) == (MainRes mainres2) = mainres1 == mainres2
-
-instance Ord (Resource layout) where
-  (MainRes mainres1) <= (MainRes mainres2) = mainres1 <= mainres2
-
-data MainState =
-  MainState { _msCurrentLogL          :: Log
-            , _msCurrentTimeL         :: Time
-            , _msClockAnimationStateL :: Integer
-            , _msCurrentWindowL       :: Resource 'Main
-            } deriving stock (Show)
-
-makeLenses ''MainState
-
-
-data UI (layout :: Layout) where
-  MainUI :: MainState -> UI 'Main
-
-data Tick = Tick
-            deriving stock (Show)
+handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
+handleEvent ui (VtyEvent (Vty.EvKey (Vty.KChar 'q') [])) = halt ui
+handleEvent ui _                                         = continue ui

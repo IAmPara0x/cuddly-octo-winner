@@ -3,7 +3,6 @@
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE TypeOperators     #-}
 {-# LANGUAGE TemplateHaskell   #-}
-{-# OPTIONS_GHC -Wno-deferred-out-of-scope-variables #-}
 
 module Miku.Types.Time
   ( Time
@@ -23,9 +22,10 @@ import Data.Time
   , todMin
   )
 
+import Miku.Types.Parser
+
 import Relude
 
-import Miku.Types.Parser
 
 data Time = Time
   { _timeHrsL  :: !Integer,
@@ -33,7 +33,7 @@ data Time = Time
   }
   deriving (Show)
 
-type TimeFormat = Digits <: Literal "h" <: Token ":" :>> Digits <: Literal "m"
+type TimeFormat = Digits <: Literal "h" <: Token ":" :+> Digits <: Literal "m"
 type TimeF      = Integer -> Integer -> Time
 
 instance MkBluePrint Time where
@@ -72,4 +72,5 @@ instance Monoid Time where
 makeLenses ''Time
 
 getCurrentTime :: IO Time
-getCurrentTime = (\t -> mkTime (toInteger $ todHour t) (toInteger $ todMin t)) . localTimeOfDay . zonedTimeToLocalTime <$> getZonedTime
+getCurrentTime =
+  (\t -> mkTime (toInteger $ todHour t) (toInteger $ todMin t)) . localTimeOfDay . zonedTimeToLocalTime <$> getZonedTime
