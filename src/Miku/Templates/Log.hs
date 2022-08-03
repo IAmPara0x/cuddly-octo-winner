@@ -240,9 +240,9 @@ makeLenses ''Goal
 -----------------------------------------------------------------
 
 data Log = Log
-  { _logHeadingL :: !Heading
-  , _logTasksL   :: ![Task]
-  , _logGoalsL   :: ![Goal]
+  { _logHeadingL :: Heading
+  , _logTasksL   :: [Task]
+  , _logGoalsL   :: [Goal]
   }
   deriving (Show)
 

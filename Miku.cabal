@@ -31,10 +31,10 @@ library
       Miku.Types.Parser
       Miku.Types.Time
       Miku.UI
+      Miku.UI.Draw.StatusLine
       Miku.UI.Draw.Welcome
       Miku.UI.Events.Welcome
       Miku.UI.State
-      Miku.UI.State.Welcome
       Paths_Miku
   hs-source-dirs:
       src
@@ -108,7 +108,7 @@ test-suite timeTracker-test
       TupleSections
       TypeApplications
       KindSignatures
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Miku
     , base >=4.7 && <5
