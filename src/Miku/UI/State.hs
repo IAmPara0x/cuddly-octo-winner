@@ -6,10 +6,10 @@ module Miku.UI.State
   )
   where
 
-import Miku.UI.State.Welcome (WelcomeConfig, WelcomeState)
+import Miku.UI.State.Welcome (WelcomeState)
 
 data AppState where
-  WState :: WelcomeConfig -> WelcomeState -> AppState
+  WState :: WelcomeState -> AppState
 
 type Name = ()
 type Tick = ()

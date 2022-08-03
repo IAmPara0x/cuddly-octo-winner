@@ -31,6 +31,8 @@ library
       Miku.Types.Parser
       Miku.Types.Time
       Miku.UI
+      Miku.UI.Draw.Welcome
+      Miku.UI.Events.Welcome
       Miku.UI.State
       Miku.UI.State.Welcome
       Paths_Miku
@@ -53,6 +55,7 @@ library
       base >=4.7 && <5
     , brick >=0.69
     , containers
+    , data-default
     , lens
     , megaparsec
     , relude

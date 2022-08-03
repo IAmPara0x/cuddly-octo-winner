@@ -4,10 +4,11 @@ import Brick.AttrMap (AttrMap, attrMap)
 import Brick.Main    (App(..), neverShowCursor, defaultMain)
 import Brick.Util    (fg)
 
+import Data.Default (def)
+
 import Graphics.Vty qualified as V
 
 import Miku.UI.State (AppState(WState), Name, Tick)
-import Miku.UI.State.Welcome (WelcomeConfig(WelcomeConfig), WelcomeState(WelcomeState))
 import Miku.UI (drawUI, handleEvent)
 
 import Relude
@@ -25,4 +26,4 @@ app = App { appDraw = drawUI
           }
 
 run :: IO ()
-run = void $ defaultMain app $ WState (WelcomeConfig "path") (WelcomeState "Moshi Moshi Moshi")
+run = void $ defaultMain app $ WState def

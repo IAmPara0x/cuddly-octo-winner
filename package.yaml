@@ -30,7 +30,7 @@ default-extensions:
 - RecordWildCards
 - TupleSections
 - TypeApplications
-- KindSignatures 
+- KindSignatures
 
 library:
   ghc-options:
@@ -42,6 +42,7 @@ library:
   - base >= 4.7 && < 5
   - brick >= 0.69
   - containers
+  - data-default
   - lens
   - megaparsec
   - relude

@@ -1,33 +1,53 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Miku.UI.State.Welcome
-  ( drawWelcomeState
-  , WelcomeConfig(WelcomeConfig)
+  ( WelcomeConfig(..)
   , wcConfigPathL
-  , WelcomeState(WelcomeState)
+  , WelcomeState(..)
+  , wsConfigL
   , wsMsgL
+  , wsPrevKeysL
+  , wsActionsL
+  , welcomeStateActions
   )
   where
 
-import Brick.Types
-  ( Widget
-  )
-import Brick.Widgets.Core (txt)
 
-import Control.Lens ((^.), makeLenses)
+import Control.Lens (makeLenses, (.~))
+import Data.Default (Default(def))
+import Data.Map qualified as Map
 
 import Relude
 
-newtype WelcomeConfig =
-  WelcomeConfig { _wcConfigPathL :: FilePath }
-  deriving stock (Show)
+type KeyMap = [Char]
 
-newtype WelcomeState =
-  WelcomeState { _wsMsgL :: Text
-               } deriving stock (Show)
+newtype WelcomeConfig =
+  WelcomeConfig { _wcConfigPathL :: FilePath
+                } deriving stock (Show)
+
+data WelcomeState =
+  WelcomeState { _wsMsgL      :: Text
+               , _wsConfigL   :: WelcomeConfig
+               , _wsActionsL  :: Map KeyMap (WelcomeState -> WelcomeState)
+               , _wsPrevKeysL :: KeyMap
+               }
+
 
 makeLenses ''WelcomeConfig
 makeLenses ''WelcomeState
 
-drawWelcomeState :: WelcomeConfig -> WelcomeState -> [Widget n]
-drawWelcomeState _wconfig wstate = [txt (wstate ^. wsMsgL)]
+clearPrevKeys :: WelcomeState -> WelcomeState
+clearPrevKeys = wsPrevKeysL .~ []
+
+welcomeStateActions :: Map KeyMap (WelcomeState -> WelcomeState)
+welcomeStateActions =
+  Map.fromList [ (" wj", clearPrevKeys . (wsMsgL .~ "Welcome Again"))
+               , ("c", clearPrevKeys . (wsMsgL .~ "welcome!"))
+               ]
+
+instance Default WelcomeState where
+  def = WelcomeState { _wsMsgL = "Moshi Moshi!"
+                     , _wsConfigL = WelcomeConfig "/home/iamparadox/.miku/"
+                     , _wsActionsL = welcomeStateActions
+                     , _wsPrevKeysL = []
+                     }

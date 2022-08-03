@@ -28,8 +28,8 @@ import Relude
 
 
 data Time = Time
-  { _timeHrsL  :: !Integer,
-    _timeMinsL :: !Integer
+  { _timeHrsL  :: Integer,
+    _timeMinsL :: Integer
   }
   deriving (Show)
 
