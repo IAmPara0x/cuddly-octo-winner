@@ -1,127 +1,57 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Miku.UI.State
-  ( AppState(WState, CLState)
-  , CurrentLogConfig(..)
-  , clcConfigPathL
-  , clcLogsDirL
-  , CurrentLogState(..)
-  , clsActionsL
-  , clsConfigL
-  , clsLogL
-  , clsPrevKeysL
+  ( Action
+  , AppState(AppState)
+  , execAction
+  , IsMode(..)
+  , KeyMap
+  , Keys
+  , Mode(..)
   , Name
+  , SMode(..)
   , Tick
-  , WelcomeConfig(..)
-  , wcConfigPathL
-  , WelcomeState(..)
-  , wsConfigL
-  , wsMsgL
-  , wsPrevKeysL
-  , wsActionsL
-  , welcomeStateActions
-  )
-  where
+  ) where
 
 import Brick.Main qualified as Brick
-import Brick.Types (EventM, Next)
-
-import Control.Lens (makeLenses, (.~))
-import Data.Default (Default(def))
+import Brick.Types (Widget, BrickEvent, EventM, Next)
+import Control.Lens (Lens', (^.), (.~))
 import Data.Map qualified as Map
 
-import Miku.Templates.Log (Log)
-
 import Relude
-
-data AppState where
-  WState :: WelcomeState -> AppState
-  CLState :: CurrentLogState -> AppState
 
 type Name = ()
 type Tick = ()
 
-type Action a = (a -> EventM Name (Next AppState))
+data AppState where
+  AppState :: forall a. (IsMode a) => SMode a -> ModeState a -> AppState
 
--- | Welcome State
+class IsMode (a :: Mode) where
+  type ModeState a :: Type
+  defState         :: SMode a -> IO (ModeState a)
+  drawState        :: SMode a -> ModeState a -> [Widget n]
+  handleEventState :: SMode a -> ModeState a -> BrickEvent Name Tick -> EventM Name (Next AppState)
 
-type KeyMap = [Char]
-
-newtype WelcomeConfig =
-  WelcomeConfig { _wcConfigPathL :: FilePath
-                } deriving stock (Show)
-
-data WelcomeState =
-  WelcomeState { _wsActionsL  :: Map KeyMap (Action WelcomeState)
-               , _wsConfigL   :: WelcomeConfig
-               , _wsMsgL      :: Text
-               , _wsPrevKeysL :: KeyMap
-               }
-
--- | Current Log State
-data CurrentLogConfig =
-  CurrentLogConfig { _clcConfigPathL :: FilePath
-                   , _clcLogsDirL    :: FilePath
-                   } deriving stock (Show)
-
-data CurrentLogState =
-  CurrentLogState { _clsActionsL  :: Map KeyMap (Action CurrentLogState)
-                  , _clsConfigL   :: CurrentLogConfig
-                  , _clsLogL      :: Maybe Log
-                  , _clsPrevKeysL :: KeyMap
-                  }
+  keyMapL          :: SMode a -> Lens' (ModeState a) (KeyMap (ModeState a))
+  prevKeysL        :: SMode a -> Lens' (ModeState a) Keys
 
 
-makeLenses ''WelcomeConfig
-makeLenses ''WelcomeState
+type KeyMap a = Map Keys (Action a)
+type Action a = a -> EventM Name (Next AppState)
+type Keys     = [Char]
 
-makeLenses ''CurrentLogConfig
-makeLenses ''CurrentLogState
+data Mode = WelcomeMode
+          | CurrentStatusMode
+          | CurrentLogMode
 
+data SMode (mode :: Mode) where
+  SWelcomeMode       :: SMode 'WelcomeMode
+  SCurrentStatusMode :: SMode 'CurrentStatusMode
+  SCurrentLogMode    :: SMode 'CurrentLogMode
 
--- | Welcome State
-
-clearPrevKeys :: WelcomeState -> WelcomeState
-clearPrevKeys = wsPrevKeysL .~ []
-
-welcomeStateActions :: Map KeyMap (Action WelcomeState)
-welcomeStateActions =
-  Map.fromList [ ("c", changeMsg)
-               , ("log", toCurrentLogState)
-               ]
-  where
-
-    changeMsg :: Action WelcomeState
-    changeMsg = Brick.continue . WState . clearPrevKeys . (wsMsgL .~ "welcome!")
-
-    toCurrentLogState :: Action WelcomeState
-    toCurrentLogState = Brick.continue . const (CLState def)
-
-instance Default WelcomeState where
-  def = WelcomeState { _wsMsgL = "Moshi Moshi!"
-                     , _wsConfigL = WelcomeConfig "/home/iamparadox/.miku/"
-                     , _wsActionsL = welcomeStateActions
-                     , _wsPrevKeysL = []
-                     }
-
--- | Current Log State
-
-currentLogStateActions :: Map KeyMap (Action CurrentLogState)
-currentLogStateActions =
-  Map.fromList [ (" ws", toWelcomeState)
-               ]
-  where
-
-    toWelcomeState :: Action CurrentLogState
-    toWelcomeState = Brick.continue . const (WState $ def & (wsMsgL .~ "Welcome Again!"))
-
-instance Default CurrentLogState where
-  def = CurrentLogState { _clsLogL      = Nothing
-                        , _clsActionsL  = currentLogStateActions
-                        , _clsPrevKeysL = [] 
-                        , _clsConfigL   =
-                            CurrentLogConfig { _clcConfigPathL = "/home/iamparadox/.miku/"
-                                             , _clcLogsDirL = "/home/iamparadox/.miku/logs"
-                                             }
-                        }
+execAction :: IsMode a => SMode a -> Action (ModeState a)
+execAction mode mstate =
+  case Map.lookup (mstate ^. prevKeysL mode) (mstate ^. keyMapL mode) of
+    Just action -> action (mstate & prevKeysL mode .~ [])
+    Nothing     -> Brick.continue $ AppState mode mstate

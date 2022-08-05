@@ -8,12 +8,10 @@ import Brick.Types
   , Next
   , Widget
   )
-import Miku.UI.State (AppState(WState), Name, Tick)
-import Miku.UI.Draw.Welcome (drawWelcomeState)
-import Miku.UI.Events.Welcome (handleWelcomeStateEvent)
+import Miku.UI.State (AppState(AppState), Name, Tick, drawState, handleEventState)
 
 drawUI :: AppState -> [Widget n]
-drawUI (WState wstate) = drawWelcomeState wstate
+drawUI (AppState m s) = drawState m s
 
 handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleEvent (WState wstate) = handleWelcomeStateEvent wstate
+handleEvent (AppState m s) = handleEventState m s

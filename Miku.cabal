@@ -32,8 +32,8 @@ library
       Miku.Types.Time
       Miku.UI
       Miku.UI.Draw.StatusLine
-      Miku.UI.Draw.Welcome
-      Miku.UI.Events.Welcome
+      Miku.UI.Mode.CurrentLog
+      Miku.UI.Mode.Welcome
       Miku.UI.State
       Paths_Miku
   hs-source-dirs:

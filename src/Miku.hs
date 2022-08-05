@@ -4,15 +4,19 @@ import Brick.AttrMap (AttrMap, attrMap)
 import Brick.Main    (App(..), neverShowCursor, defaultMain)
 import Brick.Util    (fg)
 
-import Data.Default (def)
+import Control.Lens ((%~))
+
+import Data.Map qualified as Map
 
 import Graphics.Vty qualified as V
 
-import Miku.UI.State (AppState(WState), Name, Tick)
+import Miku.UI.State (AppState(AppState), defState, keyMapL, Name, SMode(SWelcomeMode, SCurrentLogMode), Tick)
+import Miku.UI.Mode.Welcome ()
+import Miku.UI.Mode.CurrentLog (toCurrentLogMode)
+
 import Miku.UI (drawUI, handleEvent)
 
 import Relude
-
 
 uiAttrMap :: AttrMap
 uiAttrMap = attrMap (fg V.red) []
@@ -25,5 +29,11 @@ app = App { appDraw = drawUI
           , appAttrMap = const uiAttrMap
           }
 
+
 run :: IO ()
-run = void $ defaultMain app $ WState def
+run = do
+  s' <- defState SWelcomeMode
+
+  let s = s' & keyMapL SWelcomeMode %~ Map.insert " cl" (toCurrentLogMode SWelcomeMode)
+
+  void $ defaultMain app $ AppState SWelcomeMode s
