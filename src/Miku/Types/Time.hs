@@ -9,6 +9,7 @@ module Miku.Types.Time
   , mkTime
   , timeHrsL
   , timeMinsL
+  , getCurrentDay
   , getCurrentTime
   )
 where
@@ -17,9 +18,11 @@ import Control.Lens (makeLenses)
 import Data.Time
   ( getZonedTime
   , zonedTimeToLocalTime
+  , localDay
   , localTimeOfDay
   , todHour
   , todMin
+  , Day
   )
 
 import Miku.Types.Parser
@@ -72,5 +75,10 @@ instance Monoid Time where
 makeLenses ''Time
 
 getCurrentTime :: IO Time
-getCurrentTime =
-  (\t -> mkTime (toInteger $ todHour t) (toInteger $ todMin t)) . localTimeOfDay . zonedTimeToLocalTime <$> getZonedTime
+getCurrentTime = (\t -> mkTime (toInteger $ todHour t) (toInteger $ todMin t))
+               . localTimeOfDay
+               . zonedTimeToLocalTime
+               <$> getZonedTime
+
+getCurrentDay :: IO Day
+getCurrentDay = localDay . zonedTimeToLocalTime <$> getZonedTime

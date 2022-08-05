@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE FlexibleInstances  #-}
 {-# LANGUAGE TypeFamilies       #-}
 {-# LANGUAGE TypeOperators      #-}
@@ -43,6 +42,7 @@ module Miku.Templates.Log
   , ongoingTask
 
   -- * IO Stuff
+  , readCurrentLog
   , readLog
   , writeLog
   )
@@ -53,15 +53,23 @@ import  Data.Text.IO qualified as T
 import  Control.Lens
   ( (^?)
   , (^.)
-  , ix
+  , (^..)
+  , folded
+  , filtered
+  , _head
   , makeLenses
   )
-import  Data.Time              (Day)
-import  Text.Megaparsec        (runParser)
-import  Text.Read              (read)
+import Control.Monad.Trans.Except (except,throwE)
+import  Data.Time                 (Day)
 
 import  Miku.Types.Parser
-import  Miku.Types.Time (Time)
+import  Miku.Types.Time           (Time, getCurrentDay)
+
+import  System.FilePath           ((</>))
+import  System.Directory          (doesPathExist, doesFileExist)
+
+import  Text.Megaparsec           (runParser)
+import  Text.Read                 (read)
 
 import  Relude
 
@@ -260,34 +268,96 @@ instance MkBluePrint Log where
   parseBP = Log
   showBP (Log heading tasks goals) = composeS @LogFormat @LogF mempty heading tasks goals
 
-
 makeLenses ''Log
 
 -----------------------------------------------------------------
 -- | Helper functions
 -----------------------------------------------------------------
 
+logParser :: Parser Log
+logParser = parseAtom @(BluePrint Log)
+
+showLog :: Log -> Text
+showLog = showAtom @(BluePrint Log)
+
+mkNewLog :: Heading -> Log
+mkNewLog date = Log date [] []
+
 ongoingTask :: Log -> Maybe Task
-ongoingTask log = log ^. logTasksL ^? ix 0
-              >>= \t -> if isNothing (t ^. taskEndL) then return t else Nothing
+ongoingTask log =
+  do
+    latestTask <- log ^? logTasksL . _head
+    guard (isNothing $ latestTask ^. taskEndL)
+    return latestTask
 
 goalsNotDone :: [Goal] -> [Goal]
-goalsNotDone = filter (\g -> (g ^. goalStatusL) == NotDone)
+goalsNotDone goals = goals ^.. folded . filtered (\g -> g ^. goalStatusL == NotDone)
 
 goalsDone :: [Goal] -> [Goal]
-goalsDone = filter (\g -> (g ^. goalStatusL) == Done)
+goalsDone goals = goals ^.. folded . filtered (\g -> g ^. goalStatusL == Done)
 
 -----------------------------------------------------------------
 -- | IO Stuff
 -----------------------------------------------------------------
 
-readLog :: FilePath -> IO Log
-readLog f = do
-  input <- T.readFile f
+logsDirExists :: FilePath -> ExceptT Text IO ()
+logsDirExists logsDir =
+  do
+    dirExists <- liftIO $ doesPathExist logsDir
 
-  case runParser (parseAtom @(BluePrint Log)) "dailyLog.md" input of
-    Left a    -> error $ T.pack $ show a
-    Right log -> return log
+    unless dirExists
+      (throwE $ "The following directory for logs doesn't exists: " <> T.pack logsDir)
 
-writeLog :: FilePath -> Log -> IO ()
-writeLog f = T.writeFile f . showAtom @(BluePrint Log)
+readLog :: FilePath -> String -> ExceptT Text IO Log
+readLog logsDir logName =
+  do
+
+    void $ logsDirExists logsDir
+
+    let logPath :: FilePath
+        logPath = logsDir </> logName
+
+    logExists <- liftIO $ doesFileExist logPath
+
+    unless logExists
+      (throwE $ "The following log file doesn't exist: " <> T.pack logPath)
+
+    input <- liftIO $ T.readFile logPath
+
+    case runParser logParser logPath input of
+      Left _    -> throwE ("Failed to parse log from " <> T.pack logName)
+      Right log -> return log
+
+readCurrentLog :: FilePath -> IO (Either Text Log)
+readCurrentLog logsDir = runExceptT $
+  do
+    void $ logsDirExists logsDir
+
+    day <- liftIO getCurrentDay
+
+    let logName :: String
+        logName = show day <> "-log.md"
+
+        logPath :: FilePath
+        logPath = logsDir </> logName
+
+        newLog :: Log
+        newLog = mkNewLog (Heading day)
+
+    logExists <- liftIO $ doesFileExist logPath
+
+    if logExists
+      then readLog logsDir logName
+      else writeLog logsDir logName newLog >> return newLog
+
+
+writeLog :: FilePath -> String -> Log -> ExceptT Text IO ()
+writeLog logsDir logName log =
+  do
+
+    void $ logsDirExists logsDir
+
+    let logPath :: FilePath
+        logPath = logsDir </> logName
+
+    liftIO $ T.writeFile logPath (showLog log)

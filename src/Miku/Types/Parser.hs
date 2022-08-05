@@ -26,6 +26,7 @@ module Miku.Types.Parser
   , Many
   , Newline
   , Optional
+  , Parser
   , Prefix
   , PrintChar
   , PrintChars

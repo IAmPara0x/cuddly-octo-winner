@@ -2,8 +2,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Miku.UI.Mode.CurrentLog
   ( clcConfigPathL
   , clcLogsDirL
@@ -19,7 +17,7 @@ import Brick.Main           qualified as Brick
 import Brick.Widgets.Center qualified as Core
 import Brick.Widgets.Core   qualified as Core
 import Brick.Types
-  ( BrickEvent(VtyEvent)
+  ( BrickEvent
   , EventM
   , Next
   )
@@ -28,21 +26,19 @@ import Control.Lens (makeLenses, (<>~), (.~))
 import Data.Map             qualified as Map
 
 import Graphics.Vty (Key(KChar, KEsc))
-import Graphics.Vty qualified as Vty
 
 import Miku.Templates.Log (Log)
 
 import Miku.UI.State
   ( Action
   , AppState(AppState)
+  , eventKey
   , execAction
   , IsMode(..)
   , KeyMap
   , Keys
-  , Mode(CurrentLogMode)
   , Name
   , Tick
-  , SMode(SCurrentLogMode)
   )
 import Relude
 
@@ -63,10 +59,9 @@ makeLenses ''CurrentLogConfig
 makeLenses ''CurrentLogState
 
 
-instance IsMode 'CurrentLogMode where
-  type ModeState 'CurrentLogMode = CurrentLogState
+instance IsMode CurrentLogState where
 
-  defState _  = return $ CurrentLogState
+  defState = return $ CurrentLogState
                           { _clsConfigL =
                               CurrentLogConfig "/home/iamparadox/.miku/" "/home/iamparadox/.miku/logs"
                           , _clsKeyMapL =
@@ -75,39 +70,26 @@ instance IsMode 'CurrentLogMode where
                           , _clsPrevKeysL = []
                           }
 
-  drawState _ = const [Core.center $ Core.txt "Current Log State"]
+  drawState = const [Core.center $ Core.txt "Current Log State"]
   handleEventState = handleCurrentLogStateEvent
 
-  keyMapL   = const clsKeyMapL
-  prevKeysL = const clsPrevKeysL
+  keyMapL   = clsKeyMapL
+  prevKeysL = clsPrevKeysL
 
 
-handleCurrentLogStateEvent ::
-  SMode 'CurrentLogMode ->
-  CurrentLogState ->
-  BrickEvent Name Tick ->
-  EventM Name (Next AppState)
-handleCurrentLogStateEvent mode wstate (eventKey -> Just KEsc)
-  = execAction mode (wstate & prevKeysL mode .~ [])
-handleCurrentLogStateEvent mode wstate (eventKey -> Just (KChar c))
-  = execAction mode (wstate & prevKeysL mode <>~ [c])
-handleCurrentLogStateEvent mode wstate  _
-  = Brick.continue $ AppState mode wstate
+handleCurrentLogStateEvent :: CurrentLogState -> BrickEvent Name Tick -> EventM Name (Next AppState)
+handleCurrentLogStateEvent wstate (eventKey -> Just KEsc)      = execAction (wstate & prevKeysL .~ [])
+handleCurrentLogStateEvent wstate (eventKey -> Just (KChar c)) = execAction (wstate & prevKeysL <>~ [c])
+handleCurrentLogStateEvent wstate  _                           = Brick.continue $ AppState wstate
 
 currentLogStateActions :: KeyMap CurrentLogState
 currentLogStateActions =
   Map.fromList [ ("q", exitApp)
                ]
   where
-    
+
     exitApp :: Action CurrentLogState
-    exitApp  = Brick.halt . AppState SCurrentLogMode
+    exitApp  = Brick.halt . AppState
 
-eventKey :: BrickEvent Name Tick -> Maybe Vty.Key
-eventKey (VtyEvent (Vty.EvKey key _)) = Just key
-eventKey _                            = Nothing
-
-toCurrentLogMode :: IsMode a => SMode a -> Action (ModeState a)
-toCurrentLogMode _ _ = do 
-  def <- liftIO (defState SCurrentLogMode)
-  Brick.continue (AppState SCurrentLogMode def)
+toCurrentLogMode :: forall a. IsMode a => Action a
+toCurrentLogMode _ = liftIO (defState @CurrentLogState) >>= Brick.continue . AppState

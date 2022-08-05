@@ -2,8 +2,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TypeFamilies #-}
 
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Miku.UI.Mode.Welcome
   ( WelcomeConfig(..)
   , wcConfigPathL
@@ -17,7 +15,7 @@ module Miku.UI.Mode.Welcome
 import Brick.Main qualified as Brick
 
 import Brick.Types
-  ( BrickEvent(VtyEvent)
+  ( BrickEvent
   , EventM
   , Next
   , Widget
@@ -32,20 +30,18 @@ import Data.Map qualified as Map
 import Data.Text qualified as Text
 
 import Graphics.Vty (Key(KChar, KEsc))
-import Graphics.Vty qualified as Vty
 
 import Miku.UI.Draw.StatusLine (drawStatusLine)
 import Miku.UI.State
   ( Action
   , AppState(AppState)
+  , eventKey
   , execAction
   , IsMode(..)
   , KeyMap
   , Keys
-  , Mode(WelcomeMode)
   , Name
   , Tick
-  , SMode(SWelcomeMode)
   )
 
 import Relude
@@ -68,31 +64,23 @@ data WelcomeState =
 makeLenses ''WelcomeConfig
 makeLenses ''WelcomeState
 
-instance IsMode 'WelcomeMode where
-  type ModeState 'WelcomeMode = WelcomeState
-  defState _       = return $ WelcomeState
+instance IsMode WelcomeState where
+  defState = return $ WelcomeState
                                { _wsMsgL = "Moshi Moshi!"
                                , _wsConfigL = WelcomeConfig "/home/iamparadox/.miku/"
                                , _wsKeyMapL = welcomeStateActions
                                , _wsPrevKeysL = []
                                , _wsPrevStateL = Nothing
                                }
-  drawState        = const drawWelcomeState
-  handleEventState = const handleWelcomeStateEvent
-  keyMapL          = const wsKeyMapL
-  prevKeysL        = const wsPrevKeysL
+  drawState        = drawWelcomeState
+  handleEventState = handleWelcomeStateEvent
+  keyMapL          = wsKeyMapL
+  prevKeysL        = wsPrevKeysL
 
 handleWelcomeStateEvent :: WelcomeState -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleWelcomeStateEvent wstate (eventKey -> Just KEsc)
-  = execAction SWelcomeMode (wstate & wsPrevKeysL .~ [])
-handleWelcomeStateEvent wstate (eventKey -> Just (KChar c))
-  = execAction SWelcomeMode (wstate & wsPrevKeysL <>~ [c])
-handleWelcomeStateEvent wstate  _
-  = Brick.continue $ AppState SWelcomeMode wstate
-
-eventKey :: BrickEvent Name Tick -> Maybe Vty.Key
-eventKey (VtyEvent (Vty.EvKey key _)) = Just key
-eventKey _                            = Nothing
+handleWelcomeStateEvent wstate (eventKey -> Just KEsc)      = execAction (wstate & wsPrevKeysL .~ [])
+handleWelcomeStateEvent wstate (eventKey -> Just (KChar c)) = execAction (wstate & wsPrevKeysL <>~ [c])
+handleWelcomeStateEvent wstate  _                           = Brick.continue $ AppState wstate
 
 drawWelcomeState :: WelcomeState -> [Widget n]
 drawWelcomeState wstate =
@@ -111,10 +99,10 @@ welcomeStateActions =
   where
 
     changeMsg :: Action WelcomeState
-    changeMsg = Brick.continue . AppState SWelcomeMode . (wsMsgL .~ "welcome!")
+    changeMsg = Brick.continue . AppState . (wsMsgL .~ "welcome!")
 
     changeMsgAgain :: Action WelcomeState
-    changeMsgAgain = Brick.continue . AppState SWelcomeMode . (wsMsgL .~ "welcome again!")
+    changeMsgAgain = Brick.continue . AppState . (wsMsgL .~ "welcome again!")
 
     exitApp :: Action WelcomeState
-    exitApp  = Brick.halt . AppState SWelcomeMode
+    exitApp  = Brick.halt . AppState

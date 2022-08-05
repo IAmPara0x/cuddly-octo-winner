@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Miku.UI (drawUI, handleEvent) where
 
@@ -11,7 +12,7 @@ import Brick.Types
 import Miku.UI.State (AppState(AppState), Name, Tick, drawState, handleEventState)
 
 drawUI :: AppState -> [Widget n]
-drawUI (AppState m s) = drawState m s
+drawUI (AppState s) = drawState s
 
 handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleEvent (AppState m s) = handleEventState m s
+handleEvent (AppState s) = handleEventState s
