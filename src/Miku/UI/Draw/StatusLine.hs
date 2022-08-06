@@ -9,12 +9,21 @@ import Brick.Widgets.Core          qualified as Core
 import Relude
 
 
-drawStatusLine :: Text -> Widget n
-drawStatusLine currentState =
+drawStatusLine :: Text -> Text -> Widget n
+drawStatusLine keys msgLog =
+  Core.vBox [ drawTaskBar keys
+            , Core.vLimit 1 $ Core.padLeft (Pad 2) $ Core.txt msgLog
+            ]
+
+drawTaskBar :: Text -> Widget n
+drawTaskBar keys =
       Core.hCenter
     $ Core.withBorderStyle Border.unicodeRounded
-    $ Border.borderWithLabel (Core.txt "Status")
-    $ Core.hBox [ Core.padLeft (Pad 2) $ Core.txt currentState
+    $ Border.border
+    $ Core.vLimit 1
+    $ Core.hBox [ cmdInfo keys
                 , Core.fill ' '
                 ]
 
+cmdInfo :: Text -> Widget n
+cmdInfo keys = Core.padLeft (Pad 2) $ Core.txt $ "CMD: " <> keys

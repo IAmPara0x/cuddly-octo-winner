@@ -3,12 +3,12 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Miku.UI.Mode.Welcome
-  ( WelcomeConfig(..)
+  ( toWelcomeMode
+  , WelcomeConfig(..)
   , wcConfigPathL
   , WelcomeState(..)
   , wsConfigL
   , wsMsgL
-  , wsPrevStateL
   )
   where
 
@@ -58,7 +58,6 @@ data WelcomeState =
                  , _wsKeyMapL    :: KeyMap WelcomeState
                  , _wsMsgL       :: Text
                  , _wsPrevKeysL  :: Keys
-                 , _wsPrevStateL :: Maybe AppState
                  }
 
 makeLenses ''WelcomeConfig
@@ -70,7 +69,6 @@ instance IsMode WelcomeState where
                                , _wsConfigL = WelcomeConfig "/home/iamparadox/.miku/"
                                , _wsKeyMapL = welcomeStateActions
                                , _wsPrevKeysL = []
-                               , _wsPrevStateL = Nothing
                                }
   drawState        = drawWelcomeState
   handleEventState = handleWelcomeStateEvent
@@ -84,10 +82,10 @@ handleWelcomeStateEvent wstate  _                           = Brick.continue $ A
 
 drawWelcomeState :: WelcomeState -> [Widget n]
 drawWelcomeState wstate =
-  [Core.vBox
-    [ Core.vLimitPercent 95 $ Core.center $ Core.txt (wstate ^. wsMsgL)
-    , drawStatusLine ("CMD: " <> Text.pack (wstate ^. wsPrevKeysL))
-    ]
+  [ Core.vBox
+     [ Core.vLimitPercent 94 $ Core.center $ Core.txt (wstate ^. wsMsgL)
+     , drawStatusLine (Text.pack $ wstate ^. prevKeysL) ""
+     ]
   ]
 
 welcomeStateActions :: KeyMap WelcomeState
@@ -106,3 +104,6 @@ welcomeStateActions =
 
     exitApp :: Action WelcomeState
     exitApp  = Brick.halt . AppState
+
+toWelcomeMode :: IsMode a => Action a
+toWelcomeMode _ = liftIO (defState @WelcomeState) >>= Brick.continue . AppState

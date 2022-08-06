@@ -11,8 +11,8 @@ import Data.Map qualified as Map
 import Graphics.Vty qualified as V
 
 import Miku.UI.State (AppState(AppState), defState, keyMapL, Name, Tick)
-import Miku.UI.Mode.Welcome (WelcomeState)
-import Miku.UI.Mode.CurrentLog (toCurrentLogMode)
+import Miku.UI.Mode.Welcome (toWelcomeMode, WelcomeState)
+import Miku.UI.Mode.CurrentLog (CurrentLogState, toCurrentLogMode)
 
 import Miku.UI (drawUI, handleEvent)
 
@@ -32,6 +32,6 @@ app = App { appDraw = drawUI
 
 run :: IO ()
 run = do
-  s' <- defState @WelcomeState
-  let s = s' & keyMapL %~ Map.insert " cl" toCurrentLogMode
+  s' <- defState @CurrentLogState
+  let s = s' & keyMapL %~ Map.insert " w" toWelcomeMode
   void $ defaultMain app $ AppState s

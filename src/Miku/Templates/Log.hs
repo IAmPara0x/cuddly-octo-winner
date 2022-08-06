@@ -5,7 +5,6 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-
 module Miku.Templates.Log
   ( Goal(Goal)
   , goalStatusL
@@ -40,6 +39,9 @@ module Miku.Templates.Log
   , goalsDone
   , goalsNotDone
   , ongoingTask
+  , logParser
+  , showHeading
+  , showLog
 
   -- * IO Stuff
   , readCurrentLog
@@ -59,7 +61,7 @@ import  Control.Lens
   , _head
   , makeLenses
   )
-import Control.Monad.Trans.Except (except,throwE)
+import Control.Monad.Trans.Except (throwE)
 import  Data.Time                 (Day)
 
 import  Miku.Types.Parser
@@ -274,6 +276,9 @@ makeLenses ''Log
 -- | Helper functions
 -----------------------------------------------------------------
 
+showHeading :: Heading -> Text
+showHeading = showAtom @(BluePrint Heading)
+
 logParser :: Parser Log
 logParser = parseAtom @(BluePrint Log)
 
@@ -328,8 +333,8 @@ readLog logsDir logName =
       Left _    -> throwE ("Failed to parse log from " <> T.pack logName)
       Right log -> return log
 
-readCurrentLog :: FilePath -> IO (Either Text Log)
-readCurrentLog logsDir = runExceptT $
+readCurrentLog :: FilePath -> ExceptT Text IO Log
+readCurrentLog logsDir =
   do
     void $ logsDirExists logsDir
 
