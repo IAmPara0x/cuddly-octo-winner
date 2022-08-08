@@ -12,47 +12,41 @@ module Miku.UI.Mode.CurrentLog
   )
   where
 
-import Brick.Main           qualified as Brick
-import Brick.Widgets.Border        qualified as Border
-import Brick.Widgets.Border.Style  qualified as Border
+import Brick.Main                  qualified as Brick
 import Brick.Widgets.Center        qualified as Core
 import Brick.Widgets.Core          qualified as Core
 
 import Brick.Types
-  ( BrickEvent
-  , EventM
-  , Next
-  , Widget
+  ( Widget
+  , Padding(Pad)
   )
 
-import Control.Lens (makeLenses, (<>~), (^.), (.~))
+import Control.Lens (makeLenses, (^.))
 import Data.Map             qualified as Map
 import Data.Text            qualified as Text
 
-import Graphics.Vty (Key(KChar, KEsc))
 
 import Miku.Templates.Log
   ( Heading
   , logHeadingL
   , logGoalsL
+  , logTasksL
   , Log
   , readCurrentLog
   , showHeading
+  , ongoingTask
   )
 
 import Miku.UI.Draw.CurrentTask (drawCurrentTask)
-import Miku.UI.Draw.Goals       (drawGoals)
+import Miku.UI.Draw.Goals       (drawCompletedGoals, drawNotCompletedGoals)
 import Miku.UI.Draw.StatusLine  (drawStatusLine)
 import Miku.UI.State
   ( Action
   , AppState(AppState)
-  , eventKey
-  , execAction
+  , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
   , Keys
-  , Name
-  , Tick
   )
 
 import System.FilePath ((</>))
@@ -79,7 +73,7 @@ instance IsMode CurrentLogState where
 
   defState         = defCurrentLogState
   drawState        = drawCurrentLogState
-  handleEventState = handleCurrentLogStateEvent
+  handleEventState = handleAnyStateEvent
 
   keyMapL          = clsKeyMapL
   prevKeysL        = clsPrevKeysL
@@ -107,12 +101,6 @@ defCurrentLogState =
                           , _clsPrevKeysL = []
                           }
 
-handleCurrentLogStateEvent :: CurrentLogState -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleCurrentLogStateEvent wstate (eventKey -> Just KEsc)         = execAction (wstate & prevKeysL .~ [])
-handleCurrentLogStateEvent wstate (eventKey -> Just (KChar '\t')) = execAction (wstate & prevKeysL <>~ "<tab>")
-handleCurrentLogStateEvent wstate (eventKey -> Just (KChar c))    = execAction (wstate & prevKeysL <>~ [c])
-handleCurrentLogStateEvent wstate  _                              = Brick.continue $ AppState wstate
-
 currentLogStateActions :: KeyMap CurrentLogState
 currentLogStateActions =
   Map.fromList [ ("q", exitApp)
@@ -125,19 +113,25 @@ currentLogStateActions =
 toCurrentLogMode :: forall a. IsMode a => Action a
 toCurrentLogMode _ = liftIO (defState @CurrentLogState) >>= Brick.continue . AppState
 
-
-
 drawCurrentLogState :: CurrentLogState -> [Widget n]
 drawCurrentLogState s =
   [ Core.vBox
       [ Core.vLimitPercent 94 $
           Core.vBox [ drawHeading (s ^. clsLogL . logHeadingL)
-                    , drawCurrentTask True (Left "No Task")
-                    , drawGoals (s ^. clsLogL . logGoalsL)
+                    , drawCurrentTaskWindow s
+                    , Core.padTop (Pad 1) $ Core.hBox
+                        [ Core.padLeft (Pad 1) $ drawCompletedGoals True (s ^. clsLogL . logGoalsL)
+                        , Core.padLeft (Pad 1) $ drawNotCompletedGoals False (s ^. clsLogL . logGoalsL)
+                        ]
                     ]
       , drawStatusLine (Text.pack $ s ^. prevKeysL) ""
       ]
   ]
+
+drawCurrentTaskWindow :: CurrentLogState -> Widget n
+drawCurrentTaskWindow s =
+    drawCurrentTask False
+  $ maybeToRight "There' currently no ongoing task." (ongoingTask $ s ^. clsLogL)
 
 drawHeading :: Heading -> Widget n
 drawHeading h =

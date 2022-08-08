@@ -11,6 +11,7 @@ module Miku.Types.Time
   , timeMinsL
   , getCurrentDay
   , getCurrentTime
+  , showTime
   )
 where
 
@@ -45,6 +46,12 @@ instance MkBluePrint Time where
 
   parseBP = mkTime
   showBP (Time hrs mins)  = composeS @TimeFormat @TimeF "" hrs mins
+
+-- parseTime :: Parser 
+-- parseTime 
+
+showTime :: Time -> Text
+showTime = showAtom @(BluePrint Time)
 
 mkTime :: TimeF
 mkTime h m = Time (h + div m 60) (mod m 60)

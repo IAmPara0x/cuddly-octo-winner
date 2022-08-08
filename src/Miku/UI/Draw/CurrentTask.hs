@@ -3,24 +3,108 @@ module Miku.UI.Draw.CurrentTask
   )
   where
 
-import Brick.Types (Padding (Pad), Widget)
+import Brick.Types (Padding (Pad, Max), Widget)
 import Brick.Widgets.Border        qualified as Border
 import Brick.Widgets.Border.Style  qualified as Border
 import Brick.Widgets.Center        qualified as Core
 import Brick.Widgets.Core          qualified as Core
 
+import Brick.Widgets.Core ((<+>), (<=>))
+
+import Control.Lens ((^.), (^?))
+
+import Data.Text qualified as Text
+
 import Relude
 
-import Miku.Templates.Log (Task)
+import Miku.Templates.Log
+  ( Task
+  , TaskName
+  , TaskDesc
+  , TaskTag
+  , showTask
+  , showTags
+  , descL
+  , nameL
+  , taskNameL
+  , taskDescL
+  , taskStartL
+  , taskTagsL
+  )
+import Miku.Types.Time (Time, showTime)
 
-clockAnimationStates :: [Char]
-clockAnimationStates = ['◴','◷','◶','◵','◴']
+
+clockAnimationStates :: NonEmpty Char
+clockAnimationStates = '◴' :| ['◶','◵','◴']
 
 drawCurrentTask :: Bool -> Either Text Task -> Widget n
-drawCurrentTask True (Left text) =
-    Core.withBorderStyle Border.unicodeRounded
-  $ Border.border
-  $ Core.hLimitPercent 65
-  $ Core.vLimitPercent 50
-  $ Core.center
-  $ Core.txt text
+drawCurrentTask drawBorder (Left text)
+  | drawBorder = Core.withBorderStyle Border.unicodeRounded $ Border.border $ noOngoinTaskWidget text
+  | otherwise  = noOngoinTaskWidget text
+
+drawCurrentTask drawBorder (Right task)
+  | drawBorder = Core.withBorderStyle Border.unicodeRounded
+               $ Border.border
+               $ ongoinTaskWidget drawBorder task
+  | otherwise  = ongoinTaskWidget drawBorder task
+
+noOngoinTaskWidget :: Text -> Widget n
+noOngoinTaskWidget = Core.hLimitPercent 50
+                   . Core.vLimitPercent 45
+                   . Core.center
+                   . Core.txt
+
+ongoinTaskWidget :: Bool -> Task -> Widget n
+ongoinTaskWidget drawBorder task =
+    Core.hLimitPercent 50
+  $ Core.vLimitPercent 45
+  $ Core.vBox
+    [ taskNameWidget drawBorder (task ^. taskNameL)
+    , Core.padTop (Pad 1)
+      $ Core.vLimit 2 $ Core.hBox [startTimeWidget (task ^. taskStartL), Core.fill ' ', endTimeWidget]
+    , Core.padLeft (Pad 4) $ Core.padTopBottom 1
+       $ taskDescWidget (task ^. taskDescL)
+    , taskTagsWidget drawBorder (task ^. taskTagsL)
+
+    ]
+
+taskNameWidget :: Bool -> TaskName -> Widget n
+taskNameWidget drawBorder taskName
+  | drawBorder = Core.withBorderStyle Border.ascii $ drawTaskName <=> Border.hBorder
+  | otherwise  = drawTaskName
+
+  where
+
+  drawTaskName :: Widget n
+  drawTaskName =
+      Core.vLimitPercent 15
+    $ Core.padTopBottom 1
+    $ Core.vBox
+      [ Core.hCenter (Core.txt (taskName ^. nameL))
+      ]
+
+taskDescWidget :: Maybe TaskDesc -> Widget n
+taskDescWidget (Just desc) = Core.vCenter $ Core.txtWrap (desc ^. descL)
+taskDescWidget Nothing     = Core.vCenter $ Core.txt ""
+
+startTimeWidget :: Time -> Widget n
+startTimeWidget =
+    Core.padLeft (Pad 1)
+  . Core.txt
+  . ("started on: " <>)
+  . showTime
+
+endTimeWidget :: Widget n
+endTimeWidget =
+    Core.padRight (Pad 1)
+  $ Core.txt (Text.snoc "ongoing: " $ head clockAnimationStates)
+
+taskTagsWidget :: Bool -> [TaskTag] -> Widget n
+taskTagsWidget drawBorder tags
+  | drawBorder = Core.withBorderStyle Border.ascii (Border.hBorder <=> drawTaskTags)
+  | otherwise  = drawTaskTags
+
+  where
+
+    drawTaskTags :: Widget n
+    drawTaskTags = Core.padTopBottom 1 $ Core.txtWrap $ showTags tags

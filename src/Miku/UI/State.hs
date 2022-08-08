@@ -1,12 +1,13 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Miku.UI.State
   ( Action
   , AppState(AppState)
   , eventKey
   , execAction
+  , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
   , Keys
@@ -16,10 +17,12 @@ module Miku.UI.State
 
 import Brick.Main qualified as Brick
 import Brick.Types (Widget, BrickEvent(VtyEvent), EventM, Next)
-import Control.Lens (Lens', (^.), (.~))
+import Control.Lens (Lens', (^.), (.~), (<>~))
 import Data.Map qualified as Map
 
+import Graphics.Vty (Key(KChar, KEsc))
 import Graphics.Vty qualified as Vty
+
 
 import Relude
 
@@ -52,3 +55,11 @@ execAction mstate =
 eventKey :: BrickEvent Name Tick -> Maybe Vty.Key
 eventKey (VtyEvent (Vty.EvKey key _)) = Just key
 eventKey _                            = Nothing
+
+handleAnyStateEvent :: IsMode a => a -> BrickEvent Name Tick -> EventM Name (Next AppState)
+handleAnyStateEvent modestate key =
+  case eventKey key of
+    Just KEsc         -> execAction (modestate & prevKeysL .~ [])
+    Just (KChar '\t') -> execAction (modestate & prevKeysL <>~ "<tab>")
+    Just (KChar c)    -> execAction (modestate & prevKeysL <>~ [c])
+    _                 -> Brick.continue $ AppState modestate

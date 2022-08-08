@@ -42,6 +42,8 @@ module Miku.Templates.Log
   , logParser
   , showHeading
   , showLog
+  , showTask
+  , showTags
 
   -- * IO Stuff
   , readCurrentLog
@@ -211,6 +213,9 @@ instance MkBluePrint Task where
 
 makeLenses ''Task
 
+showTask :: Task -> Text
+showTask = showAtom @(BluePrint Task)
+
 -----------------------------------------------------------------
 -- | 'Goals'
 -----------------------------------------------------------------
@@ -285,6 +290,9 @@ logParser = parseAtom @(BluePrint Log)
 showLog :: Log -> Text
 showLog = showAtom @(BluePrint Log)
 
+showTags :: [TaskTag] -> Text
+showTags = showAtom @(BluePrint [TaskTag])
+
 mkNewLog :: Heading -> Log
 mkNewLog date = Log date [] []
 
@@ -313,9 +321,12 @@ logsDirExists logsDir =
     unless dirExists
       (throwE $ "The following directory for logs doesn't exists: " <> T.pack logsDir)
 
-readLog :: FilePath -> String -> ExceptT Text IO Log
-readLog logsDir logName =
+readLog :: FilePath -> Day -> ExceptT Text IO Log
+readLog logsDir day =
   do
+
+    let logName :: String
+        logName = show day <> "-log.md"
 
     void $ logsDirExists logsDir
 
@@ -334,26 +345,7 @@ readLog logsDir logName =
       Right log -> return log
 
 readCurrentLog :: FilePath -> ExceptT Text IO Log
-readCurrentLog logsDir =
-  do
-    void $ logsDirExists logsDir
-
-    day <- liftIO getCurrentDay
-
-    let logName :: String
-        logName = show day <> "-log.md"
-
-        logPath :: FilePath
-        logPath = logsDir </> logName
-
-        newLog :: Log
-        newLog = mkNewLog (Heading day)
-
-    logExists <- liftIO $ doesFileExist logPath
-
-    if logExists
-      then readLog logsDir logName
-      else writeLog logsDir logName newLog >> return newLog
+readCurrentLog logsDir = liftIO getCurrentDay >>= readLog logsDir
 
 
 writeLog :: FilePath -> String -> Log -> ExceptT Text IO ()

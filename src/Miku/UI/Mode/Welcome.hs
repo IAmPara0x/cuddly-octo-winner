@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns    #-}
+{-# LANGUAGE TypeFamilies    #-}
 
 module Miku.UI.Mode.Welcome
   ( toWelcomeMode
@@ -15,33 +15,26 @@ module Miku.UI.Mode.Welcome
 import Brick.Main qualified as Brick
 
 import Brick.Types
-  ( BrickEvent
-  , EventM
-  , Next
-  , Widget
+  ( Widget
   )
 
 import Brick.Widgets.Center qualified as Core
 import Brick.Widgets.Core   qualified as Core
 
 
-import Control.Lens (makeLenses, (^.), (<>~), (.~))
+import Control.Lens (makeLenses, (^.), (.~))
 import Data.Map qualified as Map
 import Data.Text qualified as Text
 
-import Graphics.Vty (Key(KChar, KEsc))
 
 import Miku.UI.Draw.StatusLine (drawStatusLine)
 import Miku.UI.State
   ( Action
   , AppState(AppState)
-  , eventKey
-  , execAction
+  , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
   , Keys
-  , Name
-  , Tick
   )
 
 import Relude
@@ -71,14 +64,9 @@ instance IsMode WelcomeState where
                                , _wsPrevKeysL = []
                                }
   drawState        = drawWelcomeState
-  handleEventState = handleWelcomeStateEvent
+  handleEventState = handleAnyStateEvent
   keyMapL          = wsKeyMapL
   prevKeysL        = wsPrevKeysL
-
-handleWelcomeStateEvent :: WelcomeState -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleWelcomeStateEvent wstate (eventKey -> Just KEsc)      = execAction (wstate & wsPrevKeysL .~ [])
-handleWelcomeStateEvent wstate (eventKey -> Just (KChar c)) = execAction (wstate & wsPrevKeysL <>~ [c])
-handleWelcomeStateEvent wstate  _                           = Brick.continue $ AppState wstate
 
 drawWelcomeState :: WelcomeState -> [Widget n]
 drawWelcomeState wstate =
