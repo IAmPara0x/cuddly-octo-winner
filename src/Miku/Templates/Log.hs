@@ -345,16 +345,35 @@ readLog logsDir day =
       Right log -> return log
 
 readCurrentLog :: FilePath -> ExceptT Text IO Log
-readCurrentLog logsDir = liftIO getCurrentDay >>= readLog logsDir
+readCurrentLog logsDir = do
+  currDay <- liftIO getCurrentDay
+
+  let logName :: String
+      logName = show currDay <> "-log.md"
+
+      logPath :: FilePath
+      logPath = logsDir </> logName
+
+      newLog :: Log
+      newLog = mkNewLog $ Heading currDay
+
+  logExists <- liftIO $ doesFileExist logPath
+
+  if logExists
+    then readLog logsDir currDay
+    else writeLog logsDir currDay newLog >> return newLog
 
 
-writeLog :: FilePath -> String -> Log -> ExceptT Text IO ()
-writeLog logsDir logName log =
+writeLog :: FilePath -> Day -> Log -> ExceptT Text IO ()
+writeLog logsDir day log =
   do
 
     void $ logsDirExists logsDir
 
-    let logPath :: FilePath
+    let logName :: String
+        logName = show day <> "-log.md"
+
+        logPath :: FilePath
         logPath = logsDir </> logName
 
     liftIO $ T.writeFile logPath (showLog log)

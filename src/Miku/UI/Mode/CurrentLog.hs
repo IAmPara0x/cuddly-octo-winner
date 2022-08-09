@@ -120,7 +120,7 @@ drawCurrentLogState s =
           Core.vBox [ drawHeading (s ^. clsLogL . logHeadingL)
                     , drawCurrentTaskWindow s
                     , Core.padTop (Pad 1) $ Core.hBox
-                        [ Core.padLeft (Pad 1) $ drawCompletedGoals True (s ^. clsLogL . logGoalsL)
+                        [ Core.padLeft (Pad 1) $ drawCompletedGoals False (s ^. clsLogL . logGoalsL)
                         , Core.padLeft (Pad 1) $ drawNotCompletedGoals False (s ^. clsLogL . logGoalsL)
                         ]
                     ]
@@ -130,7 +130,7 @@ drawCurrentLogState s =
 
 drawCurrentTaskWindow :: CurrentLogState -> Widget n
 drawCurrentTaskWindow s =
-    drawCurrentTask False
+    drawCurrentTask True
   $ maybeToRight "There' currently no ongoing task." (ongoingTask $ s ^. clsLogL)
 
 drawHeading :: Heading -> Widget n
