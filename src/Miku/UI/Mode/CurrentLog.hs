@@ -38,10 +38,13 @@ import Miku.Templates.Log
   , readCurrentLog
   , showHeading
   , ongoingTask
+  , goalsDone
+  , goalsNotDone
   )
 
-import Miku.UI.Draw.CurrentTask (drawCurrentTask)
-import Miku.UI.Draw.Goals       (drawCompletedGoals, drawNotCompletedGoals)
+import Miku.UI.Draw (Border(..), Drawable(..))
+import Miku.UI.Draw.CurrentTask (CurrentTask(NoCurrentTask, CurrentTask))
+import Miku.UI.Draw.Goals       (CompletedGoals(..), NotCompletedGoals(..))
 import Miku.UI.Draw.StatusLine  (drawStatusLine)
 import Miku.UI.State
   ( Action
@@ -186,11 +189,11 @@ drawHeading = Core.padAll 1 . Core.hCenter . Core.txt . showHeading
 drawCurrentTaskWindow :: CurrentLogState -> Widget n
 drawCurrentTaskWindow clState
   | clState ^. clsCurrentWindow == TopLeft 
-      = drawCurrentTask True
-      $ maybeToRight "There' currently no ongoing task." (ongoingTask $ clState ^. clsLogL)
+      = draw Rounded
+      $ maybe (NoCurrentTask "There' currently no ongoing task.") CurrentTask (ongoingTask $ clState ^. clsLogL)
   | otherwise
-      = drawCurrentTask False
-      $ maybeToRight "There' currently no ongoing task." (ongoingTask $ clState ^. clsLogL)
+      = draw Hidden
+      $ maybe (NoCurrentTask "There' currently no ongoing task.") CurrentTask (ongoingTask $ clState ^. clsLogL)
 
 drawStatsWindow :: CurrentLogState -> Widget n
 drawStatsWindow clState
@@ -204,23 +207,27 @@ drawNotCompletedGoalsWindow :: CurrentLogState -> Widget n
 drawNotCompletedGoalsWindow clState
   | clState ^. clsCurrentWindow == BottomRight
       = Core.padLeft (Pad 1)
-      $ drawNotCompletedGoals True
-      $ clState ^. clsLogL . logGoalsL
+      $ draw Rounded
+      $ coerce @_ @NotCompletedGoals
+      $ goalsNotDone (clState ^. clsLogL . logGoalsL)
   | otherwise
       = Core.padLeft (Pad 1)
-      $ drawNotCompletedGoals False
-      $ clState ^. clsLogL . logGoalsL
+      $ draw Hidden
+      $ coerce @_ @NotCompletedGoals
+      $ goalsNotDone (clState ^. clsLogL . logGoalsL)
 
 drawCompletedGoalsWindow :: CurrentLogState -> Widget n
 drawCompletedGoalsWindow clState
   | clState ^. clsCurrentWindow == BottomLeft
       = Core.padLeft (Pad 1)
-      $ drawCompletedGoals True
-      $ clState ^. clsLogL . logGoalsL
+      $ draw Rounded
+      $ coerce @_ @CompletedGoals
+      $ goalsDone (clState ^. clsLogL . logGoalsL)
   | otherwise
       = Core.padLeft (Pad 1)
-      $ drawCompletedGoals False
-      $ clState ^. clsLogL . logGoalsL
+      $ draw Hidden
+      $ coerce @_ @CompletedGoals
+      $ goalsDone (clState ^. clsLogL . logGoalsL)
 
 
 toCurrentLogMode :: forall a. IsMode a => Action a

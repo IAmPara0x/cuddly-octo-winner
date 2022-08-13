@@ -1,4 +1,7 @@
-module Miku.UI.Draw.Goals (drawCompletedGoals, drawNotCompletedGoals) where
+module Miku.UI.Draw.Goals
+  ( CompletedGoals(..)
+  , NotCompletedGoals(..)
+  ) where
 
 import Brick.Types (Padding (Pad), Widget)
 
@@ -17,27 +20,30 @@ import Control.Lens
   , (+~)
   )
 
-
 import Miku.Templates.Log
   ( Goal
   , goalDescL
-  , goalsDone
-  , goalsNotDone
   )
 
+import Miku.UI.Draw (Drawable(..), Border(Rounded))
 import Relude
 
 
-drawCompletedGoals :: Bool -> [Goal] -> Widget n
-drawCompletedGoals drawBorder = drawGoals drawBorder "[✓] Completed" . goalsDone
+newtype CompletedGoals    = CompletedGoals [Goal]
 
-drawNotCompletedGoals :: Bool -> [Goal] -> Widget n
-drawNotCompletedGoals drawBorder = drawGoals drawBorder "[✕] Not Completed" . goalsNotDone
-          
-drawGoals :: Bool -> Text -> [Goal] -> Widget n
-drawGoals drawBorder heading goals
-  | drawBorder  = Core.withBorderStyle Border.unicodeRounded (Border.border goalsWidget)
-  | otherwise   = Core.withBorderStyle (Border.borderStyleFromChar ' ') (Border.border goalsWidget)
+instance Drawable CompletedGoals where
+  draw border = drawGoals border "[✓] Completed" . coerce
+
+
+newtype NotCompletedGoals = NotCompletedGoals [Goal]
+
+instance Drawable NotCompletedGoals where
+  draw border = drawGoals border "[✕] Not Completed" . coerce
+
+drawGoals :: Border -> Text -> [Goal] -> Widget n
+drawGoals border heading goals
+  | border == Rounded = Core.withBorderStyle Border.unicodeRounded (Border.border goalsWidget)
+  | otherwise         = Core.withBorderStyle (Border.borderStyleFromChar ' ') (Border.border goalsWidget)
 
   where
 
