@@ -61,5 +61,6 @@ handleAnyStateEvent modestate key =
   case eventKey key of
     Just KEsc         -> execAction (modestate & prevKeysL .~ [])
     Just (KChar '\t') -> execAction (modestate & prevKeysL <>~ "<tab>")
+    Just (KChar ' ')  -> execAction (modestate & prevKeysL <>~ "<spc>")
     Just (KChar c)    -> execAction (modestate & prevKeysL <>~ [c])
     _                 -> Brick.continue $ AppState modestate

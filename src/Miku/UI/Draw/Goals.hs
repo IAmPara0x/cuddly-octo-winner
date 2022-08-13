@@ -37,7 +37,7 @@ drawNotCompletedGoals drawBorder = drawGoals drawBorder "[✕] Not Completed" . 
 drawGoals :: Bool -> Text -> [Goal] -> Widget n
 drawGoals drawBorder heading goals
   | drawBorder  = Core.withBorderStyle Border.unicodeRounded (Border.border goalsWidget)
-  | otherwise   = goalsWidget
+  | otherwise   = Core.withBorderStyle (Border.borderStyleFromChar ' ') (Border.border goalsWidget)
 
   where
 

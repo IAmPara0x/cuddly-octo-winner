@@ -3,15 +3,15 @@ module Miku.UI.Draw.CurrentTask
   )
   where
 
-import Brick.Types (Padding (Pad, Max), Widget)
+import Brick.Types (Padding (Pad), Widget)
 import Brick.Widgets.Border        qualified as Border
 import Brick.Widgets.Border.Style  qualified as Border
 import Brick.Widgets.Center        qualified as Core
 import Brick.Widgets.Core          qualified as Core
 
-import Brick.Widgets.Core ((<+>), (<=>))
+import Brick.Widgets.Core ((<=>))
 
-import Control.Lens ((^.), (^?))
+import Control.Lens ((^.))
 
 import Data.Text qualified as Text
 
@@ -22,7 +22,7 @@ import Miku.Templates.Log
   , TaskName
   , TaskDesc
   , TaskTag
-  , showTask
+  
   , showTags
   , descL
   , nameL
@@ -40,24 +40,24 @@ clockAnimationStates = '◴' :| ['◶','◵','◴']
 drawCurrentTask :: Bool -> Either Text Task -> Widget n
 drawCurrentTask drawBorder (Left text)
   | drawBorder = Core.withBorderStyle Border.unicodeRounded $ Border.border $ noOngoinTaskWidget text
-  | otherwise  = noOngoinTaskWidget text
+  | otherwise  = Core.withBorderStyle (Border.borderStyleFromChar ' ') $ Border.border $ noOngoinTaskWidget text
 
 drawCurrentTask drawBorder (Right task)
   | drawBorder = Core.withBorderStyle Border.unicodeRounded
                $ Border.border
                $ ongoinTaskWidget drawBorder task
-  | otherwise  = ongoinTaskWidget drawBorder task
+  | otherwise  = Core.withBorderStyle (Border.borderStyleFromChar ' ')
+               $ Border.border
+               $ ongoinTaskWidget drawBorder task
 
 noOngoinTaskWidget :: Text -> Widget n
 noOngoinTaskWidget = Core.hLimitPercent 50
-                   . Core.vLimitPercent 45
                    . Core.center
                    . Core.txt
 
 ongoinTaskWidget :: Bool -> Task -> Widget n
 ongoinTaskWidget drawBorder task =
     Core.hLimitPercent 50
-  $ Core.vLimitPercent 45
   $ Core.vBox
     [ taskNameWidget drawBorder (task ^. taskNameL)
     , Core.padTop (Pad 1)
@@ -70,8 +70,8 @@ ongoinTaskWidget drawBorder task =
 
 taskNameWidget :: Bool -> TaskName -> Widget n
 taskNameWidget drawBorder taskName
-  | drawBorder = Core.withBorderStyle Border.ascii $ drawTaskName <=> Border.hBorder
-  | otherwise  = drawTaskName
+  | drawBorder = Core.withBorderStyle Border.unicodeRounded $ drawTaskName <=> Border.hBorder
+  | otherwise  = Core.withBorderStyle (Border.borderStyleFromChar ' ') $ drawTaskName <=> Border.hBorder
 
   where
 
@@ -102,7 +102,7 @@ endTimeWidget =
 taskTagsWidget :: Bool -> [TaskTag] -> Widget n
 taskTagsWidget drawBorder tags
   | drawBorder = Core.withBorderStyle Border.ascii (Border.hBorder <=> drawTaskTags)
-  | otherwise  = drawTaskTags
+  | otherwise  = Core.withBorderStyle (Border.borderStyleFromChar ' ') (Border.hBorder <=> drawTaskTags)
 
   where
 

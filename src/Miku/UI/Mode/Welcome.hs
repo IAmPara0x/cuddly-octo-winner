@@ -80,7 +80,7 @@ welcomeStateActions :: KeyMap WelcomeState
 welcomeStateActions =
   Map.fromList [ ("c", changeMsg)
                , ("q", exitApp)
-               , (" w", changeMsgAgain)
+               , ("<spc>w", changeMsgAgain)
                ]
   where
 

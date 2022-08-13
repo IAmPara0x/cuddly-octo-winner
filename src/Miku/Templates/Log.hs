@@ -53,7 +53,6 @@ module Miku.Templates.Log
 where
 
 import  Data.Text    qualified as T
-import  Data.Text.IO qualified as T
 import  Control.Lens
   ( (^?)
   , (^.)
@@ -309,6 +308,12 @@ goalsNotDone goals = goals ^.. folded . filtered (\g -> g ^. goalStatusL == NotD
 goalsDone :: [Goal] -> [Goal]
 goalsDone goals = goals ^.. folded . filtered (\g -> g ^. goalStatusL == Done)
 
+getLogName :: Day -> String
+getLogName day = show day <> "-log.md"
+
+getLogPath :: FilePath -> Day -> FilePath
+getLogPath logsDir day = logsDir </> getLogName day
+
 -----------------------------------------------------------------
 -- | IO Stuff
 -----------------------------------------------------------------
@@ -325,34 +330,34 @@ readLog :: FilePath -> Day -> ExceptT Text IO Log
 readLog logsDir day =
   do
 
-    let logName :: String
-        logName = show day <> "-log.md"
-
     void $ logsDirExists logsDir
 
     let logPath :: FilePath
-        logPath = logsDir </> logName
+        logPath = getLogPath logsDir day
+        
+        logName :: String
+        logName = getLogName day
 
     logExists <- liftIO $ doesFileExist logPath
 
     unless logExists
       (throwE $ "The following log file doesn't exist: " <> T.pack logPath)
 
-    input <- liftIO $ T.readFile logPath
+    input <- readFileText logPath
 
     case runParser logParser logPath input of
-      Left _    -> throwE ("Failed to parse log from " <> T.pack logName)
+      Left _    -> throwE $ "Failed to parse log from " <> T.pack logName
       Right log -> return log
 
 readCurrentLog :: FilePath -> ExceptT Text IO Log
 readCurrentLog logsDir = do
   currDay <- liftIO getCurrentDay
 
-  let logName :: String
-      logName = show currDay <> "-log.md"
-
-      logPath :: FilePath
+  let logPath :: FilePath
       logPath = logsDir </> logName
+
+      logName :: String
+      logName = getLogName currDay
 
       newLog :: Log
       newLog = mkNewLog $ Heading currDay
@@ -367,13 +372,12 @@ readCurrentLog logsDir = do
 writeLog :: FilePath -> Day -> Log -> ExceptT Text IO ()
 writeLog logsDir day log =
   do
-
     void $ logsDirExists logsDir
 
-    let logName :: String
-        logName = show day <> "-log.md"
-
-        logPath :: FilePath
+    let logPath :: FilePath
         logPath = logsDir </> logName
 
-    liftIO $ T.writeFile logPath (showLog log)
+        logName :: String
+        logName = getLogName day
+
+    writeFileText logPath (showLog log)

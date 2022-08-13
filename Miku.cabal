@@ -89,7 +89,7 @@ executable miku
       TypeApplications
       KindSignatures
       ScopedTypeVariables
-  ghc-options: -Wall -threaded -O1 -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
   build-depends:
       Miku
     , base >=4.7 && <5
