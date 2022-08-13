@@ -1,5 +1,8 @@
 module Miku.UI.Draw.CurrentTask
-  ( drawCurrentTask
+  ( CurrentTask(..)
+  , CurrentTaskName(..)
+  , CurrentTaskTags(..)
+  , CurrentTaskDesc(..)
   )
   where
 
@@ -18,93 +21,107 @@ import Data.Text qualified as Text
 import Relude
 
 import Miku.Templates.Log
-  ( Task
-  , TaskName
-  , TaskDesc
+  ( Task(..)
+  , TaskName(TaskName)
   , TaskTag
-  
+  , TaskDesc
   , showTags
   , descL
   , nameL
-  , taskNameL
-  , taskDescL
-  , taskStartL
-  , taskTagsL
   )
 import Miku.Types.Time (Time, showTime)
+import Miku.UI.Draw (Border(..), Drawable(..))
 
 
-clockAnimationStates :: NonEmpty Char
-clockAnimationStates = '◴' :| ['◶','◵','◴']
+data CurrentTask = CurrentTask Task
+                 | NoCurrentTask Text
 
-drawCurrentTask :: Bool -> Either Text Task -> Widget n
-drawCurrentTask drawBorder (Left text)
-  | drawBorder = Core.withBorderStyle Border.unicodeRounded $ Border.border $ noOngoinTaskWidget text
-  | otherwise  = Core.withBorderStyle (Border.borderStyleFromChar ' ') $ Border.border $ noOngoinTaskWidget text
+instance Drawable CurrentTask where
+  draw Hidden (NoCurrentTask text)  = Core.withBorderStyle (Border.borderStyleFromChar ' ')
+                                      $ Border.border
+                                      $ noOngoinTaskWidget text
+  draw Rounded (NoCurrentTask text) = Core.withBorderStyle Border.unicodeRounded
+                                      $ Border.border
+                                      $ noOngoinTaskWidget text
+  draw Hidden (CurrentTask task)    = Core.withBorderStyle (Border.borderStyleFromChar ' ')
+                                      $ Border.border
+                                      $ ongoinTaskWidget Hidden task
+  draw Rounded (CurrentTask task)   = Core.withBorderStyle Border.unicodeRounded
+                                      $ Border.border
+                                      $ ongoinTaskWidget Rounded task
 
-drawCurrentTask drawBorder (Right task)
-  | drawBorder = Core.withBorderStyle Border.unicodeRounded
-               $ Border.border
-               $ ongoinTaskWidget drawBorder task
-  | otherwise  = Core.withBorderStyle (Border.borderStyleFromChar ' ')
-               $ Border.border
-               $ ongoinTaskWidget drawBorder task
+
+
+newtype CurrentTaskName = CurrentTaskName TaskName
+
+instance Drawable CurrentTaskName where
+  draw border (CurrentTaskName taskName)
+    | border == Hidden  = Core.withBorderStyle (Border.borderStyleFromChar ' ') $ drawTaskName <=> Border.hBorder
+    | otherwise         = Core.withBorderStyle Border.unicodeRounded $ drawTaskName <=> Border.hBorder
+    where
+      drawTaskName :: Widget n
+      drawTaskName =
+          Core.vLimitPercent 15
+        $ Core.padTopBottom 1
+        $ Core.vBox
+          [ Core.hCenter (Core.txt (taskName ^. nameL))
+          ]
 
 noOngoinTaskWidget :: Text -> Widget n
 noOngoinTaskWidget = Core.hLimitPercent 50
                    . Core.center
                    . Core.txt
 
-ongoinTaskWidget :: Bool -> Task -> Widget n
-ongoinTaskWidget drawBorder task =
+ongoinTaskWidget :: Border -> Task -> Widget n
+ongoinTaskWidget border Task{..} =
     Core.hLimitPercent 50
   $ Core.vBox
-    [ taskNameWidget drawBorder (task ^. taskNameL)
+    [ draw border (coerce @_ @CurrentTaskName _taskNameL)
     , Core.padTop (Pad 1)
-      $ Core.vLimit 2 $ Core.hBox [startTimeWidget (task ^. taskStartL), Core.fill ' ', endTimeWidget]
+      $ Core.vLimit 2
+      $ Core.hBox [ draw border (coerce @_ @StartTime _taskStartL)
+                  , Core.fill ' '
+                  , draw border (coerce @_ @EndTime _taskEndL)
+                  ]
     , Core.padLeft (Pad 4) $ Core.padTopBottom 1
-       $ taskDescWidget (task ^. taskDescL)
-    , taskTagsWidget drawBorder (task ^. taskTagsL)
+       $ draw border (coerce @_ @CurrentTaskDesc _taskDescL)
+    , draw border (coerce @_ @CurrentTaskTags _taskTagsL)
 
     ]
 
-taskNameWidget :: Bool -> TaskName -> Widget n
-taskNameWidget drawBorder taskName
-  | drawBorder = Core.withBorderStyle Border.unicodeRounded $ drawTaskName <=> Border.hBorder
-  | otherwise  = Core.withBorderStyle (Border.borderStyleFromChar ' ') $ drawTaskName <=> Border.hBorder
+newtype CurrentTaskDesc = CurrentTaskDesc (Maybe TaskDesc)
 
-  where
+instance Drawable CurrentTaskDesc where
+  draw _ (CurrentTaskDesc (Just desc)) = Core.vCenter $ Core.txtWrap (desc ^. descL)
+  draw _ (CurrentTaskDesc Nothing)     = Core.vCenter $ Core.txt ""
 
-  drawTaskName :: Widget n
-  drawTaskName =
-      Core.vLimitPercent 15
-    $ Core.padTopBottom 1
-    $ Core.vBox
-      [ Core.hCenter (Core.txt (taskName ^. nameL))
-      ]
 
-taskDescWidget :: Maybe TaskDesc -> Widget n
-taskDescWidget (Just desc) = Core.vCenter $ Core.txtWrap (desc ^. descL)
-taskDescWidget Nothing     = Core.vCenter $ Core.txt ""
+newtype StartTime = StartTime Time
 
-startTimeWidget :: Time -> Widget n
-startTimeWidget =
-    Core.padLeft (Pad 1)
-  . Core.txt
-  . ("started on: " <>)
-  . showTime
+instance Drawable StartTime where
+  draw _ = Core.padLeft (Pad 1)
+         . Core.txt
+         . ("started on: " <>)
+         . showTime
+         . coerce
 
-endTimeWidget :: Widget n
-endTimeWidget =
-    Core.padRight (Pad 1)
-  $ Core.txt (Text.snoc "ongoing: " $ head clockAnimationStates)
+newtype EndTime = EndTime (Maybe Time)
 
-taskTagsWidget :: Bool -> [TaskTag] -> Widget n
-taskTagsWidget drawBorder tags
-  | drawBorder = Core.withBorderStyle Border.ascii (Border.hBorder <=> drawTaskTags)
-  | otherwise  = Core.withBorderStyle (Border.borderStyleFromChar ' ') (Border.hBorder <=> drawTaskTags)
+instance Drawable EndTime where
+  draw _ _ = Core.padRight (Pad 1)
+           $ Core.txt (Text.snoc "ongoing: " $ head clockAnimationStates)
 
-  where
+newtype CurrentTaskTags = CurrentTaskTags [TaskTag]
 
-    drawTaskTags :: Widget n
-    drawTaskTags = Core.padTopBottom 1 $ Core.txtWrap $ showTags tags
+instance Drawable CurrentTaskTags where
+  draw border (CurrentTaskTags tags)
+    | border == Hidden = Core.withBorderStyle (Border.borderStyleFromChar ' ') (Border.hBorder <=> drawTaskTags)
+    | otherwise        = Core.withBorderStyle Border.ascii (Border.hBorder <=> drawTaskTags)
+
+    where
+
+      drawTaskTags :: Widget n
+      drawTaskTags = Core.padTopBottom 1 $ Core.txtWrap $ showTags tags
+
+clockAnimationStates :: NonEmpty Char
+clockAnimationStates = '◴' :| ['◶','◵','◴']

@@ -31,6 +31,7 @@ library
       Miku.Types.Parser
       Miku.Types.Time
       Miku.UI
+      Miku.UI.Draw
       Miku.UI.Draw.CurrentTask
       Miku.UI.Draw.Goals
       Miku.UI.Draw.StatusLine

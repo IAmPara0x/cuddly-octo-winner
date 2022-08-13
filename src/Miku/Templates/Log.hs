@@ -19,7 +19,7 @@ module Miku.Templates.Log
   , logTasksL
   , logGoalsL
 
-  , Task(Task)
+  , Task(..)
   , taskNameL
   , taskStartL
   , taskDescL
