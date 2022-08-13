@@ -15,7 +15,7 @@ module Miku.Types.Parser
   ( Atom(..)
   , Composeable(..)
   , MkBluePrint(..)
-  , type (:>>)
+  , type (:+>)
   , type (<:)
   , type (:>)
   , AlphaNum
@@ -26,6 +26,7 @@ module Miku.Types.Parser
   , Many
   , Newline
   , Optional
+  , Parser
   , Prefix
   , PrintChar
   , PrintChars
@@ -37,7 +38,6 @@ module Miku.Types.Parser
   , TakeTill
   , Token
   , Try
-
   )
   where
 
@@ -48,7 +48,6 @@ import  Text.Megaparsec.Char
 import  Text.Read                        (read)
 
 import  Relude                    hiding (natVal, Alt)
-
 
 class Composeable (a :: Type) (f :: Type) where
   type ComposeP a f :: Type
@@ -71,7 +70,6 @@ class MkBluePrint a where
   parseBP :: (Composeable (Format a) (Function a)) => Function a
   showBP :: (Composeable (Format a) (Function a)) => a -> Text
 
-
 data (p :: k1) :> (a :: k2)
 
 infixr 6 :>
@@ -90,17 +88,16 @@ instance (Atom p1, Monoid (AtomType p1), Atom p2, AtomType p2 ~ a) => Composeabl
   composeS s a = s <> showAtom @(p1 :> p2) a
 
 
-data (p :: k1) :>> (a :: k2)
+data (p :: k1) :+> (a :: k2)
 
-infixr 5 :>>
+infixr 5 :+>
 
-instance (Atom p1, AtomType p1 ~ a, Composeable p2 b) => Composeable (p1 :>> p2) (a -> b) where
-  type ComposeP (p1 :>> p2) (a -> b) = ComposeP p2 b
-  type ComposeS (p1 :>> p2) = AtomType p1 -> ComposeS p2
+instance (Atom p1, AtomType p1 ~ a, Composeable p2 b) => Composeable (p1 :+> p2) (a -> b) where
+  type ComposeP (p1 :+> p2) (a -> b) = ComposeP p2 b
+  type ComposeS (p1 :+> p2) = AtomType p1 -> ComposeS p2
 
   composeP f    = parseAtom @p1 >>= composeP @p2 @b . f
   composeS s p1 = composeS @p2 @b (s <> showAtom @p1 p1)
-
 
 data (p :: k1) <: (a :: k2)
 
@@ -180,7 +177,9 @@ instance Atom Digits where
   type AtomType Digits = Integer
 
   parseAtom = read <$> some digitChar
-  showAtom  = show
+  showAtom i
+    | i < 10    = "0" <> show i
+    | otherwise = show i
 
 instance Composeable Digits (Integer -> a) where
   type ComposeP Digits (Integer -> a) = a
@@ -205,7 +204,6 @@ instance (KnownSymbol p) => Composeable (Literal p) (() -> a) where
   composeP f = f <$> parseAtom @(Literal p)
   composeS s = s <> showAtom @(Literal p) ()
 
-
 data Many (p :: Type)
 
 instance (Atom p) => Atom (Many p) where
@@ -221,7 +219,6 @@ instance (Atom p, [AtomType p] ~ a) => Composeable (Many p) (a -> b) where
 
   composeP f   = f <$> parseAtom @(Many p)
   composeS s a = s <> showAtom @(Many p) a
-
 
 data Newline
 
@@ -450,4 +447,3 @@ spaceP = many $ char ' '
 
 instance ShowErrorComponent Text where
   showErrorComponent = show
-

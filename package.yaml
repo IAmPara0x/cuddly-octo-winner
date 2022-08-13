@@ -20,15 +20,21 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/IAmParad0x/Mikur#readme>
 
 default-extensions:
-- OverloadedStrings
-- TupleSections
-- LambdaCase
-- RankNTypes
-- NoImplicitPrelude
-- ImportQualifiedPost
-- RecordWildCards
+- DataKinds
 - DerivingStrategies
+- OverloadedStrings
+- ImportQualifiedPost
+- LambdaCase
+- NoImplicitPrelude
+- RankNTypes
+- RecordWildCards
+- TupleSections
 - TypeApplications
+- KindSignatures
+- ScopedTypeVariables
+
+ghc-options:
+  -Wall
 
 library:
   source-dirs: src
@@ -38,11 +44,15 @@ library:
   - base >= 4.7 && < 5
   - brick >= 0.69
   - containers
+  - directory
+  - filepath
   - lens
   - megaparsec
+  - mtl
   - relude
   - text
   - time
+  - transformers
   - vty >= 5.35.1
 
 executables:
@@ -50,9 +60,8 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
-    - -Wall
     - -threaded
-    - -O1
+    - -O2
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
