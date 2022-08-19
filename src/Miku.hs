@@ -1,16 +1,18 @@
 module Miku (run) where
 
 import Brick.AttrMap (AttrMap, attrMap)
-import Brick.Main    (App(..), neverShowCursor, defaultMain)
+import Brick.BChan qualified as BChan
+import Brick.Main    (App(..), neverShowCursor, customMain)
 import Brick.Util    (fg)
 
+import Control.Concurrent (threadDelay, forkIO)
 import Control.Lens ((%~))
 
 import Data.Map qualified as Map
 
-import Graphics.Vty qualified as V
+import Graphics.Vty qualified as Vty
 
-import Miku.UI.State (AppState(AppState), defState, keyMapL, Name, Tick)
+import Miku.UI.State (AppState(AppState), defState, keyMapL, Name, Tick(Tick))
 import Miku.UI.Mode.Welcome (toWelcomeMode)
 import Miku.UI.Mode.CurrentLog (CurrentLogState)
 
@@ -19,7 +21,7 @@ import Miku.UI (drawUI, handleEvent)
 import Relude
 
 uiAttrMap :: AttrMap
-uiAttrMap = attrMap (fg V.red) []
+uiAttrMap = attrMap (fg Vty.red) []
 
 app :: App AppState Tick Name
 app = App { appDraw = drawUI
@@ -33,5 +35,18 @@ app = App { appDraw = drawUI
 run :: IO ()
 run = do
   s' <- defState @CurrentLogState
-  let s = s' & keyMapL %~ Map.insert "<spc>wm" toWelcomeMode
-  void $ defaultMain app $ AppState s
+
+  chan   <- BChan.newBChan 10
+
+  void $ forkIO $ forever $ do
+    BChan.writeBChan chan Tick
+    threadDelay 100000
+
+  let buildVty = Vty.mkVty Vty.defaultConfig
+      initState = s' & keyMapL %~ Map.insert "<spc>wm" toWelcomeMode
+
+  initialVty <- buildVty
+
+
+
+  void $ customMain initialVty buildVty (Just chan) app $ AppState initState

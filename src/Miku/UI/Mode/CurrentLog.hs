@@ -7,7 +7,7 @@ module Miku.UI.Mode.CurrentLog
   ( clcConfigPathL
   , clsLogL
   , clsConfigL
-  , clsCurrentWindow
+  , clsCurrentWindowL
   , CurrentLogConfig(..)
   , CurrentLogState(..)
   , toCurrentLogMode
@@ -22,10 +22,14 @@ import Brick.Widgets.Core          qualified as Core
 
 import Brick.Types
   ( Widget
+  , BrickEvent(AppEvent)
   , Padding(Pad)
+  , EventM
+  , Next
   )
 
-import Control.Lens (makeLenses, (^.), (.~))
+import Control.Lens (makeLenses, (^.), (.~), (%~), _1, _2)
+import Data.Default (Default(def))
 import Data.Map             qualified as Map
 import Data.Text            qualified as Text
 
@@ -53,6 +57,8 @@ import Miku.UI.State
   , IsMode(..)
   , KeyMap
   , Keys
+  , Name
+  , Tick(Tick)
   )
 
 import System.FilePath ((</>))
@@ -60,33 +66,47 @@ import System.FilePath ((</>))
 import Relude
 
 
-data Window = TopLeft     
-            | TopRight    
-            | BottomRight 
-            | BottomLeft  
-            deriving stock (Enum, Eq)
-            
-newtype CurrentLogConfig =
-  CurrentLogConfig { _clcConfigPathL :: FilePath
+data VerticalPos = TopWindow
+                 | BottomWindow
+                 deriving stock (Eq)
+
+data HorizontalPos = LeftWindow
+                   | RightWindow
+                   deriving stock (Eq)
+
+type Window = (VerticalPos, HorizontalPos)
+
+data CurrentLogConfig =
+  CurrentLogConfig { _clcConfigPathL    :: FilePath
+                   , _clcClearKeysTimeL :: Integer
+                   , _clcMaxTicksCountL :: Integer
                    }
 
 data CurrentLogState =
-  CurrentLogState { _clsConfigL       :: CurrentLogConfig
-                  , _clsKeyMapL       :: KeyMap CurrentLogState
-                  , _clsLogL          :: Log
-                  , _clsPrevKeysL     :: Keys
-                  , _clsCurrentWindow :: Window
+  CurrentLogState { _clsConfigL        :: CurrentLogConfig
+                  , _clsCurrentWindowL :: Window
+                  , _clsKeyMapL        :: KeyMap CurrentLogState
+                  , _clsLogL           :: Log
+                  , _clsPrevKeysL      :: Keys
+                  , _clsTickCounterL   :: Integer
                   }
 
 makeLenses ''CurrentLogConfig
 makeLenses ''CurrentLogState
+
+instance Default CurrentLogConfig where
+  def = CurrentLogConfig
+          { _clcConfigPathL = "/home/iamparadox/.miku/"
+          , _clcClearKeysTimeL = 5
+          , _clcMaxTicksCountL = 100
+          }
 
 
 instance IsMode CurrentLogState where
 
   defState         = defCurrentLogState
   drawState        = drawCurrentLogState
-  handleEventState = handleAnyStateEvent
+  handleEventState = handleCurrentLogEvent
 
   keyMapL          = clsKeyMapL
   prevKeysL        = clsPrevKeysL
@@ -96,32 +116,35 @@ defCurrentLogState :: IO CurrentLogState
 defCurrentLogState = 
   do
 
-    let
-        configPath :: FilePath
-        configPath = "/home/iamparadox/.miku/"
-
-        logsDir :: FilePath
-        logsDir = configPath </> "logs"
-
-    elog <- runExceptT $ readCurrentLog logsDir
+    elog <- runExceptT $ readCurrentLog (def ^. clcConfigPathL </> "logs")
 
     case elog of
       Left err  -> error err
       Right log -> return $ CurrentLogState
-                          { _clsConfigL   = CurrentLogConfig configPath
+                          { _clsConfigL   = def
                           , _clsKeyMapL   = currentLogStateActions
                           , _clsLogL      = log
                           , _clsPrevKeysL = []
-                          , _clsCurrentWindow = TopLeft
+                          , _clsCurrentWindowL = (TopWindow, LeftWindow)
+                          , _clsTickCounterL = 0
                           }
+
+handleCurrentLogEvent :: CurrentLogState -> BrickEvent Name Tick -> EventM Name (Next AppState)
+handleCurrentLogEvent clState (AppEvent Tick)
+    = Brick.continue
+    $ AppState
+    $ clState & clsTickCounterL %~ (\n -> mod (n + 1) (clState ^. clsConfigL . clcMaxTicksCountL))
+              & id %~ clearPrevKeys
+handleCurrentLogEvent clState event          
+    = handleAnyStateEvent (clState & clsTickCounterL .~ 0) event
 
 currentLogStateActions :: KeyMap CurrentLogState
 currentLogStateActions =
   Map.fromList [ ("q", exitApp)
-               , ("<spc>wj", down)
-               , ("<spc>wk", up)
-               , ("<spc>wl", right)
-               , ("<spc>wh", left)
+               , ("j", down)
+               , ("k", up)
+               , ("l", right)
+               , ("h", left)
                ]
   where
 
@@ -129,33 +152,22 @@ currentLogStateActions =
     exitApp  = Brick.halt . AppState
 
     down :: Action CurrentLogState
-    down clState =
-      case clState ^. clsCurrentWindow of
-        TopLeft  -> Brick.continue $ AppState (clState & clsCurrentWindow .~ BottomLeft)
-        TopRight -> Brick.continue $ AppState (clState & clsCurrentWindow .~ BottomRight)
-        _        -> Brick.continue $ AppState clState
+    down clState = Brick.continue $ AppState (clState & clsCurrentWindowL . _1 .~ BottomWindow)
 
     up :: Action CurrentLogState
-    up clState =
-      case clState ^. clsCurrentWindow of
-        BottomLeft  -> Brick.continue $ AppState (clState & clsCurrentWindow .~ TopLeft)
-        BottomRight -> Brick.continue $ AppState (clState & clsCurrentWindow .~ TopRight)
-        _           -> Brick.continue $ AppState clState
-
+    up clState = Brick.continue $ AppState (clState & clsCurrentWindowL . _1 .~ TopWindow)
 
     left :: Action CurrentLogState
-    left clState =
-      case clState ^. clsCurrentWindow of
-        TopRight    -> Brick.continue $ AppState (clState & clsCurrentWindow .~ TopLeft)
-        BottomRight -> Brick.continue $ AppState (clState & clsCurrentWindow .~ BottomLeft)
-        _           -> Brick.continue $ AppState clState
+    left clState = Brick.continue $ AppState (clState & clsCurrentWindowL . _2 .~ LeftWindow)
 
     right :: Action CurrentLogState
-    right clState =
-      case clState ^. clsCurrentWindow of
-        TopLeft    -> Brick.continue $ AppState (clState & clsCurrentWindow .~ TopRight)
-        BottomLeft -> Brick.continue $ AppState (clState & clsCurrentWindow .~ BottomRight)
-        _          -> Brick.continue $ AppState clState
+    right clState = Brick.continue $ AppState (clState & clsCurrentWindowL . _2 .~ RightWindow)
+
+
+clearPrevKeys :: CurrentLogState -> CurrentLogState
+clearPrevKeys clState
+  = clState & clsPrevKeysL %~
+      (\keys -> if rem (clState ^. clsTickCounterL) (clState ^. clsConfigL . clcClearKeysTimeL) == 0 then [] else keys)
 
 drawCurrentLogState :: CurrentLogState -> [Widget n]
 drawCurrentLogState clState =
@@ -188,7 +200,7 @@ drawHeading = Core.padAll 1 . Core.hCenter . Core.txt . showHeading
 
 drawCurrentTaskWindow :: CurrentLogState -> Widget n
 drawCurrentTaskWindow clState
-  | clState ^. clsCurrentWindow == TopLeft 
+  | clState ^. clsCurrentWindowL == (TopWindow, LeftWindow)
       = draw Rounded
       $ maybe (NoCurrentTask "There' currently no ongoing task.") CurrentTask (ongoingTask $ clState ^. clsLogL)
   | otherwise
@@ -197,7 +209,7 @@ drawCurrentTaskWindow clState
 
 drawStatsWindow :: CurrentLogState -> Widget n
 drawStatsWindow clState
-  | clState ^. clsCurrentWindow == TopRight
+  | clState ^. clsCurrentWindowL == (TopWindow, RightWindow)
       = Core.withBorderStyle Border.unicodeRounded $ Border.border
       $ Core.center $ Core.txt "No Stats!"
   | otherwise
@@ -205,7 +217,7 @@ drawStatsWindow clState
 
 drawNotCompletedGoalsWindow :: CurrentLogState -> Widget n
 drawNotCompletedGoalsWindow clState
-  | clState ^. clsCurrentWindow == BottomRight
+  | clState ^. clsCurrentWindowL == (BottomWindow, RightWindow)
       = Core.padLeft (Pad 1)
       $ draw Rounded
       $ coerce @_ @NotCompletedGoals
@@ -218,7 +230,7 @@ drawNotCompletedGoalsWindow clState
 
 drawCompletedGoalsWindow :: CurrentLogState -> Widget n
 drawCompletedGoalsWindow clState
-  | clState ^. clsCurrentWindow == BottomLeft
+  | clState ^. clsCurrentWindowL == (BottomWindow, LeftWindow)
       = Core.padLeft (Pad 1)
       $ draw Rounded
       $ coerce @_ @CompletedGoals

@@ -5,14 +5,13 @@
 module Miku.UI.State
   ( Action
   , AppState(AppState)
-  , eventKey
   , execAction
   , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
   , Keys
   , Name
-  , Tick
+  , Tick(Tick)
   ) where
 
 import Brick.Main qualified as Brick
@@ -27,7 +26,7 @@ import Graphics.Vty qualified as Vty
 import Relude
 
 type Name = ()
-type Tick = ()
+data Tick = Tick
 
 data AppState where
   AppState :: forall a. (IsMode a) => a -> AppState
@@ -52,15 +51,12 @@ execAction mstate =
     Nothing     -> Brick.continue $ AppState mstate
 
 
-eventKey :: BrickEvent Name Tick -> Maybe Vty.Key
-eventKey (VtyEvent (Vty.EvKey key _)) = Just key
-eventKey _                            = Nothing
-
 handleAnyStateEvent :: IsMode a => a -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleAnyStateEvent modestate key =
-  case eventKey key of
-    Just KEsc         -> execAction (modestate & prevKeysL .~ [])
-    Just (KChar '\t') -> execAction (modestate & prevKeysL <>~ "<tab>")
-    Just (KChar ' ')  -> execAction (modestate & prevKeysL <>~ "<spc>")
-    Just (KChar c)    -> execAction (modestate & prevKeysL <>~ [c])
-    _                 -> Brick.continue $ AppState modestate
+handleAnyStateEvent modestate (VtyEvent (Vty.EvKey key [])) =
+  case key of
+    KEsc         -> execAction (modestate & prevKeysL .~ [])
+    (KChar '\t') -> execAction (modestate & prevKeysL <>~ "<tab>")
+    (KChar ' ')  -> execAction (modestate & prevKeysL <>~ "<spc>")
+    (KChar c)    -> execAction (modestate & prevKeysL <>~ [c])
+    _            -> Brick.continue $ AppState modestate
+handleAnyStateEvent modestate _               = Brick.continue $ AppState modestate
