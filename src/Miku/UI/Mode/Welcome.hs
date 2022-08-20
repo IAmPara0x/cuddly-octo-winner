@@ -3,8 +3,8 @@
 {-# LANGUAGE TypeFamilies    #-}
 
 module Miku.UI.Mode.Welcome
-  ( toWelcomeMode
-  , WelcomeConfig(..)
+  ( 
+    WelcomeConfig(..)
   , wcConfigPathL
   , WelcomeState(..)
   , wsConfigL
@@ -30,7 +30,6 @@ import Data.Text qualified as Text
 import Miku.UI.Draw.StatusLine (drawStatusLine)
 import Miku.UI.State
   ( Action
-  , AppState(AppState)
   , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
@@ -85,13 +84,13 @@ welcomeStateActions =
   where
 
     changeMsg :: Action WelcomeState
-    changeMsg = Brick.continue . AppState . (wsMsgL .~ "welcome!")
+    changeMsg = ask >>= lift . Brick.continue . (wsMsgL .~ "welcome!") 
 
     changeMsgAgain :: Action WelcomeState
-    changeMsgAgain = Brick.continue . AppState . (wsMsgL .~ "welcome again!")
+    changeMsgAgain = ask >>= lift . Brick.continue . (wsMsgL .~ "welcome again!")
 
     exitApp :: Action WelcomeState
-    exitApp  = Brick.halt . AppState
+    exitApp  = ask >>= lift . Brick.halt
 
-toWelcomeMode :: IsMode a => Action a
-toWelcomeMode _ = liftIO (defState @WelcomeState) >>= Brick.continue . AppState
+-- toWelcomeMode :: Action WelcomeState
+-- toWelcomeMode = liftIO (defState @WelcomeState)

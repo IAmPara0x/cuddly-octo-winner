@@ -13,7 +13,6 @@ import Data.Map qualified as Map
 import Graphics.Vty qualified as Vty
 
 import Miku.UI.State (AppState(AppState), defState, keyMapL, Name, Tick(Tick))
-import Miku.UI.Mode.Welcome (toWelcomeMode)
 import Miku.UI.Mode.CurrentLog (CurrentLogState)
 
 import Miku.UI (drawUI, handleEvent)
@@ -43,7 +42,7 @@ run = do
     threadDelay 100000
 
   let buildVty = Vty.mkVty Vty.defaultConfig
-      initState = s' & keyMapL %~ Map.insert "<spc>wm" toWelcomeMode
+      initState = s'
 
   initialVty <- buildVty
 

@@ -5,7 +5,7 @@
 module Miku.UI.State
   ( Action
   , AppState(AppState)
-  , continue
+  , runAction
   , execAction
   , handleAnyStateEvent
   , IsMode(..)
@@ -18,6 +18,7 @@ module Miku.UI.State
 import Brick.Main qualified as Brick
 import Brick.Types (Widget, BrickEvent(VtyEvent), EventM, Next)
 import Control.Lens (Lens', (^.), (.~), (<>~))
+-- import Control.Monad.Trans.Reader (Reade)
 import Data.Map qualified as Map
 
 import Graphics.Vty (Key(KChar, KEsc))
@@ -40,27 +41,28 @@ class IsMode (a :: Type) where
   keyMapL          :: Lens' a (KeyMap a)
   prevKeysL        :: Lens' a Keys
 
-
 type KeyMap a = Map Keys (Action a)
-type Action a = a -> EventM Name (Next AppState)
 type Keys     = [Char]
+type Action a = ReaderT a (EventM Name) (Next a)
 
 execAction :: forall a. IsMode a => Action a
-execAction mstate =
-  case Map.lookup (mstate ^. prevKeysL) (mstate ^. keyMapL) of
-    Just action -> action (mstate & prevKeysL .~ [])
-    Nothing     -> Brick.continue $ AppState mstate
+execAction = do
+  mstate <- ask
 
+  case Map.lookup (mstate ^. prevKeysL) (mstate ^. keyMapL) of
+      Just action -> lift $ fmap (prevKeysL .~ []) <$> runReaderT action mstate
+      Nothing     -> lift $ Brick.continue mstate
+
+
+runAction :: forall a. IsMode a => Action a -> a -> EventM Name (Next AppState)
+runAction action = fmap (fmap AppState) . runReaderT action
 
 handleAnyStateEvent :: IsMode a => a -> BrickEvent Name Tick -> EventM Name (Next AppState)
 handleAnyStateEvent modestate (VtyEvent (Vty.EvKey key [])) =
   case key of
-    KEsc         -> execAction (modestate & prevKeysL .~ [])
-    (KChar '\t') -> execAction (modestate & prevKeysL <>~ "<tab>")
-    (KChar ' ')  -> execAction (modestate & prevKeysL <>~ "<spc>")
-    (KChar c)    -> execAction (modestate & prevKeysL <>~ [c])
+    KEsc         -> runAction execAction (modestate & prevKeysL .~ [])
+    (KChar '\t') -> runAction execAction (modestate & prevKeysL <>~ "<tab>")
+    (KChar ' ')  -> runAction execAction (modestate & prevKeysL <>~ "<spc>")
+    (KChar c)    -> runAction execAction (modestate & prevKeysL <>~ [c])
     _            -> Brick.continue $ AppState modestate
 handleAnyStateEvent modestate _               = Brick.continue $ AppState modestate
-
-continue :: IsMode a => a -> EventM Name (Next AppState)
-continue = Brick.continue . AppState 
