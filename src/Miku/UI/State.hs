@@ -5,6 +5,7 @@
 module Miku.UI.State
   ( Action
   , AppState(AppState)
+  , continue
   , execAction
   , handleAnyStateEvent
   , IsMode(..)
@@ -60,3 +61,6 @@ handleAnyStateEvent modestate (VtyEvent (Vty.EvKey key [])) =
     (KChar c)    -> execAction (modestate & prevKeysL <>~ [c])
     _            -> Brick.continue $ AppState modestate
 handleAnyStateEvent modestate _               = Brick.continue $ AppState modestate
+
+continue :: IsMode a => a -> EventM Name (Next AppState)
+continue = Brick.continue . AppState 

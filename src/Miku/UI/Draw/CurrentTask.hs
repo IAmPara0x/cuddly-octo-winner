@@ -32,8 +32,10 @@ import Miku.Templates.Log
 import Miku.Types.Time (Time, showTime)
 import Miku.UI.Draw (Border(..), Drawable(..))
 
+import Prelude ((!!))
 
-data CurrentTask = CurrentTask Task
+
+data CurrentTask = CurrentTask Int Task
                  | NoCurrentTask Text
 
 instance Drawable CurrentTask where
@@ -43,12 +45,12 @@ instance Drawable CurrentTask where
   draw Rounded (NoCurrentTask text) = Core.withBorderStyle Border.unicodeRounded
                                       $ Border.border
                                       $ noOngoinTaskWidget text
-  draw Hidden (CurrentTask task)    = Core.withBorderStyle (Border.borderStyleFromChar ' ')
+  draw Hidden (CurrentTask idx task)    = Core.withBorderStyle (Border.borderStyleFromChar ' ')
                                       $ Border.border
-                                      $ ongoinTaskWidget Hidden task
-  draw Rounded (CurrentTask task)   = Core.withBorderStyle Border.unicodeRounded
+                                      $ ongoinTaskWidget Hidden idx task
+  draw Rounded (CurrentTask idx task)   = Core.withBorderStyle Border.unicodeRounded
                                       $ Border.border
-                                      $ ongoinTaskWidget Rounded task
+                                      $ ongoinTaskWidget Rounded idx task
 
 
 
@@ -72,8 +74,8 @@ noOngoinTaskWidget = Core.hLimitPercent 50
                    . Core.center
                    . Core.txt
 
-ongoinTaskWidget :: Border -> Task -> Widget n
-ongoinTaskWidget border Task{..} =
+ongoinTaskWidget :: Border -> Int -> Task -> Widget n
+ongoinTaskWidget border idx Task{..} =
     Core.hLimitPercent 50
   $ Core.vBox
     [ draw border (coerce @_ @CurrentTaskName _taskNameL)
@@ -81,7 +83,7 @@ ongoinTaskWidget border Task{..} =
       $ Core.vLimit 2
       $ Core.hBox [ draw border (coerce @_ @StartTime _taskStartL)
                   , Core.fill ' '
-                  , draw border (coerce @_ @EndTime _taskEndL)
+                  , draw border (EndTime idx _taskEndL)
                   ]
     , Core.padLeft (Pad 4) $ Core.padTopBottom 1
        $ draw border (coerce @_ @CurrentTaskDesc _taskDescL)
@@ -105,11 +107,11 @@ instance Drawable StartTime where
          . showTime
          . coerce
 
-newtype EndTime = EndTime (Maybe Time)
+data EndTime = EndTime Int (Maybe Time)
 
 instance Drawable EndTime where
-  draw _ _ = Core.padRight (Pad 1)
-           $ Core.txt (Text.snoc "ongoing: " $ head clockAnimationStates)
+  draw _ (EndTime idx _) = Core.padRight (Pad 1)
+                         $ Core.txt (Text.snoc "ongoing: " $ clockAnimationStates !! idx) -- TODO: remove (!!).
 
 newtype CurrentTaskTags = CurrentTaskTags [TaskTag]
 
@@ -123,5 +125,5 @@ instance Drawable CurrentTaskTags where
       drawTaskTags :: Widget n
       drawTaskTags = Core.padTopBottom 1 $ Core.txtWrap $ showTags tags
 
-clockAnimationStates :: NonEmpty Char
-clockAnimationStates = '◴' :| ['◶','◵','◴']
+clockAnimationStates :: [Char]
+clockAnimationStates = '◴' : ['◷','◶','◵']

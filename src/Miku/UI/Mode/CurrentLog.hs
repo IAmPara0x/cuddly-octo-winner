@@ -28,7 +28,7 @@ import Brick.Types
   , Next
   )
 
-import Control.Lens (makeLenses, (^.), (.~), (%~), _1, _2)
+import Control.Lens (makeLenses, (^.), (.~), (%~), (+~), _1, _2, Lens', lens, both)
 import Data.Default (Default(def))
 import Data.Map             qualified as Map
 import Data.Text            qualified as Text
@@ -46,13 +46,14 @@ import Miku.Templates.Log
   , goalsNotDone
   )
 
-import Miku.UI.Draw (Border(..), Drawable(..))
+import Miku.UI.Draw             (mkDraw)
 import Miku.UI.Draw.CurrentTask (CurrentTask(NoCurrentTask, CurrentTask))
 import Miku.UI.Draw.Goals       (CompletedGoals(..), NotCompletedGoals(..))
 import Miku.UI.Draw.StatusLine  (drawStatusLine)
 import Miku.UI.State
   ( Action
   , AppState(AppState)
+  , continue
   , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
@@ -80,27 +81,53 @@ data CurrentLogConfig =
   CurrentLogConfig { _clcConfigPathL    :: FilePath
                    , _clcClearKeysTimeL :: Integer
                    , _clcMaxTicksCountL :: Integer
+                   , _clcClockAnimTimeL :: Int
                    }
 
 data CurrentLogState =
-  CurrentLogState { _clsConfigL        :: CurrentLogConfig
-                  , _clsCurrentWindowL :: Window
-                  , _clsKeyMapL        :: KeyMap CurrentLogState
-                  , _clsLogL           :: Log
-                  , _clsPrevKeysL      :: Keys
-                  , _clsTickCounterL   :: Integer
+  CurrentLogState { _clsConfigL            :: CurrentLogConfig
+                  , _clsCurrentWindowL     :: Window
+                  , _clsKeyMapL            :: KeyMap CurrentLogState
+                  , _clsLogL               :: Log
+                  , _clsPrevKeysL          :: Keys
+                  , _clsGlobalTickCounterL :: Integer
+                  , _clsKeysTickCounterL   :: Integer
+                  , _clsClockAnimStateL    :: Int
                   }
 
 makeLenses ''CurrentLogConfig
 makeLenses ''CurrentLogState
+
+clsKeysTickL :: Lens' CurrentLogState (Integer, Integer)
+clsKeysTickL  = lens getter setter
+  where
+    getter clState
+        = (clState ^. clsKeysTickCounterL, clState ^. clsConfigL . clcClearKeysTimeL)
+    setter clState (val, conf)
+        = clState & clsKeysTickCounterL .~ val
+                  & clsConfigL . clcClearKeysTimeL .~ conf
+
+clsGlobalTickL :: Lens' CurrentLogState (Integer, Integer)
+clsGlobalTickL  = lens getter setter
+  where
+    getter clState
+        = (clState ^. clsGlobalTickCounterL, clState ^. clsConfigL . clcMaxTicksCountL)
+    setter clState (val, conf)
+        = clState & clsGlobalTickCounterL .~ val
+                  & clsConfigL . clcMaxTicksCountL .~ conf
+
+clsClockTick :: CurrentLogState -> (Int, Int)
+clsClockTick clState = clState ^. clsGlobalTickL
+                     & both %~ fromInteger
+                     & _2 .~ clState ^. clsConfigL . clcClockAnimTimeL
 
 instance Default CurrentLogConfig where
   def = CurrentLogConfig
           { _clcConfigPathL = "/home/iamparadox/.miku/"
           , _clcClearKeysTimeL = 5
           , _clcMaxTicksCountL = 100
+          , _clcClockAnimTimeL = 5
           }
-
 
 instance IsMode CurrentLogState where
 
@@ -113,7 +140,7 @@ instance IsMode CurrentLogState where
 
 
 defCurrentLogState :: IO CurrentLogState
-defCurrentLogState = 
+defCurrentLogState =
   do
 
     elog <- runExceptT $ readCurrentLog (def ^. clcConfigPathL </> "logs")
@@ -121,22 +148,23 @@ defCurrentLogState =
     case elog of
       Left err  -> error err
       Right log -> return $ CurrentLogState
-                          { _clsConfigL   = def
-                          , _clsKeyMapL   = currentLogStateActions
-                          , _clsLogL      = log
-                          , _clsPrevKeysL = []
-                          , _clsCurrentWindowL = (TopWindow, LeftWindow)
-                          , _clsTickCounterL = 0
+                          { _clsConfigL            = def
+                          , _clsKeyMapL            = currentLogStateActions
+                          , _clsLogL               = log
+                          , _clsPrevKeysL          = []
+                          , _clsCurrentWindowL     = (TopWindow, LeftWindow)
+                          , _clsGlobalTickCounterL = 0
+                          , _clsKeysTickCounterL   = 0
+                          , _clsClockAnimStateL    = 0
                           }
 
 handleCurrentLogEvent :: CurrentLogState -> BrickEvent Name Tick -> EventM Name (Next AppState)
 handleCurrentLogEvent clState (AppEvent Tick)
-    = Brick.continue
-    $ AppState
-    $ clState & clsTickCounterL %~ (\n -> mod (n + 1) (clState ^. clsConfigL . clcMaxTicksCountL))
-              & id %~ clearPrevKeys
-handleCurrentLogEvent clState event          
-    = handleAnyStateEvent (clState & clsTickCounterL .~ 0) event
+    = continue $ updateTickCounter clState
+               & id %~ clearPrevKeys
+               & id %~ changeClockState
+handleCurrentLogEvent clState event
+    = handleAnyStateEvent (clState & clsKeysTickCounterL .~ 0) event
 
 currentLogStateActions :: KeyMap CurrentLogState
 currentLogStateActions =
@@ -151,23 +179,31 @@ currentLogStateActions =
     exitApp :: Action CurrentLogState
     exitApp  = Brick.halt . AppState
 
-    down :: Action CurrentLogState
-    down clState = Brick.continue $ AppState (clState & clsCurrentWindowL . _1 .~ BottomWindow)
-
-    up :: Action CurrentLogState
-    up clState = Brick.continue $ AppState (clState & clsCurrentWindowL . _1 .~ TopWindow)
-
-    left :: Action CurrentLogState
-    left clState = Brick.continue $ AppState (clState & clsCurrentWindowL . _2 .~ LeftWindow)
-
-    right :: Action CurrentLogState
-    right clState = Brick.continue $ AppState (clState & clsCurrentWindowL . _2 .~ RightWindow)
+    up, down, left, right :: Action CurrentLogState
+    down  clState  = continue $ clState & clsCurrentWindowL . _1 .~ BottomWindow
+    up    clState  = continue $ clState & clsCurrentWindowL . _1 .~ TopWindow
+    left  clState  = continue $ clState & clsCurrentWindowL . _2 .~ LeftWindow
+    right clState  = continue $ clState & clsCurrentWindowL . _2 .~ RightWindow
 
 
 clearPrevKeys :: CurrentLogState -> CurrentLogState
 clearPrevKeys clState
   = clState & clsPrevKeysL %~
-      (\keys -> if rem (clState ^. clsTickCounterL) (clState ^. clsConfigL . clcClearKeysTimeL) == 0 then [] else keys)
+      bool id (const []) (uncurry rem (clState ^. clsKeysTickL) == 0)
+
+updateTickCounter :: CurrentLogState -> CurrentLogState
+updateTickCounter clState =
+  clState & clsGlobalTickCounterL .~ uncurry mod
+              (clState ^. clsGlobalTickL & _1 +~ 1)
+          & clsKeysTickCounterL   .~ uncurry mod
+              (clState ^. clsKeysTickL & _1 +~ 1 & _2 .~ clState ^. clsGlobalTickL . _2)
+
+
+changeClockState :: CurrentLogState -> CurrentLogState
+changeClockState clState
+  = clState & clsClockAnimStateL %~
+      bool id (\n -> mod (n + 1) 4) (uncurry rem (clsClockTick clState) == 0)
+
 
 drawCurrentLogState :: CurrentLogState -> [Widget n]
 drawCurrentLogState clState =
@@ -177,7 +213,7 @@ drawCurrentLogState clState =
       ]
   ]
   where
-    allWindows = [ drawCurrentTaskWindow 
+    allWindows = [ drawCurrentTaskWindow
                  , drawStatsWindow
                  , drawNotCompletedGoalsWindow
                  , drawCompletedGoalsWindow
@@ -199,48 +235,30 @@ drawHeading :: Heading -> Widget n
 drawHeading = Core.padAll 1 . Core.hCenter . Core.txt . showHeading
 
 drawCurrentTaskWindow :: CurrentLogState -> Widget n
-drawCurrentTaskWindow clState
-  | clState ^. clsCurrentWindowL == (TopWindow, LeftWindow)
-      = draw Rounded
-      $ maybe (NoCurrentTask "There' currently no ongoing task.") CurrentTask (ongoingTask $ clState ^. clsLogL)
-  | otherwise
-      = draw Hidden
-      $ maybe (NoCurrentTask "There' currently no ongoing task.") CurrentTask (ongoingTask $ clState ^. clsLogL)
+drawCurrentTaskWindow =
+  mkDraw (checkWindowPos (TopWindow, LeftWindow))
+         (\s -> maybe (NoCurrentTask "There's currently no ongoing task.")
+                      (CurrentTask (s ^. clsClockAnimStateL)) $ ongoingTask (s ^. clsLogL))
 
 drawStatsWindow :: CurrentLogState -> Widget n
 drawStatsWindow clState
-  | clState ^. clsCurrentWindowL == (TopWindow, RightWindow)
+  | checkWindowPos (TopWindow, RightWindow) clState
       = Core.withBorderStyle Border.unicodeRounded $ Border.border
       $ Core.center $ Core.txt "No Stats!"
   | otherwise
       = Core.center $ Core.txt "No Stats!"
 
 drawNotCompletedGoalsWindow :: CurrentLogState -> Widget n
-drawNotCompletedGoalsWindow clState
-  | clState ^. clsCurrentWindowL == (BottomWindow, RightWindow)
-      = Core.padLeft (Pad 1)
-      $ draw Rounded
-      $ coerce @_ @NotCompletedGoals
-      $ goalsNotDone (clState ^. clsLogL . logGoalsL)
-  | otherwise
-      = Core.padLeft (Pad 1)
-      $ draw Hidden
-      $ coerce @_ @NotCompletedGoals
-      $ goalsNotDone (clState ^. clsLogL . logGoalsL)
+drawNotCompletedGoalsWindow = Core.padLeft (Pad 1)
+                            . mkDraw (checkWindowPos (BottomWindow, RightWindow))
+                                     (NotCompletedGoals . goalsNotDone . (^. clsLogL . logGoalsL))
 
 drawCompletedGoalsWindow :: CurrentLogState -> Widget n
-drawCompletedGoalsWindow clState
-  | clState ^. clsCurrentWindowL == (BottomWindow, LeftWindow)
-      = Core.padLeft (Pad 1)
-      $ draw Rounded
-      $ coerce @_ @CompletedGoals
-      $ goalsDone (clState ^. clsLogL . logGoalsL)
-  | otherwise
-      = Core.padLeft (Pad 1)
-      $ draw Hidden
-      $ coerce @_ @CompletedGoals
-      $ goalsDone (clState ^. clsLogL . logGoalsL)
-
+drawCompletedGoalsWindow = mkDraw (checkWindowPos (BottomWindow, LeftWindow))
+                                  (CompletedGoals . goalsDone . (^. clsLogL . logGoalsL))
 
 toCurrentLogMode :: forall a. IsMode a => Action a
 toCurrentLogMode _ = liftIO (defState @CurrentLogState) >>= Brick.continue . AppState
+
+checkWindowPos :: Window -> CurrentLogState -> Bool
+checkWindowPos window clState = window == clState ^. clsCurrentWindowL
