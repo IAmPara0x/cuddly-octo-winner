@@ -1,13 +1,22 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Miku.UI.State
   ( Action
   , AppState(AppState)
-  , runAction
   , execAction
   , handleAnyStateEvent
+  , GlobalConfig(..)
+  , gcPathL
+  , gcMaxTickCounterL
+  , GlobalState(..)
+  , gsConfigL
+  , gsTickCounterL
+  , gsModeStateL
+  , gsKeyMapL
+  , gsPrevKeysL
   , IsMode(..)
   , KeyMap
   , Keys
@@ -17,9 +26,9 @@ module Miku.UI.State
   ) where
 
 import Brick.Main qualified as Brick
-import Brick.Types (Widget, BrickEvent(VtyEvent), EventM, Next)
-import Control.Lens (Lens', (^.), (.~), (<>~))
--- import Control.Monad.Trans.Reader (Reade)
+import Brick.Types (Widget, BrickEvent(VtyEvent, AppEvent), EventM, Next)
+import Control.Lens ((^.), (.~), (<>~), makeLenses, Lens', lens, _1, _2, (+~), (%~))
+import Data.Default (Default(def))
 import Data.Map qualified as Map
 
 import Graphics.Vty (Key(KChar, KEsc))
@@ -31,45 +40,105 @@ import Relude
 type Name = ()
 data Tick = Tick
 
-data AppState where
-  AppState :: forall a. (IsMode a) => Proxy a -> ModeState a -> AppState
+data GlobalConfig =
+  GlobalConfig { _gcPathL           :: FilePath
+               , _gcMaxTickCounterL :: Int
+               , _gcClearKeysTimeL  :: Int
+               }
 
--- TODO: use some kind of constraint on (ModeState a) to achieve behaviour of "data inheritance".
+instance Default GlobalConfig where
+  def = GlobalConfig { _gcPathL = "/home/iamparadox/.miku/"
+                     , _gcMaxTickCounterL = 100
+                     , _gcClearKeysTimeL = 5
+                     }
+
+data GlobalState a = IsMode a =>
+  GlobalState { _gsConfigL          :: GlobalConfig
+              , _gsKeysTickCounterL :: Int
+              , _gsTickCounterL     :: Int
+              , _gsModeStateL       :: ModeState a
+              , _gsKeyMapL          :: KeyMap a
+              , _gsPrevKeysL        :: Keys
+              }
+
+type KeyMap a   = Map Keys (Action a)
+type Keys       = [Char]
+type Action a   = ReaderT (GlobalState a) (EventM Name) (Next AppState)
+type DrawMode a = Reader (GlobalState a) [Widget Name]
+
+data AppState where
+  AppState :: forall a. (IsMode a) => Proxy a -> GlobalState a -> AppState
+
 class IsMode (a :: Type) where
   type ModeState a :: Type
 
   defState         :: IO (ModeState a)
   drawState        :: DrawMode a
-  handleEventState :: ModeState a -> BrickEvent Name Tick -> EventM Name (Next AppState)
+  handleEventState :: GlobalState a -> BrickEvent Name Tick -> EventM Name (Next AppState)
 
-  -- TODO: Find a better way for something like "data inheritance".
-  keyMapL          :: Lens' (ModeState a) (KeyMap a)
-  prevKeysL        :: Lens' (ModeState a) Keys
+makeLenses ''GlobalState
+makeLenses ''GlobalConfig
 
-type DrawMode a = Reader (ModeState a) [Widget Name]
+-- gsChangeModeL :: Lens
 
-type KeyMap a = Map Keys (Action a)
-type Keys     = [Char]
-type Action a = ReaderT (ModeState a) (EventM Name) (Next (ModeState a))
+gsTickL :: Lens' (GlobalState a) (Int, Int)
+gsTickL  = lens getter setter
+  where
+    getter gstate
+        = (gstate ^. gsTickCounterL, gstate ^. gsConfigL . gcMaxTickCounterL)
+    setter gstate (val, conf)
+        = gstate  & gsTickCounterL .~ val
+                  & gsConfigL . gcMaxTickCounterL .~ conf
+
+gsKeysTickL :: Lens' (GlobalState a) (Int, Int)
+gsKeysTickL  = lens getter setter
+  where
+    getter gstate
+        = (gstate ^. gsKeysTickCounterL, gstate ^. gsConfigL . gcClearKeysTimeL)
+    setter gstate (val, conf)
+        = gstate & gsKeysTickCounterL .~ val
+                  & gsConfigL . gcClearKeysTimeL .~ conf
+
+clearKeysL :: Lens' AppState Keys
+clearKeysL = lens getter setter
+  where
+    getter (AppState _ s) = s ^. gsPrevKeysL
+    setter (AppState p s) keys = AppState p $ s & gsPrevKeysL .~ keys
 
 execAction :: forall a. IsMode a => Action a
 execAction = do
   mstate <- ask
 
-  case Map.lookup (mstate ^. prevKeysL @a) (mstate ^. keyMapL @a) of
-      Just action -> lift $ fmap (prevKeysL @a .~ []) <$> runReaderT action mstate
-      Nothing     -> lift $ Brick.continue mstate
+  case Map.lookup (mstate ^. gsPrevKeysL) (mstate ^. gsKeyMapL) of
+    Just action -> fmap (clearKeysL .~ []) <$> action
+    Nothing     -> lift $ Brick.continue $ AppState Proxy mstate
 
-
-runAction :: forall a. IsMode a => Action a -> ModeState a -> EventM Name (Next AppState)
-runAction action = fmap (fmap (AppState @a Proxy)) . runReaderT action
-
-handleAnyStateEvent :: forall a. IsMode a => ModeState a -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleAnyStateEvent modestate (VtyEvent (Vty.EvKey key [])) =
+handleAnyStateEvent :: forall a. IsMode a
+                    => GlobalState a
+                    -> BrickEvent Name Tick
+                    -> EventM Name (Next AppState)
+handleAnyStateEvent gstate (AppEvent Tick)               =
+  Brick.continue $ AppState Proxy $ updateTickCounter gstate
+                                  & id %~ clearPrevKeys
+handleAnyStateEvent gstate (VtyEvent (Vty.EvKey key [])) =
   case key of
-    KEsc         -> runAction @a (execAction @a) (modestate & prevKeysL @a .~ [])
-    (KChar '\t') -> runAction @a (execAction @a) (modestate & prevKeysL @a <>~ "<tab>")
-    (KChar ' ')  -> runAction @a (execAction @a) (modestate & prevKeysL @a <>~ "<spc>")
-    (KChar c)    -> runAction @a (execAction @a) (modestate & prevKeysL @a <>~ [c])
-    _            -> Brick.continue $ AppState @a Proxy modestate
-handleAnyStateEvent modestate _               = Brick.continue $ AppState @a Proxy modestate
+    KEsc         -> runReaderT execAction (gstate & gsPrevKeysL .~ [] & gsKeysTickCounterL .~ 0)
+    (KChar '\t') -> runReaderT execAction (gstate & gsPrevKeysL <>~ "<tab>" & gsKeysTickCounterL .~ 0)
+    (KChar ' ')  -> runReaderT execAction (gstate & gsPrevKeysL <>~ "<spc>" & gsKeysTickCounterL .~ 0)
+    (KChar c)    -> runReaderT execAction (gstate & gsPrevKeysL <>~ [c] & gsKeysTickCounterL .~ 0)
+    _            -> Brick.continue $ AppState Proxy gstate
+handleAnyStateEvent gstate _                             =
+  Brick.continue $ AppState Proxy gstate
+
+updateTickCounter :: GlobalState a -> GlobalState a
+updateTickCounter gstate =
+  gstate & gsTickCounterL .~ uncurry mod
+              (gstate ^. gsTickL & _1 +~ 1)
+          & gsKeysTickCounterL .~ uncurry mod
+              (gstate ^. gsKeysTickL & _1 +~ 1 & _2 .~ gstate ^. gsTickL . _2)
+
+
+clearPrevKeys :: GlobalState a -> GlobalState a
+clearPrevKeys gstate
+  = gstate & gsPrevKeysL %~
+      bool id (const []) (uncurry rem (gstate ^. gsKeysTickL) == 0)

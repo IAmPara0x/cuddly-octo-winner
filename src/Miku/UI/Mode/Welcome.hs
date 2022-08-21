@@ -3,11 +3,7 @@
 {-# LANGUAGE TypeFamilies    #-}
 
 module Miku.UI.Mode.Welcome
-  ( 
-    WelcomeConfig(..)
-  , wcConfigPathL
-  , WelcomeState(..)
-  , wsConfigL
+  ( WelcomeState(..)
   , wsMsgL
   )
   where
@@ -25,10 +21,13 @@ import Data.Text qualified as Text
 import Miku.UI.Draw.StatusLine (drawStatusLine)
 import Miku.UI.State
   ( Action
+  , AppState(AppState)
+  , gsModeStateL
+  , gsPrevKeysL
+  , gsKeyMapL
   , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
-  , Keys
   , DrawMode
   )
 
@@ -39,17 +38,9 @@ data Welcome
 
 -- | Welcome State
 
-newtype WelcomeConfig =
-  WelcomeConfig { _wcConfigPathL :: FilePath
-                } deriving stock (Show)
-
-data WelcomeState =
-    WelcomeState { _wsConfigL    :: WelcomeConfig
-                 , _wsKeyMapL    :: KeyMap Welcome
-                 , _wsMsgL       :: Text
-                 , _wsPrevKeysL  :: Keys
+newtype WelcomeState =
+    WelcomeState { _wsMsgL       :: Text
                  }
-makeLenses ''WelcomeConfig
 makeLenses ''WelcomeState
 
 instance IsMode Welcome where
@@ -57,22 +48,19 @@ instance IsMode Welcome where
 
   defState = return $ WelcomeState
                                { _wsMsgL = "Moshi Moshi!"
-                               , _wsConfigL = WelcomeConfig "/home/iamparadox/.miku/"
-                               , _wsKeyMapL = welcomeStateActions
-                               , _wsPrevKeysL = []
                                }
   drawState        = drawWelcomeState
-  handleEventState = handleAnyStateEvent @Welcome
-  keyMapL          = wsKeyMapL
-  prevKeysL        = wsPrevKeysL
+  handleEventState = handleAnyStateEvent @Welcome . (gsKeyMapL .~ welcomeStateActions)
 
 drawWelcomeState :: DrawMode Welcome
 drawWelcomeState  = do
-  wstate <- ask
+  gstate <- ask
+
+  let wstate = gstate ^. gsModeStateL
 
   return [ Core.vBox
              [ Core.vLimitPercent 94 $ Core.center $ Core.txt (wstate ^. wsMsgL)
-             , drawStatusLine (Text.pack $ wstate ^. prevKeysL @Welcome) ""
+             , drawStatusLine (Text.pack $ gstate ^. gsPrevKeysL @Welcome) ""
              ]
          ]
 
@@ -85,10 +73,20 @@ welcomeStateActions =
   where
 
     changeMsg :: Action Welcome
-    changeMsg = ask >>= lift . Brick.continue . (wsMsgL .~ "welcome!") 
+    changeMsg = ask >>= lift . Brick.continue
+                             . AppState Proxy
+                             . (gsModeStateL . wsMsgL .~ "welcome!") 
 
     changeMsgAgain :: Action Welcome
-    changeMsgAgain = ask >>= lift . Brick.continue . (wsMsgL .~ "welcome again!")
+    changeMsgAgain = ask >>= lift . Brick.continue
+                                  . AppState Proxy
+                                  . (gsModeStateL . wsMsgL .~ "welcome again!")
 
     exitApp :: Action Welcome
-    exitApp  = ask >>= lift . Brick.halt
+    exitApp  = ask >>= lift . Brick.halt . AppState Proxy
+
+-- toWelcomeMode :: Action a
+-- toWelcomeMode = do
+--   gstate <- ask
+--   lift $ Brick.continue
+--        $ AppState Proxy

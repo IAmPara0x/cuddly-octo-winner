@@ -18,7 +18,7 @@ class Drawable a where
   draw :: Border -> a -> Widget n
 
 
--- type DrawX mode a = (IsMode mode, Drawable a) => Reader mode a
+-- TODO: Switch to (GlobalState a)
 type Draw a = Reader (ModeState a) (Widget Name)
 
 drawWidget :: (IsMode mode, Drawable a)

@@ -6,10 +6,11 @@ import Brick.Main    (App(..), neverShowCursor, customMain)
 import Brick.Util    (fg)
 
 import Control.Concurrent (threadDelay, forkIO)
+import Data.Default (def)
 import Graphics.Vty qualified as Vty
 
-import Miku.UI.State (AppState(AppState), defState, Name, Tick(Tick))
-import Miku.UI.Mode.CurrentLog (CurrentLog)
+import Miku.UI.State (AppState(AppState), defState, Name, Tick(Tick), GlobalState(..))
+import Miku.UI.Mode.CurrentLog (CurrentLog, currentLogStateActions)
 
 import Miku.UI (drawUI, handleEvent)
 
@@ -38,8 +39,14 @@ run = do
     threadDelay 100000
 
   let buildVty = Vty.mkVty Vty.defaultConfig
-      initState = s'
+      initState = GlobalState { _gsConfigL = def
+                              , _gsKeysTickCounterL = 0
+                              , _gsTickCounterL = 0
+                              , _gsModeStateL = s'
+                              , _gsKeyMapL = currentLogStateActions
+                              , _gsPrevKeysL = []
+                              }
 
   initialVty <- buildVty
 
-  void $ customMain initialVty buildVty (Just chan) app $ AppState @CurrentLog Proxy initState
+  void $ customMain initialVty buildVty (Just chan) app $ AppState Proxy initState
