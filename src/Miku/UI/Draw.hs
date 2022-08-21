@@ -1,5 +1,6 @@
 module Miku.UI.Draw
   ( Border(..)
+  , Draw
   , Drawable(..)
   , drawWidget
   ) where
@@ -7,7 +8,7 @@ module Miku.UI.Draw
 import Brick.Types (Widget)
 import Relude
 
-import Miku.UI.State (IsMode)
+import Miku.UI.State (IsMode, ModeState, Name)
 
 data Border = Hidden
             | Rounded
@@ -17,12 +18,17 @@ class Drawable a where
   draw :: Border -> a -> Widget n
 
 
--- TODO: Name this properly
+-- type DrawX mode a = (IsMode mode, Drawable a) => Reader mode a
+type Draw a = Reader (ModeState a) (Widget Name)
 
-drawWidget :: (IsMode state, Drawable a) => Reader state Bool -> Reader state a -> Reader state (Widget n)
+drawWidget :: (IsMode mode, Drawable a)
+           => Reader (ModeState mode) Bool
+           -> Reader (ModeState mode) a
+           -> Draw mode
 drawWidget isFocus rdraw = do
-  s <- ask
-  if runReader isFocus s
-    then return $ draw Rounded $ runReader rdraw s
-    else return $ draw Hidden $ runReader rdraw s
+  focus <- isFocus
+  widget <- rdraw
+  if focus
+    then return $ draw Rounded widget
+    else return $ draw Hidden widget
 

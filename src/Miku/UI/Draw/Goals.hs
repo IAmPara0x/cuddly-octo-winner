@@ -29,7 +29,7 @@ import Miku.UI.Draw (Drawable(..), Border(Rounded))
 import Relude
 
 
-newtype CompletedGoals    = CompletedGoals [Goal]
+newtype CompletedGoals = CompletedGoals [Goal]
 
 instance Drawable CompletedGoals where
   draw border = drawGoals border "[✓] Completed" . coerce
@@ -58,8 +58,8 @@ drawGoals border heading goals
            ]
 
 drawGoal :: Int -> Goal -> Widget n
-drawGoal n goal = Core.padTopBottom 1 $
+drawGoal n goal = Core.padBottom (Pad 1) $
   Core.hBox [ Core.padLeftRight 1 $ Core.txt (show n <> ")")
             , Core.padLeft (Pad 1)
-            $ Core.txtWrap $ goal ^. goalDescL
+            $ Core.txt $ goal ^. goalDescL
             ]

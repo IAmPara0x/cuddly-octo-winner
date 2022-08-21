@@ -13,11 +13,6 @@ module Miku.UI.Mode.Welcome
   where
 
 import Brick.Main qualified as Brick
-
-import Brick.Types
-  ( Widget
-  )
-
 import Brick.Widgets.Center qualified as Core
 import Brick.Widgets.Core   qualified as Core
 
@@ -34,10 +29,13 @@ import Miku.UI.State
   , IsMode(..)
   , KeyMap
   , Keys
+  , DrawMode
   )
 
 import Relude
 
+
+data Welcome
 
 -- | Welcome State
 
@@ -47,15 +45,16 @@ newtype WelcomeConfig =
 
 data WelcomeState =
     WelcomeState { _wsConfigL    :: WelcomeConfig
-                 , _wsKeyMapL    :: KeyMap WelcomeState
+                 , _wsKeyMapL    :: KeyMap Welcome
                  , _wsMsgL       :: Text
                  , _wsPrevKeysL  :: Keys
                  }
-
 makeLenses ''WelcomeConfig
 makeLenses ''WelcomeState
 
-instance IsMode WelcomeState where
+instance IsMode Welcome where
+  type ModeState Welcome = WelcomeState
+
   defState = return $ WelcomeState
                                { _wsMsgL = "Moshi Moshi!"
                                , _wsConfigL = WelcomeConfig "/home/iamparadox/.miku/"
@@ -63,19 +62,21 @@ instance IsMode WelcomeState where
                                , _wsPrevKeysL = []
                                }
   drawState        = drawWelcomeState
-  handleEventState = handleAnyStateEvent
+  handleEventState = handleAnyStateEvent @Welcome
   keyMapL          = wsKeyMapL
   prevKeysL        = wsPrevKeysL
 
-drawWelcomeState :: WelcomeState -> [Widget n]
-drawWelcomeState wstate =
-  [ Core.vBox
-     [ Core.vLimitPercent 94 $ Core.center $ Core.txt (wstate ^. wsMsgL)
-     , drawStatusLine (Text.pack $ wstate ^. prevKeysL) ""
-     ]
-  ]
+drawWelcomeState :: DrawMode Welcome
+drawWelcomeState  = do
+  wstate <- ask
 
-welcomeStateActions :: KeyMap WelcomeState
+  return [ Core.vBox
+             [ Core.vLimitPercent 94 $ Core.center $ Core.txt (wstate ^. wsMsgL)
+             , drawStatusLine (Text.pack $ wstate ^. prevKeysL @Welcome) ""
+             ]
+         ]
+
+welcomeStateActions :: KeyMap Welcome
 welcomeStateActions =
   Map.fromList [ ("c", changeMsg)
                , ("q", exitApp)
@@ -83,14 +84,11 @@ welcomeStateActions =
                ]
   where
 
-    changeMsg :: Action WelcomeState
+    changeMsg :: Action Welcome
     changeMsg = ask >>= lift . Brick.continue . (wsMsgL .~ "welcome!") 
 
-    changeMsgAgain :: Action WelcomeState
+    changeMsgAgain :: Action Welcome
     changeMsgAgain = ask >>= lift . Brick.continue . (wsMsgL .~ "welcome again!")
 
-    exitApp :: Action WelcomeState
+    exitApp :: Action Welcome
     exitApp  = ask >>= lift . Brick.halt
-
--- toWelcomeMode :: Action WelcomeState
--- toWelcomeMode = liftIO (defState @WelcomeState)

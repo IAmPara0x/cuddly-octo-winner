@@ -6,14 +6,10 @@ import Brick.Main    (App(..), neverShowCursor, customMain)
 import Brick.Util    (fg)
 
 import Control.Concurrent (threadDelay, forkIO)
-import Control.Lens ((%~))
-
-import Data.Map qualified as Map
-
 import Graphics.Vty qualified as Vty
 
-import Miku.UI.State (AppState(AppState), defState, keyMapL, Name, Tick(Tick))
-import Miku.UI.Mode.CurrentLog (CurrentLogState)
+import Miku.UI.State (AppState(AppState), defState, Name, Tick(Tick))
+import Miku.UI.Mode.CurrentLog (CurrentLog)
 
 import Miku.UI (drawUI, handleEvent)
 
@@ -33,7 +29,7 @@ app = App { appDraw = drawUI
 
 run :: IO ()
 run = do
-  s' <- defState @CurrentLogState
+  s' <- defState @CurrentLog
 
   chan   <- BChan.newBChan 10
 
@@ -46,6 +42,4 @@ run = do
 
   initialVty <- buildVty
 
-
-
-  void $ customMain initialVty buildVty (Just chan) app $ AppState initState
+  void $ customMain initialVty buildVty (Just chan) app $ AppState @CurrentLog Proxy initState

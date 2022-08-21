@@ -39,16 +39,16 @@ data CurrentTask = CurrentTask Int Task
                  | NoCurrentTask Text
 
 instance Drawable CurrentTask where
-  draw Hidden (NoCurrentTask text)  = Core.withBorderStyle (Border.borderStyleFromChar ' ')
+  draw Hidden (NoCurrentTask text)    = Core.withBorderStyle (Border.borderStyleFromChar ' ')
                                       $ Border.border
                                       $ noOngoinTaskWidget text
-  draw Rounded (NoCurrentTask text) = Core.withBorderStyle Border.unicodeRounded
+  draw Rounded (NoCurrentTask text)   = Core.withBorderStyle Border.unicodeRounded
                                       $ Border.border
                                       $ noOngoinTaskWidget text
-  draw Hidden (CurrentTask idx task)    = Core.withBorderStyle (Border.borderStyleFromChar ' ')
+  draw Hidden (CurrentTask idx task)  = Core.withBorderStyle (Border.borderStyleFromChar ' ')
                                       $ Border.border
                                       $ ongoinTaskWidget Hidden idx task
-  draw Rounded (CurrentTask idx task)   = Core.withBorderStyle Border.unicodeRounded
+  draw Rounded (CurrentTask idx task) = Core.withBorderStyle Border.unicodeRounded
                                       $ Border.border
                                       $ ongoinTaskWidget Rounded idx task
 
@@ -58,8 +58,10 @@ newtype CurrentTaskName = CurrentTaskName TaskName
 
 instance Drawable CurrentTaskName where
   draw border (CurrentTaskName taskName)
-    | border == Hidden  = Core.withBorderStyle (Border.borderStyleFromChar ' ') $ drawTaskName <=> Border.hBorder
-    | otherwise         = Core.withBorderStyle Border.unicodeRounded $ drawTaskName <=> Border.hBorder
+    | border == Hidden  = Core.withBorderStyle (Border.borderStyleFromChar ' ')
+                        $ drawTaskName <=> Border.hBorder
+    | otherwise         = Core.withBorderStyle Border.unicodeRounded
+                        $ drawTaskName <=> Border.hBorder
     where
       drawTaskName :: Widget n
       drawTaskName =
@@ -94,7 +96,7 @@ ongoinTaskWidget border idx Task{..} =
 newtype CurrentTaskDesc = CurrentTaskDesc (Maybe TaskDesc)
 
 instance Drawable CurrentTaskDesc where
-  draw _ (CurrentTaskDesc (Just desc)) = Core.vCenter $ Core.txtWrap (desc ^. descL)
+  draw _ (CurrentTaskDesc (Just desc)) = Core.vCenter $ Core.txt (desc ^. descL)
   draw _ (CurrentTaskDesc Nothing)     = Core.vCenter $ Core.txt ""
 
 
@@ -123,7 +125,7 @@ instance Drawable CurrentTaskTags where
     where
 
       drawTaskTags :: Widget n
-      drawTaskTags = Core.padTopBottom 1 $ Core.txtWrap $ showTags tags
+      drawTaskTags = Core.padTopBottom 1 $ Core.txt $ showTags tags
 
 clockAnimationStates :: [Char]
 clockAnimationStates = '◴' : ['◷','◶','◵']

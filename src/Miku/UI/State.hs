@@ -13,6 +13,7 @@ module Miku.UI.State
   , Keys
   , Name
   , Tick(Tick)
+  , DrawMode
   ) where
 
 import Brick.Main qualified as Brick
@@ -31,38 +32,44 @@ type Name = ()
 data Tick = Tick
 
 data AppState where
-  AppState :: forall a. (IsMode a) => a -> AppState
+  AppState :: forall a. (IsMode a) => Proxy a -> ModeState a -> AppState
 
+-- TODO: use some kind of constraint on (ModeState a) to achieve behaviour of "data inheritance".
 class IsMode (a :: Type) where
-  defState         :: IO a
-  drawState        :: a -> [Widget n]
-  handleEventState :: a -> BrickEvent Name Tick -> EventM Name (Next AppState)
+  type ModeState a :: Type
 
-  keyMapL          :: Lens' a (KeyMap a)
-  prevKeysL        :: Lens' a Keys
+  defState         :: IO (ModeState a)
+  drawState        :: DrawMode a
+  handleEventState :: ModeState a -> BrickEvent Name Tick -> EventM Name (Next AppState)
+
+  -- TODO: Find a better way for something like "data inheritance".
+  keyMapL          :: Lens' (ModeState a) (KeyMap a)
+  prevKeysL        :: Lens' (ModeState a) Keys
+
+type DrawMode a = Reader (ModeState a) [Widget Name]
 
 type KeyMap a = Map Keys (Action a)
 type Keys     = [Char]
-type Action a = ReaderT a (EventM Name) (Next a)
+type Action a = ReaderT (ModeState a) (EventM Name) (Next (ModeState a))
 
 execAction :: forall a. IsMode a => Action a
 execAction = do
   mstate <- ask
 
-  case Map.lookup (mstate ^. prevKeysL) (mstate ^. keyMapL) of
-      Just action -> lift $ fmap (prevKeysL .~ []) <$> runReaderT action mstate
+  case Map.lookup (mstate ^. prevKeysL @a) (mstate ^. keyMapL @a) of
+      Just action -> lift $ fmap (prevKeysL @a .~ []) <$> runReaderT action mstate
       Nothing     -> lift $ Brick.continue mstate
 
 
-runAction :: forall a. IsMode a => Action a -> a -> EventM Name (Next AppState)
-runAction action = fmap (fmap AppState) . runReaderT action
+runAction :: forall a. IsMode a => Action a -> ModeState a -> EventM Name (Next AppState)
+runAction action = fmap (fmap (AppState @a Proxy)) . runReaderT action
 
-handleAnyStateEvent :: IsMode a => a -> BrickEvent Name Tick -> EventM Name (Next AppState)
+handleAnyStateEvent :: forall a. IsMode a => ModeState a -> BrickEvent Name Tick -> EventM Name (Next AppState)
 handleAnyStateEvent modestate (VtyEvent (Vty.EvKey key [])) =
   case key of
-    KEsc         -> runAction execAction (modestate & prevKeysL .~ [])
-    (KChar '\t') -> runAction execAction (modestate & prevKeysL <>~ "<tab>")
-    (KChar ' ')  -> runAction execAction (modestate & prevKeysL <>~ "<spc>")
-    (KChar c)    -> runAction execAction (modestate & prevKeysL <>~ [c])
-    _            -> Brick.continue $ AppState modestate
-handleAnyStateEvent modestate _               = Brick.continue $ AppState modestate
+    KEsc         -> runAction @a (execAction @a) (modestate & prevKeysL @a .~ [])
+    (KChar '\t') -> runAction @a (execAction @a) (modestate & prevKeysL @a <>~ "<tab>")
+    (KChar ' ')  -> runAction @a (execAction @a) (modestate & prevKeysL @a <>~ "<spc>")
+    (KChar c)    -> runAction @a (execAction @a) (modestate & prevKeysL @a <>~ [c])
+    _            -> Brick.continue $ AppState @a Proxy modestate
+handleAnyStateEvent modestate _               = Brick.continue $ AppState @a Proxy modestate
