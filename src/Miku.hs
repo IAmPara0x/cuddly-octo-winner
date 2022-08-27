@@ -4,13 +4,15 @@ import Brick.AttrMap (AttrMap, attrMap)
 import Brick.BChan qualified as BChan
 import Brick.Main    (App(..), neverShowCursor, customMain)
 import Brick.Util    (fg)
+import Data.Map qualified as Map
 
 import Control.Concurrent (threadDelay, forkIO)
 import Data.Default (def)
 import Graphics.Vty qualified as Vty
 
 import Miku.UI.State (AppState(AppState), defState, Name, Tick(Tick), GlobalState(..))
-import Miku.UI.Mode.CurrentLog (CurrentLog, currentLogStateActions)
+import Miku.UI.Mode.CurrentLog (CurrentLog)
+import Miku.UI.Mode.Welcome (toWelcomeMode)
 
 import Miku.UI (drawUI, handleEvent)
 
@@ -30,7 +32,7 @@ app = App { appDraw = drawUI
 
 run :: IO ()
 run = do
-  s' <- defState @CurrentLog
+  (s, k) <- defState @CurrentLog
 
   chan   <- BChan.newBChan 10
 
@@ -42,8 +44,8 @@ run = do
       initState = GlobalState { _gsConfigL = def
                               , _gsKeysTickCounterL = 0
                               , _gsTickCounterL = 0
-                              , _gsModeStateL = s'
-                              , _gsKeyMapL = currentLogStateActions
+                              , _gsModeStateL = s
+                              , _gsKeyMapL = Map.insert "<spc>wm" toWelcomeMode k
                               , _gsPrevKeysL = []
                               }
 

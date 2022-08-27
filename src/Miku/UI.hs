@@ -16,4 +16,4 @@ drawUI :: AppState -> [Widget Name]
 drawUI (AppState (_ :: IsMode a => Proxy a) s) = runReader (drawState @a) s
 
 handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleEvent (AppState (_ :: IsMode a => Proxy a) s) = handleEventState @a s
+handleEvent (AppState _ s) event = evalStateT (handleEventState event) s

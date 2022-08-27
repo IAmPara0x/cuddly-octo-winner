@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TupleSections #-}
 
 module Miku.UI.Mode.CurrentLog
   ( CurrentLog
@@ -7,7 +8,6 @@ module Miku.UI.Mode.CurrentLog
   )
   where
 
-import Brick.Main                  qualified as Brick
 import Brick.Widgets.Border        qualified as Border
 import Brick.Widgets.Border.Style  qualified as Border
 import Brick.Widgets.Center        qualified as Core
@@ -15,10 +15,7 @@ import Brick.Widgets.Core          qualified as Core
 
 import Brick.Types
   ( Widget
-  , BrickEvent
   , Padding(Pad)
-  , EventM
-  , Next
   )
 
 import Control.Lens (makeLenses, (^.), (.~), _1, _2)
@@ -44,16 +41,15 @@ import Miku.UI.Draw.Goals       (CompletedGoals(..), NotCompletedGoals(..))
 import Miku.UI.Draw.StatusLine  (drawStatusLine)
 import Miku.UI.State
   ( Action
-  , AppState(AppState)
   , handleAnyStateEvent
-  , GlobalState
+  , haltAction
+  , continueAction
   , gsModeStateL
   , gsPrevKeysL
   , IsMode(..)
   , KeyMap
   , Name
   , DrawMode
-  , Tick
   )
 
 import System.FilePath ((</>))
@@ -82,7 +78,6 @@ data CurrentLogState =
   CurrentLogState { _clsConfigL            :: CurrentLogConfig
                   , _clsCurrentWindowL     :: Window
                   , _clsLogL               :: Log
-                  , _clsKeysTickCounterL   :: Int
                   , _clsClockAnimStateL    :: Int
                   }
 
@@ -102,10 +97,9 @@ instance Default CurrentLogConfig where
 instance IsMode CurrentLog where
   type ModeState CurrentLog = CurrentLogState
 
-  defState         = defCurrentLogState
+  defState         = ( , currentLogStateActions) <$> defCurrentLogState
   drawState        = drawCurrentLogState
-  handleEventState = handleCurrentLogEvent
-
+  handleEventState = handleAnyStateEvent
 
 defCurrentLogState :: IO CurrentLogState
 defCurrentLogState =
@@ -119,12 +113,8 @@ defCurrentLogState =
                           { _clsConfigL            = def
                           , _clsLogL               = log
                           , _clsCurrentWindowL     = (TopWindow, LeftWindow)
-                          , _clsKeysTickCounterL   = 0
                           , _clsClockAnimStateL    = 0
                           }
-
-handleCurrentLogEvent :: GlobalState CurrentLog -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleCurrentLogEvent = handleAnyStateEvent
 
 currentLogStateActions :: KeyMap CurrentLog
 currentLogStateActions =
@@ -137,21 +127,13 @@ currentLogStateActions =
   where
 
     exitApp :: Action CurrentLog
-    exitApp  = ask >>= lift . Brick.halt . AppState Proxy
+    exitApp  = haltAction
 
     up, down, left, right :: Action CurrentLog
-    up     = ask >>= lift . Brick.continue
-                          . AppState Proxy
-                          . (gsModeStateL . clsCurrentWindowL . _1 .~ TopWindow)
-    down   = ask >>= lift . Brick.continue
-                          . AppState Proxy
-                          . (gsModeStateL . clsCurrentWindowL . _1 .~ BottomWindow)
-    left   = ask >>= lift . Brick.continue
-                          . AppState Proxy
-                          . (gsModeStateL . clsCurrentWindowL . _2 .~ LeftWindow)
-    right  = ask >>= lift . Brick.continue
-                          . AppState Proxy
-                          . (gsModeStateL . clsCurrentWindowL . _2 .~ RightWindow)
+    up     = modify (gsModeStateL . clsCurrentWindowL . _1 .~ TopWindow) >> continueAction
+    down   = modify (gsModeStateL . clsCurrentWindowL . _1 .~ BottomWindow) >> continueAction
+    left   = modify (gsModeStateL . clsCurrentWindowL . _2 .~ LeftWindow) >> continueAction
+    right  = modify (gsModeStateL . clsCurrentWindowL . _2 .~ RightWindow) >> continueAction
 
 
 -- changeClockState :: CurrentLogState -> CurrentLogState

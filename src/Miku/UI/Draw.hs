@@ -31,4 +31,3 @@ drawWidget isFocus rdraw = do
   if focus
     then return $ draw Rounded widget
     else return $ draw Hidden widget
-

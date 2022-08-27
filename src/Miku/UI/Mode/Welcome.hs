@@ -4,14 +4,15 @@
 
 module Miku.UI.Mode.Welcome
   ( WelcomeState(..)
+  , Welcome
   , wsMsgL
+  , toWelcomeMode
   )
   where
 
 import Brick.Main qualified as Brick
 import Brick.Widgets.Center qualified as Core
 import Brick.Widgets.Core   qualified as Core
-
 
 import Control.Lens (makeLenses, (^.), (.~))
 import Data.Map qualified as Map
@@ -22,9 +23,11 @@ import Miku.UI.Draw.StatusLine (drawStatusLine)
 import Miku.UI.State
   ( Action
   , AppState(AppState)
+  , continueAction
+  , haltAction
   , gsModeStateL
   , gsPrevKeysL
-  , gsKeyMapL
+  , gsChangeModeL
   , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
@@ -46,11 +49,9 @@ makeLenses ''WelcomeState
 instance IsMode Welcome where
   type ModeState Welcome = WelcomeState
 
-  defState = return $ WelcomeState
-                               { _wsMsgL = "Moshi Moshi!"
-                               }
+  defState         = return (WelcomeState { _wsMsgL = "Moshi Moshi!" }, welcomeStateActions)
   drawState        = drawWelcomeState
-  handleEventState = handleAnyStateEvent @Welcome . (gsKeyMapL .~ welcomeStateActions)
+  handleEventState = handleAnyStateEvent
 
 drawWelcomeState :: DrawMode Welcome
 drawWelcomeState  = do
@@ -73,20 +74,17 @@ welcomeStateActions =
   where
 
     changeMsg :: Action Welcome
-    changeMsg = ask >>= lift . Brick.continue
-                             . AppState Proxy
-                             . (gsModeStateL . wsMsgL .~ "welcome!") 
+    changeMsg = modify (gsModeStateL . wsMsgL .~ "welcome!") >> continueAction
 
     changeMsgAgain :: Action Welcome
-    changeMsgAgain = ask >>= lift . Brick.continue
-                                  . AppState Proxy
-                                  . (gsModeStateL . wsMsgL .~ "welcome again!")
+    changeMsgAgain = modify (gsModeStateL . wsMsgL .~ "welcome again!") >> continueAction
 
     exitApp :: Action Welcome
-    exitApp  = ask >>= lift . Brick.halt . AppState Proxy
+    exitApp  = haltAction
 
--- toWelcomeMode :: Action a
--- toWelcomeMode = do
---   gstate <- ask
---   lift $ Brick.continue
---        $ AppState Proxy
+toWelcomeMode :: forall a. IsMode a => Action a
+toWelcomeMode = do
+    gstate <- get
+    wstate <- liftIO $ defState @Welcome
+    lift $ Brick.continue (AppState Proxy $ gstate & gsChangeModeL .~ wstate)
+  
