@@ -3,24 +3,16 @@
 {-# LANGUAGE TypeFamilies    #-}
 
 module Miku.UI.Mode.Welcome
-  ( toWelcomeMode
-  , WelcomeConfig(..)
-  , wcConfigPathL
-  , WelcomeState(..)
-  , wsConfigL
+  ( WelcomeState(..)
+  , Welcome
   , wsMsgL
+  , toWelcomeMode
   )
   where
 
 import Brick.Main qualified as Brick
-
-import Brick.Types
-  ( Widget
-  )
-
 import Brick.Widgets.Center qualified as Core
 import Brick.Widgets.Core   qualified as Core
-
 
 import Control.Lens (makeLenses, (^.), (.~))
 import Data.Map qualified as Map
@@ -31,52 +23,49 @@ import Miku.UI.Draw.StatusLine (drawStatusLine)
 import Miku.UI.State
   ( Action
   , AppState(AppState)
+  , continueAction
+  , haltAction
+  , gsModeStateL
+  , gsPrevKeysL
+  , gsChangeModeL
   , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
-  , Keys
+  , DrawMode
   )
 
 import Relude
 
 
+data Welcome
+
 -- | Welcome State
 
-newtype WelcomeConfig =
-  WelcomeConfig { _wcConfigPathL :: FilePath
-                } deriving stock (Show)
-
-data WelcomeState =
-    WelcomeState { _wsConfigL    :: WelcomeConfig
-                 , _wsKeyMapL    :: KeyMap WelcomeState
-                 , _wsMsgL       :: Text
-                 , _wsPrevKeysL  :: Keys
+newtype WelcomeState =
+    WelcomeState { _wsMsgL       :: Text
                  }
-
-makeLenses ''WelcomeConfig
 makeLenses ''WelcomeState
 
-instance IsMode WelcomeState where
-  defState = return $ WelcomeState
-                               { _wsMsgL = "Moshi Moshi!"
-                               , _wsConfigL = WelcomeConfig "/home/iamparadox/.miku/"
-                               , _wsKeyMapL = welcomeStateActions
-                               , _wsPrevKeysL = []
-                               }
+instance IsMode Welcome where
+  type ModeState Welcome = WelcomeState
+
+  defState         = return (WelcomeState { _wsMsgL = "Moshi Moshi!" }, welcomeStateActions)
   drawState        = drawWelcomeState
   handleEventState = handleAnyStateEvent
-  keyMapL          = wsKeyMapL
-  prevKeysL        = wsPrevKeysL
 
-drawWelcomeState :: WelcomeState -> [Widget n]
-drawWelcomeState wstate =
-  [ Core.vBox
-     [ Core.vLimitPercent 94 $ Core.center $ Core.txt (wstate ^. wsMsgL)
-     , drawStatusLine (Text.pack $ wstate ^. prevKeysL) ""
-     ]
-  ]
+drawWelcomeState :: DrawMode Welcome
+drawWelcomeState  = do
+  gstate <- ask
 
-welcomeStateActions :: KeyMap WelcomeState
+  let wstate = gstate ^. gsModeStateL
+
+  return [ Core.vBox
+             [ Core.vLimitPercent 94 $ Core.center $ Core.txt (wstate ^. wsMsgL)
+             , drawStatusLine (Text.pack $ gstate ^. gsPrevKeysL @Welcome) ""
+             ]
+         ]
+
+welcomeStateActions :: KeyMap Welcome
 welcomeStateActions =
   Map.fromList [ ("c", changeMsg)
                , ("q", exitApp)
@@ -84,14 +73,17 @@ welcomeStateActions =
                ]
   where
 
-    changeMsg :: Action WelcomeState
-    changeMsg = Brick.continue . AppState . (wsMsgL .~ "welcome!")
+    changeMsg :: Action Welcome
+    changeMsg = modify (gsModeStateL . wsMsgL .~ "welcome!") >> continueAction
 
-    changeMsgAgain :: Action WelcomeState
-    changeMsgAgain = Brick.continue . AppState . (wsMsgL .~ "welcome again!")
+    changeMsgAgain :: Action Welcome
+    changeMsgAgain = modify (gsModeStateL . wsMsgL .~ "welcome again!") >> continueAction
 
-    exitApp :: Action WelcomeState
-    exitApp  = Brick.halt . AppState
+    exitApp :: Action Welcome
+    exitApp  = haltAction
 
-toWelcomeMode :: IsMode a => Action a
-toWelcomeMode _ = liftIO (defState @WelcomeState) >>= Brick.continue . AppState
+toWelcomeMode :: forall a. IsMode a => Action a
+toWelcomeMode = do
+    gstate <- get
+    wstate <- liftIO $ defState @Welcome
+    lift $ Brick.continue (AppState Proxy $ gstate & gsChangeModeL .~ wstate)

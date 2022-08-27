@@ -42,6 +42,7 @@ library
   hs-source-dirs:
       src
   default-extensions:
+      AllowAmbiguousTypes
       DataKinds
       DerivingStrategies
       OverloadedStrings
@@ -59,6 +60,7 @@ library
       base >=4.7 && <5
     , brick >=0.69
     , containers
+    , data-default
     , directory
     , filepath
     , lens
@@ -78,6 +80,7 @@ executable miku
   hs-source-dirs:
       app
   default-extensions:
+      AllowAmbiguousTypes
       DataKinds
       DerivingStrategies
       OverloadedStrings
@@ -105,6 +108,7 @@ test-suite timeTracker-test
   hs-source-dirs:
       test
   default-extensions:
+      AllowAmbiguousTypes
       DataKinds
       DerivingStrategies
       OverloadedStrings

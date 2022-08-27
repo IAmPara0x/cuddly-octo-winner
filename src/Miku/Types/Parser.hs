@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans       #-}
 
-{-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}

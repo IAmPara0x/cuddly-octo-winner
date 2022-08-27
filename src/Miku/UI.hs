@@ -1,5 +1,4 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Miku.UI (drawUI, handleEvent) where
 
@@ -9,10 +8,12 @@ import Brick.Types
   , Next
   , Widget
   )
-import Miku.UI.State (AppState(AppState), Name, Tick, drawState, handleEventState)
+import Miku.UI.State (AppState(AppState), Name, Tick, drawState, handleEventState, IsMode)
 
-drawUI :: AppState -> [Widget n]
-drawUI (AppState s) = drawState s
+import Relude
+
+drawUI :: AppState -> [Widget Name]
+drawUI (AppState (_ :: IsMode a => Proxy a) s) = runReader (drawState @a) s
 
 handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleEvent (AppState s) = handleEventState s
+handleEvent (AppState _ s) event = evalStateT (handleEventState event) s

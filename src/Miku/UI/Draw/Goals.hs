@@ -6,7 +6,6 @@ module Miku.UI.Draw.Goals
 import Brick.Types (Padding (Pad), Widget)
 
 import Brick.Widgets.Border        qualified as Border
-import Brick.Widgets.Border.Style  qualified as Border
 import Brick.Widgets.Center        qualified as Core
 import Brick.Widgets.Core          qualified as Core
 
@@ -25,25 +24,23 @@ import Miku.Templates.Log
   , goalDescL
   )
 
-import Miku.UI.Draw (Drawable(..), Border(Rounded))
+import Miku.UI.Draw (Drawable(..))
 import Relude
 
 
 newtype CompletedGoals    = CompletedGoals [Goal]
 
 instance Drawable CompletedGoals where
-  draw border = drawGoals border "[✓] Completed" . coerce
+  draw = drawGoals "[✓] Completed" . coerce
 
 
 newtype NotCompletedGoals = NotCompletedGoals [Goal]
 
 instance Drawable NotCompletedGoals where
-  draw border = drawGoals border "[✕] Not Completed" . coerce
+  draw = drawGoals "[✕] Not Completed" . coerce
 
-drawGoals :: Border -> Text -> [Goal] -> Widget n
-drawGoals border heading goals
-  | border == Rounded = Core.withBorderStyle Border.unicodeRounded (Border.border goalsWidget)
-  | otherwise         = Core.withBorderStyle (Border.borderStyleFromChar ' ') (Border.border goalsWidget)
+drawGoals :: Text -> [Goal] -> Widget n
+drawGoals heading goals = Border.border goalsWidget
 
   where
 
@@ -58,8 +55,8 @@ drawGoals border heading goals
            ]
 
 drawGoal :: Int -> Goal -> Widget n
-drawGoal n goal = Core.padTopBottom 1 $
+drawGoal n goal = Core.padBottom (Pad 1) $
   Core.hBox [ Core.padLeftRight 1 $ Core.txt (show n <> ")")
             , Core.padLeft (Pad 1)
-            $ Core.txtWrap $ goal ^. goalDescL
+            $ Core.txt $ goal ^. goalDescL
             ]

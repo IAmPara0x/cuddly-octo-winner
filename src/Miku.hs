@@ -1,25 +1,25 @@
 module Miku (run) where
 
 import Brick.AttrMap (AttrMap, attrMap)
-import Brick.Main    (App(..), neverShowCursor, defaultMain)
+import Brick.BChan qualified as BChan
+import Brick.Main    (App(..), neverShowCursor, customMain)
 import Brick.Util    (fg)
-
-import Control.Lens ((%~))
-
 import Data.Map qualified as Map
 
-import Graphics.Vty qualified as V
+import Control.Concurrent (threadDelay, forkIO)
+import Data.Default (def)
+import Graphics.Vty qualified as Vty
 
-import Miku.UI.State (AppState(AppState), defState, keyMapL, Name, Tick)
+import Miku.UI.State (AppState(AppState), defState, Name, Tick(Tick), GlobalState(..))
+import Miku.UI.Mode.CurrentLog (CurrentLog)
 import Miku.UI.Mode.Welcome (toWelcomeMode)
-import Miku.UI.Mode.CurrentLog (CurrentLogState)
 
 import Miku.UI (drawUI, handleEvent)
 
 import Relude
 
 uiAttrMap :: AttrMap
-uiAttrMap = attrMap (fg V.red) []
+uiAttrMap = attrMap (fg Vty.red) []
 
 app :: App AppState Tick Name
 app = App { appDraw = drawUI
@@ -32,6 +32,23 @@ app = App { appDraw = drawUI
 
 run :: IO ()
 run = do
-  s' <- defState @CurrentLogState
-  let s = s' & keyMapL %~ Map.insert "<spc>wm" toWelcomeMode
-  void $ defaultMain app $ AppState s
+  (s, k) <- defState @CurrentLog
+
+  chan   <- BChan.newBChan 10
+
+  void $ forkIO $ forever $ do
+    BChan.writeBChan chan Tick
+    threadDelay 100000
+
+  let buildVty = Vty.mkVty Vty.defaultConfig
+      initState = GlobalState { _gsConfigL = def
+                              , _gsKeysTickCounterL = 0
+                              , _gsTickCounterL = 0
+                              , _gsModeStateL = s
+                              , _gsKeyMapL = Map.insert "<spc>wm" toWelcomeMode k
+                              , _gsPrevKeysL = []
+                              }
+
+  initialVty <- buildVty
+
+  void $ customMain initialVty buildVty (Just chan) app $ AppState Proxy initState
