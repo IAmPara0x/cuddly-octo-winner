@@ -1,33 +1,48 @@
+{-# LANGUAGE TemplateHaskell           #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Miku.UI.Draw
   ( Border(..)
-  , Draw
+  , Draw(..)
   , Drawable(..)
-  , drawWidget
+  , focusedL
+  , drawableL
+  , W
   ) where
 
+import Brick.Widgets.Border.Style  qualified as Border
+import Brick.Widgets.Core          qualified as Core
+
 import Brick.Types (Widget)
+import Control.Lens (makeLenses)
 import Relude
 
-import Miku.UI.State (IsMode, ModeState, Name)
+import Miku.UI.State (ModeState, Name)
 
 data Border = Hidden
             | Rounded
             deriving stock (Eq)
 
 class Drawable a where
-  draw :: Border -> a -> Widget n
+  draw :: a -> Widget Name
 
+data Draw a = Draw { _focusedL  :: Bool
+                   , _drawableL :: a
+                   }
 
--- TODO: Switch to (GlobalState a)
-type Draw a = Reader (ModeState a) (Widget Name)
+instance Drawable (Widget Name) where
+  draw = id
 
-drawWidget :: (IsMode mode, Drawable a)
-           => Reader (ModeState mode) Bool
-           -> Reader (ModeState mode) a
-           -> Draw mode
-drawWidget isFocus rdraw = do
-  focus <- isFocus
-  widget <- rdraw
-  if focus
-    then return $ draw Rounded widget
-    else return $ draw Hidden widget
+instance Drawable a => Drawable (Draw a) where
+  draw d
+    | _focusedL d = Core.withBorderStyle Border.unicodeRounded
+                  $ draw $ _drawableL d
+    | otherwise   = Core.withBorderStyle (Border.borderStyleFromChar ' ')
+                  $ draw $ _drawableL d
+                  
+
+  
+makeLenses ''Draw
+
+-- TODO: rename this.
+type W m a = Reader (ModeState m) (Draw a)

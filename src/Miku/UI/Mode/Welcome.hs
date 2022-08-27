@@ -87,4 +87,3 @@ toWelcomeMode = do
     gstate <- get
     wstate <- liftIO $ defState @Welcome
     lift $ Brick.continue (AppState Proxy $ gstate & gsChangeModeL .~ wstate)
-  
