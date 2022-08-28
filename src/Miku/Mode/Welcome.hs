@@ -11,23 +11,23 @@ module Miku.Mode.Welcome
   where
 
 import Brick.Main qualified as Brick
+import Brick.Widgets.Border.Style  qualified as Border
 import Brick.Widgets.Center qualified as Core
 import Brick.Widgets.Core   qualified as Core
 
 import Control.Lens (makeLenses, (^.), (.~))
 import Data.Map qualified as Map
-import Data.Text qualified as Text
 
-
-import Miku.Draw.StatusLine (drawStatusLine)
+import Miku.Draw.StatusLine (StatusLine(..))
+import Miku.Draw(draw, W, Draw(..))
 import Miku.Mode
   ( Action
   , AppState(AppState)
   , continueAction
   , haltAction
   , gsModeStateL
-  , gsPrevKeysL
   , gsChangeModeL
+  , gsEditingModeL
   , handleAnyStateEvent
   , IsMode(..)
   , KeyMap
@@ -60,10 +60,21 @@ drawWelcomeState  = do
   let wstate = gstate ^. gsModeStateL
 
   return [ Core.vBox
-             [ Core.vLimitPercent 94 $ Core.center $ Core.txt (wstate ^. wsMsgL)
-             , drawStatusLine (Text.pack $ gstate ^. gsPrevKeysL @Welcome) ""
+             [ Core.center $ Core.txt (wstate ^. wsMsgL)
+             , draw $ runReader statusLine gstate
              ]
          ]
+
+statusLine :: W Welcome StatusLine
+statusLine = do
+  gstate <- ask
+
+  let widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
+                          , _slModeNameL = "Welcome"
+                          , _slOtherInfoL = []
+                          }
+
+  return Draw { _focusedL = False , _drawableL = widget, _borderTypeL = Border.unicode }
 
 welcomeStateActions :: KeyMap Welcome
 welcomeStateActions =

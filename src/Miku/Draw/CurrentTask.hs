@@ -47,7 +47,7 @@ instance Drawable CurrentTask where
 newtype CurrentTaskName = CurrentTaskName TaskName
 
 instance Drawable CurrentTaskName where
-  draw (CurrentTaskName taskName) =drawTaskName <=> Border.hBorder 
+  draw (CurrentTaskName taskName) =drawTaskName <=> Border.hBorder
     where
       drawTaskName :: Widget n
       drawTaskName =

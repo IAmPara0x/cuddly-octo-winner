@@ -9,6 +9,7 @@ module Miku.Mode.CurrentLog
   where
 
 import Brick.Widgets.Border        qualified as Border
+import Brick.Widgets.Border.Style  qualified as Border
 import Brick.Widgets.Center        qualified as Core
 import Brick.Widgets.Core          qualified as Core
 
@@ -21,8 +22,6 @@ import Control.Lens (makeLenses, (^.), (.~), _1, _2)
 import Control.Monad.Trans.Reader (mapReader)
 import Data.Default (Default(def))
 import Data.Map             qualified as Map
-import Data.Text            qualified as Text
-
 
 import Miku.Templates.Log
   ( logHeadingL
@@ -37,14 +36,15 @@ import Miku.Templates.Log
 import Miku.Draw             (W, Draw(..), draw)
 import Miku.Draw.CurrentTask (CurrentTask(NoCurrentTask, CurrentTask))
 import Miku.Draw.Goals       (CompletedGoals(..), NotCompletedGoals(..))
-import Miku.Draw.StatusLine  (drawStatusLine)
+import Miku.Draw.StatusLine  (StatusLine(..))
 import Miku.Mode
   ( Action
   , handleAnyStateEvent
   , haltAction
   , continueAction
+  , GlobalState
   , gsModeStateL
-  , gsPrevKeysL
+  , gsEditingModeL
   , IsMode(..)
   , KeyMap
   , Name
@@ -146,19 +146,17 @@ drawCurrentLogState = do
 
   gstate <- ask
 
-  let clState = gstate ^. gsModeStateL
-
-      allWindows :: [Reader CurrentLogState (Widget Name)]
-      allWindows = [ mapReader draw drawHeading
-                   , mapReader draw drawCurrentTaskWindow
-                   , mapReader draw drawStatsWindow
-                   , mapReader draw drawNotCompletedGoalsWindow
-                   , mapReader draw drawCompletedGoalsWindow
+  let allWindows :: [Reader (GlobalState CurrentLog) (Widget Name)]
+      allWindows = [ mapReader draw heading
+                   , mapReader draw currentTaskWindow
+                   , mapReader draw statsWindow
+                   , mapReader draw notCompletedGoalsWindow
+                   , mapReader draw completedGoalsWindow
                    ]
 
       drawAllWindows :: [Widget Name] -> Widget Name
-      drawAllWindows [heading, topLeftWindow, topRightWindow, botRightWindow, botLeftWindow] =
-                Core.vBox [ heading
+      drawAllWindows [headingWindow, topLeftWindow, topRightWindow, botRightWindow, botLeftWindow] =
+                Core.vBox [ headingWindow
                           , Core.hBox [topLeftWindow, topRightWindow]
                           , Core.padTop (Pad 1) $ Core.hBox
                               [ botLeftWindow
@@ -167,61 +165,92 @@ drawCurrentLogState = do
                           ]
       drawAllWindows _ = error "x_x"
 
-      windows = runReader (sequence allWindows) clState
+  windows <- sequence allWindows
 
   return [ Core.vBox
-            [ Core.vLimitPercent 94 $ drawAllWindows windows
-            , drawStatusLine (Text.pack $ gstate ^. gsPrevKeysL @CurrentLog) ""
+            [ drawAllWindows windows
+            , draw $ runReader statusLine gstate
             ]
          ]
 
-drawHeading :: W CurrentLog (Widget Name)
-drawHeading = do
-  s <- ask
+heading :: W CurrentLog (Widget Name)
+heading = do
+  mstate <-  (^. gsModeStateL) <$> ask
 
-  let heading = s ^. clsLogL . logHeadingL
+  let logHeading = mstate ^. clsLogL . logHeadingL
+      widget  = Core.padAll 1 $ Core.hCenter $ Core.txt $ showHeading logHeading
 
-  return $ Draw { _focusedL  = False
-                , _drawableL = Core.padAll 1
-                             $ Core.hCenter
-                             $ Core.txt
-                             $ showHeading heading
+  return $ Draw { _focusedL    = False
+                , _drawableL   = widget
+                , _borderTypeL = bordertype False
                 }
 
-drawCurrentTaskWindow :: W CurrentLog CurrentTask
-drawCurrentTaskWindow = do
+currentTaskWindow :: W CurrentLog CurrentTask
+currentTaskWindow = do
 
-  mstate <- ask
-  isFocus <- reader $ checkWindowPos (TopWindow, LeftWindow)
+  mstate <- (^. gsModeStateL ) <$> ask
 
-  let widget = case ongoingTask (mstate ^. clsLogL) of
+  let isFocus = checkWindowPos (TopWindow, LeftWindow) mstate
+      widget = case ongoingTask (mstate ^. clsLogL) of
                   Nothing     -> NoCurrentTask "There's currently no ongoing task."
                   (Just task) -> CurrentTask (mstate ^. clsClockAnimStateL) task
 
-  return $ Draw { _focusedL = isFocus, _drawableL = widget}
-
-  
-drawStatsWindow :: W CurrentLog (Widget Name)
-drawStatsWindow = do
-  isFocus <- reader $ checkWindowPos (TopWindow, RightWindow)
-  return $ Draw { _focusedL = isFocus, _drawableL = Border.border $ Core.center $ Core.txt "No Stats!"}
+  return $ Draw { _focusedL = isFocus, _drawableL = widget, _borderTypeL = bordertype isFocus }
 
 
-drawNotCompletedGoalsWindow :: W CurrentLog NotCompletedGoals
-drawNotCompletedGoalsWindow = do
+statsWindow :: W CurrentLog (Widget Name)
+statsWindow = do
+  mstate <- (^. gsModeStateL) <$> ask
 
-    isFocus <- reader $ checkWindowPos (BottomWindow, RightWindow)
-    widget <- reader $ NotCompletedGoals . goalsNotDone . (^. clsLogL . logGoalsL)
+  let isFocus = checkWindowPos (TopWindow, RightWindow) mstate
+      widget = Border.border $ Core.center $ Core.txt "No Stats!"
 
-    return $ Draw { _focusedL = isFocus, _drawableL = widget}
+  return $ Draw { _focusedL = isFocus, _drawableL = widget, _borderTypeL = bordertype isFocus }
 
-drawCompletedGoalsWindow :: W CurrentLog CompletedGoals
-drawCompletedGoalsWindow = do
 
-  isFocus <- reader $ checkWindowPos (BottomWindow, LeftWindow)
-  widget <- reader $ CompletedGoals . goalsNotDone . (^. clsLogL . logGoalsL)
+notCompletedGoalsWindow :: W CurrentLog NotCompletedGoals
+notCompletedGoalsWindow = do
 
-  return $ Draw { _focusedL = isFocus, _drawableL = widget}
+  mstate <- (^. gsModeStateL) <$> ask
 
+  let isFocus = checkWindowPos (BottomWindow, RightWindow) mstate
+      widget  = NotCompletedGoals $ goalsNotDone (mstate ^. clsLogL . logGoalsL)
+
+  return $ Draw { _focusedL = isFocus, _drawableL = widget, _borderTypeL = bordertype isFocus }
+
+completedGoalsWindow :: W CurrentLog CompletedGoals
+completedGoalsWindow = do
+
+  mstate <- (^. gsModeStateL) <$> ask
+
+  let isFocus = checkWindowPos (BottomWindow, LeftWindow) mstate
+      widget  = CompletedGoals $ goalsNotDone $ mstate ^. clsLogL . logGoalsL
+
+  return $ Draw { _focusedL = isFocus, _drawableL = widget, _borderTypeL = bordertype isFocus }
+
+statusLine :: W CurrentLog StatusLine
+statusLine = do
+
+  gstate <- ask
+
+  let mstate = gstate ^. gsModeStateL
+      currWindow = case mstate ^. clsCurrentWindowL of
+                     (TopWindow, LeftWindow)     -> "OngoingTask"
+                     (TopWindow, RightWindow)    -> "Stats"
+                     (BottomWindow, LeftWindow)  -> "Completed"
+                     (BottomWindow, RightWindow) -> "NotCompleted"
+
+      widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
+                          , _slModeNameL = "CurrentLog"
+                          , _slOtherInfoL = [currWindow]
+                          }
+  return $ Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
+
+
+-- Helpers
 checkWindowPos :: Window -> CurrentLogState -> Bool
 checkWindowPos window clState = window == clState ^. clsCurrentWindowL
+
+bordertype :: Bool -> Border.BorderStyle
+bordertype True  = Border.unicodeRounded
+bordertype False = Border.borderStyleFromChar ' '

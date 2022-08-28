@@ -100,7 +100,7 @@ gsChangeModeL = lens getter setter
                                                   , _gsPrevKeysL        = []
                                                   , _gsEditingModeL     = Normal
                                                   }
-                                             
+
 
 gsTickL :: Lens' (GlobalState a) (Int, Int)
 gsTickL  = lens getter setter
@@ -139,7 +139,7 @@ handleAnyStateEvent (VtyEvent (Vty.EvKey key [])) =
 handleAnyStateEvent _               = continueAction
 
 
-actionWithKeys :: IsMode a => Keys -> Action a 
+actionWithKeys :: IsMode a => Keys -> Action a
 actionWithKeys keys = do
   modify ((gsPrevKeysL <>~ keys) . (gsKeysTickCounterL .~ 0))
   gstate <- get

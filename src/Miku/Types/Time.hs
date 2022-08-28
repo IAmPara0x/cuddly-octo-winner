@@ -47,8 +47,8 @@ instance MkBluePrint Time where
   parseBP = mkTime
   showBP (Time hrs mins)  = composeS @TimeFormat @TimeF "" hrs mins
 
--- parseTime :: Parser 
--- parseTime 
+-- parseTime :: Parser
+-- parseTime
 
 showTime :: Time -> Text
 showTime = showAtom @(BluePrint Time)

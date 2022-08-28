@@ -7,6 +7,7 @@ module Miku.Draw
   , Drawable(..)
   , focusedL
   , drawableL
+  , borderTypeL
   , W
   ) where
 
@@ -16,7 +17,7 @@ import Brick.Widgets.Core          qualified as Core
 import Brick.Types (Widget)
 import Control.Lens (makeLenses)
 
-import Miku.Mode (ModeState, Name)
+import Miku.Mode (GlobalState, Name)
 
 import Relude
 
@@ -27,22 +28,20 @@ data Border = Hidden
 class Drawable a where
   draw :: a -> Widget Name
 
-data Draw a = Draw { _focusedL  :: Bool
-                   , _drawableL :: a
+data Draw a = Draw { _focusedL    :: Bool
+                   , _borderTypeL :: Border.BorderStyle
+                   , _drawableL   :: a
                    }
 
 instance Drawable (Widget Name) where
   draw = id
 
 instance Drawable a => Drawable (Draw a) where
-  draw d
-    | _focusedL d = Core.withBorderStyle Border.unicodeRounded
-                  $ draw $ _drawableL d
-    | otherwise   = Core.withBorderStyle (Border.borderStyleFromChar ' ')
-                  $ draw $ _drawableL d
-                  
-  
+  draw d = Core.withBorderStyle (_borderTypeL d)
+         $ draw $ _drawableL d
+
+
 makeLenses ''Draw
 
 -- TODO: rename this.
-type W m a = Reader (ModeState m) (Draw a)
+type W m a = Reader (GlobalState m) (Draw a)

@@ -11,22 +11,39 @@ module Miku.Draw.StatusLine
 
 import Brick.Types (Padding (Pad), Widget)
 import Brick.Widgets.Border        qualified as Border
-import Brick.Widgets.Border.Style  qualified as Border
 import Brick.Widgets.Center        qualified as Core
 import Brick.Widgets.Core          qualified as Core
 
 import Control.Lens (makeLenses)
 
 import Miku.Editing (EMode(..))
+import Miku.Draw    (Drawable(..))
+import Miku.Mode    (Name)
 
 import Relude
 
 data StatusLine = StatusLine { _slEditingModeL :: EMode
                              , _slModeNameL    :: Text
-                             , _slOtherInfoL   :: Text
+                             , _slOtherInfoL   :: [Text]
                              }
 
 makeLenses ''StatusLine
+
+instance Drawable StatusLine where
+  draw StatusLine{..} = Core.vLimit 2
+                      $ Core.vBox [ Core.vLimit 1
+                                  $ Core.hBox [ drawMode _slEditingModeL
+                                              , drawInfo $ _slModeNameL : _slOtherInfoL
+                                              ]
+                                  -- , Core.padLeft (Pad 1) $ Core.hBox [Core.txt "msg", Core.fill ' ']
+                                  , Core.fill ' '
+                                  ]
+
+drawMode :: EMode -> Widget Name
+drawMode = Core.padLeft (Pad 1) . Core.txt . show
+
+drawInfo :: [Text] -> Widget Name
+drawInfo = Core.center . Core.hBox . (:[]) . Core.txt . fold . intersperse ":"
 
 drawStatusLine :: Text -> Text -> Widget n
 drawStatusLine keys msgLog =
@@ -37,7 +54,6 @@ drawStatusLine keys msgLog =
 drawTaskBar :: Text -> Widget n
 drawTaskBar keys =
       Core.hCenter
-    $ Core.withBorderStyle Border.unicodeRounded
     $ Border.border
     $ Core.vLimit 1
     $ Core.hBox [ cmdInfo keys

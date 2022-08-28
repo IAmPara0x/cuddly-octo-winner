@@ -334,7 +334,7 @@ readLog logsDir day =
 
     let logPath :: FilePath
         logPath = getLogPath logsDir day
-        
+
         logName :: String
         logName = getLogName day
 
