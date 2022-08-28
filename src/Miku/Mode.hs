@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Miku.UI.State
+module Miku.Mode
   ( Action
   , AppState(AppState)
   , continueAction
@@ -15,6 +15,7 @@ module Miku.UI.State
   , gsModeStateL
   , gsKeyMapL
   , gsPrevKeysL
+  , gsEditingModeL
   , gsChangeModeL
   , haltAction
   , handleAnyStateEvent
@@ -34,6 +35,8 @@ import Data.Map qualified as Map
 
 import Graphics.Vty (Key(KChar, KEsc))
 import Graphics.Vty qualified as Vty
+
+import Miku.Editing (EMode(..))
 
 
 import Relude
@@ -60,6 +63,7 @@ data GlobalState a = IsMode a =>
               , _gsModeStateL       :: ModeState a
               , _gsKeyMapL          :: KeyMap a
               , _gsPrevKeysL        :: Keys
+              , _gsEditingModeL     :: EMode
               }
 
 type KeyMap a   = Map Keys (Action a)
@@ -94,6 +98,7 @@ gsChangeModeL = lens getter setter
                                                   , _gsTickCounterL     = _gsTickCounterL gstate
                                                   , _gsKeysTickCounterL = _gsKeysTickCounterL gstate
                                                   , _gsPrevKeysL        = []
+                                                  , _gsEditingModeL     = Normal
                                                   }
                                              
 

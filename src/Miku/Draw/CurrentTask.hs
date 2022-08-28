@@ -1,4 +1,4 @@
-module Miku.UI.Draw.CurrentTask
+module Miku.Draw.CurrentTask
   ( CurrentTask(..)
   , CurrentTaskName(..)
   , CurrentTaskTags(..)
@@ -29,8 +29,8 @@ import Miku.Templates.Log
   , nameL
   )
 import Miku.Types.Time (Time, showTime)
-import Miku.UI.Draw (Drawable(..))
-import Miku.UI.State (Name)
+import Miku.Draw (Drawable(..))
+import Miku.Mode (Name)
 
 import Prelude ((!!))
 
@@ -85,13 +85,12 @@ instance Drawable CurrentTaskDesc where
   draw (CurrentTaskDesc (Just desc)) = Core.vCenter $ Core.txt (desc ^. descL)
   draw (CurrentTaskDesc Nothing)     = Core.vCenter $ Core.txt ""
 
-
 newtype StartTime = StartTime Time
 
 instance Drawable StartTime where
   draw = Core.padLeft (Pad 1)
        . Core.txt
-       . ("started on: " <>)
+       . ("From: " <>)
        . showTime
        . coerce
 
@@ -99,7 +98,7 @@ data EndTime = EndTime Int (Maybe Time)
 
 instance Drawable EndTime where
   draw (EndTime idx _) = Core.padRight (Pad 1)
-                       $ Core.txt (Text.snoc "ongoing: " $ clockAnimationStates !! idx) -- TODO: remove (!!).
+                       $ Core.txt (Text.snoc "Ongoing: " $ clockAnimationStates !! idx) -- TODO: remove (!!).
 
 newtype CurrentTaskTags = CurrentTaskTags [TaskTag]
 

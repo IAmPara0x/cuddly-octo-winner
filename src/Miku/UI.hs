@@ -8,7 +8,7 @@ import Brick.Types
   , Next
   , Widget
   )
-import Miku.UI.State (AppState(AppState), Name, Tick, drawState, handleEventState, IsMode)
+import Miku.Mode (AppState(AppState), Name, Tick, drawState, handleEventState, IsMode)
 
 import Relude
 

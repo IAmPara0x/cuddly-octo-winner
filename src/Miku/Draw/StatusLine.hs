@@ -1,4 +1,13 @@
-module Miku.UI.Draw.StatusLine (drawStatusLine) where
+{-# LANGUAGE TemplateHaskell #-}
+
+module Miku.Draw.StatusLine
+  ( drawStatusLine
+  , StatusLine(..)
+  , slEditingModeL
+  , slModeNameL
+  , slOtherInfoL
+  )
+  where
 
 import Brick.Types (Padding (Pad), Widget)
 import Brick.Widgets.Border        qualified as Border
@@ -6,8 +15,18 @@ import Brick.Widgets.Border.Style  qualified as Border
 import Brick.Widgets.Center        qualified as Core
 import Brick.Widgets.Core          qualified as Core
 
+import Control.Lens (makeLenses)
+
+import Miku.Editing (EMode(..))
+
 import Relude
 
+data StatusLine = StatusLine { _slEditingModeL :: EMode
+                             , _slModeNameL    :: Text
+                             , _slOtherInfoL   :: Text
+                             }
+
+makeLenses ''StatusLine
 
 drawStatusLine :: Text -> Text -> Widget n
 drawStatusLine keys msgLog =

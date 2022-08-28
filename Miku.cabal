@@ -27,17 +27,18 @@ library
   exposed-modules:
       Miku
   other-modules:
+      Miku.Draw
+      Miku.Draw.CurrentTask
+      Miku.Draw.Goals
+      Miku.Draw.StatusLine
+      Miku.Editing
+      Miku.Mode
+      Miku.Mode.CurrentLog
+      Miku.Mode.Welcome
       Miku.Templates.Log
       Miku.Types.Parser
       Miku.Types.Time
       Miku.UI
-      Miku.UI.Draw
-      Miku.UI.Draw.CurrentTask
-      Miku.UI.Draw.Goals
-      Miku.UI.Draw.StatusLine
-      Miku.UI.Mode.CurrentLog
-      Miku.UI.Mode.Welcome
-      Miku.UI.State
       Paths_Miku
   hs-source-dirs:
       src

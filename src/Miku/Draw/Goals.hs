@@ -1,4 +1,4 @@
-module Miku.UI.Draw.Goals
+module Miku.Draw.Goals
   ( CompletedGoals(..)
   , NotCompletedGoals(..)
   ) where
@@ -10,13 +10,10 @@ import Brick.Widgets.Center        qualified as Core
 import Brick.Widgets.Core          qualified as Core
 
 import Control.Lens
-  ( ifolded
+  ( folded
   , to
-  , withIndex
-  , _1
   , (^.)
   , (^..)
-  , (+~)
   )
 
 import Miku.Templates.Log
@@ -24,7 +21,7 @@ import Miku.Templates.Log
   , goalDescL
   )
 
-import Miku.UI.Draw (Drawable(..))
+import Miku.Draw (Drawable(..))
 import Relude
 
 
@@ -50,13 +47,12 @@ drawGoals heading goals = Border.border goalsWidget
         $ Core.vBox
            [ Core.padTopBottom 1 $ Core.hCenter $ Core.txt heading
            , Core.vBox
-                  (goals ^.. ifolded . withIndex . to (uncurry drawGoal . (_1 +~ 1)))
+                  (goals ^.. folded . to drawGoal)
            , Core.fill ' '
            ]
 
-drawGoal :: Int -> Goal -> Widget n
-drawGoal n goal = Core.padBottom (Pad 1) $
-  Core.hBox [ Core.padLeftRight 1 $ Core.txt (show n <> ")")
-            , Core.padLeft (Pad 1)
+drawGoal :: Goal -> Widget n
+drawGoal goal = Core.padBottom (Pad 1) $
+  Core.hBox [ Core.padLeft (Pad 1)
             $ Core.txt $ goal ^. goalDescL
             ]

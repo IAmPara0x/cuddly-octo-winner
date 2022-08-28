@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
-module Miku.UI.Draw
+module Miku.Draw
   ( Border(..)
   , Draw(..)
   , Drawable(..)
@@ -15,9 +15,10 @@ import Brick.Widgets.Core          qualified as Core
 
 import Brick.Types (Widget)
 import Control.Lens (makeLenses)
-import Relude
 
-import Miku.UI.State (ModeState, Name)
+import Miku.Mode (ModeState, Name)
+
+import Relude
 
 data Border = Hidden
             | Rounded
@@ -40,7 +41,6 @@ instance Drawable a => Drawable (Draw a) where
     | otherwise   = Core.withBorderStyle (Border.borderStyleFromChar ' ')
                   $ draw $ _drawableL d
                   
-
   
 makeLenses ''Draw
 

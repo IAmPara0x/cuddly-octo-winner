@@ -2,7 +2,7 @@
 {-# LANGUAGE ViewPatterns    #-}
 {-# LANGUAGE TypeFamilies    #-}
 
-module Miku.UI.Mode.Welcome
+module Miku.Mode.Welcome
   ( WelcomeState(..)
   , Welcome
   , wsMsgL
@@ -19,8 +19,8 @@ import Data.Map qualified as Map
 import Data.Text qualified as Text
 
 
-import Miku.UI.Draw.StatusLine (drawStatusLine)
-import Miku.UI.State
+import Miku.Draw.StatusLine (drawStatusLine)
+import Miku.Mode
   ( Action
   , AppState(AppState)
   , continueAction

@@ -10,9 +10,10 @@ import Control.Concurrent (threadDelay, forkIO)
 import Data.Default (def)
 import Graphics.Vty qualified as Vty
 
-import Miku.UI.State (AppState(AppState), defState, Name, Tick(Tick), GlobalState(..))
-import Miku.UI.Mode.CurrentLog (CurrentLog)
-import Miku.UI.Mode.Welcome (toWelcomeMode)
+import Miku.Editing (EMode(Normal))
+import Miku.Mode (AppState(AppState), defState, Name, Tick(Tick), GlobalState(..))
+import Miku.Mode.CurrentLog (CurrentLog)
+import Miku.Mode.Welcome (toWelcomeMode)
 
 import Miku.UI (drawUI, handleEvent)
 
@@ -47,6 +48,7 @@ run = do
                               , _gsModeStateL = s
                               , _gsKeyMapL = Map.insert "<spc>wm" toWelcomeMode k
                               , _gsPrevKeysL = []
+                              , _gsEditingModeL = Normal
                               }
 
   initialVty <- buildVty

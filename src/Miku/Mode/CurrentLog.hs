@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TupleSections #-}
 
-module Miku.UI.Mode.CurrentLog
+module Miku.Mode.CurrentLog
   ( CurrentLog
   , currentLogStateActions
   )
@@ -34,11 +34,11 @@ import Miku.Templates.Log
   , goalsNotDone
   )
 
-import Miku.UI.Draw             (W, Draw(..), draw)
-import Miku.UI.Draw.CurrentTask (CurrentTask(NoCurrentTask, CurrentTask))
-import Miku.UI.Draw.Goals       (CompletedGoals(..), NotCompletedGoals(..))
-import Miku.UI.Draw.StatusLine  (drawStatusLine)
-import Miku.UI.State
+import Miku.Draw             (W, Draw(..), draw)
+import Miku.Draw.CurrentTask (CurrentTask(NoCurrentTask, CurrentTask))
+import Miku.Draw.Goals       (CompletedGoals(..), NotCompletedGoals(..))
+import Miku.Draw.StatusLine  (drawStatusLine)
+import Miku.Mode
   ( Action
   , handleAnyStateEvent
   , haltAction
