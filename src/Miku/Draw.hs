@@ -2,8 +2,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 module Miku.Draw
-  ( Border(..)
-  , Draw(..)
+  ( Draw(..)
   , Drawable(..)
   , focusedL
   , drawableL
@@ -21,12 +20,8 @@ import Miku.Mode (GlobalState, Name)
 
 import Relude
 
-data Border = Hidden
-            | Rounded
-            deriving stock (Eq)
-
 class Drawable a where
-  draw :: a -> Widget Name
+  draw :: Draw a -> Widget Name
 
 data Draw a = Draw { _focusedL    :: Bool
                    , _borderTypeL :: Border.BorderStyle
@@ -34,14 +29,9 @@ data Draw a = Draw { _focusedL    :: Bool
                    }
 
 instance Drawable (Widget Name) where
-  draw = id
-
-instance Drawable a => Drawable (Draw a) where
-  draw d = Core.withBorderStyle (_borderTypeL d)
-         $ draw $ _drawableL d
-
+  draw Draw{..} = Core.withBorderStyle _borderTypeL _drawableL
 
 makeLenses ''Draw
 
--- TODO: rename this.
+-- -- TODO: rename this.
 type W m a = Reader (GlobalState m) (Draw a)

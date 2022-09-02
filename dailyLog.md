@@ -28,7 +28,7 @@
 ---
 
 
-## Goals:
+## TODOs:
 
   - [X] This is my goal which is completed 1.
 

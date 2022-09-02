@@ -30,6 +30,7 @@ import Miku.Templates.Log
   , readCurrentLog
   , showHeading
   , ongoingTask
+  , goalsDone
   , goalsNotDone
   )
 
@@ -224,7 +225,7 @@ completedGoalsWindow = do
   mstate <- (^. gsModeStateL) <$> ask
 
   let isFocus = checkWindowPos (BottomWindow, LeftWindow) mstate
-      widget  = CompletedGoals $ goalsNotDone $ mstate ^. clsLogL . logGoalsL
+      widget  = CompletedGoals $ goalsDone $ mstate ^. clsLogL . logGoalsL
 
   return $ Draw { _focusedL = isFocus, _drawableL = widget, _borderTypeL = bordertype isFocus }
 
@@ -235,14 +236,14 @@ statusLine = do
 
   let mstate = gstate ^. gsModeStateL
       currWindow = case mstate ^. clsCurrentWindowL of
-                     (TopWindow, LeftWindow)     -> "OngoingTask"
-                     (TopWindow, RightWindow)    -> "Stats"
-                     (BottomWindow, LeftWindow)  -> "Completed"
-                     (BottomWindow, RightWindow) -> "NotCompleted"
+                     (TopWindow, LeftWindow)     -> ["OngoingTask"]
+                     (TopWindow, RightWindow)    -> ["Stats"]
+                     (BottomWindow, LeftWindow)  -> ["TODO", "Completed"]
+                     (BottomWindow, RightWindow) -> ["TODO", "NotCompleted"]
 
       widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
                           , _slModeNameL = "CurrentLog"
-                          , _slOtherInfoL = [currWindow]
+                          , _slOtherInfoL = currWindow
                           }
   return $ Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
 

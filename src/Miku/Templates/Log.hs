@@ -262,7 +262,7 @@ data Log = Log
 
 type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline
              :+> Many (BluePrint Task)
-             :+> Prefix "## Goals:" :> Repeat 2 Newline
+             :+> Prefix "## TODOs:" :> Repeat 2 Newline
               :> Many (BluePrint Goal)
 
 type LogF = Heading -> [Task] -> [Goal] -> Log

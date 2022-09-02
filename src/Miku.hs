@@ -20,7 +20,7 @@ import Miku.UI (drawUI, handleEvent)
 import Relude
 
 uiAttrMap :: AttrMap
-uiAttrMap = attrMap (fg Vty.red) []
+uiAttrMap = attrMap (fg Vty.red) [("goal", fg Vty.white), ("current", fg Vty.blue)]
 
 app :: App AppState Tick Name
 app = App { appDraw = drawUI
