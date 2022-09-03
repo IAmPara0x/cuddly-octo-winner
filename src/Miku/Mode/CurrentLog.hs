@@ -34,7 +34,7 @@ import Miku.Templates.Log
   , goalsNotDone
   )
 
-import Miku.Draw             (W, Draw(..), draw)
+import Miku.Draw             (W, Draw(..), draw, defDraw, focusedL, Drawable)
 import Miku.Draw.CurrentTask (CurrentTask(NoCurrentTask, CurrentTask))
 import Miku.Draw.Goals       (CompletedGoals(..), NotCompletedGoals(..))
 import Miku.Draw.StatusLine  (StatusLine(..))
@@ -58,7 +58,7 @@ import Relude
 
 
 data VerticalPos = TopWindow
-                 | BottomWindow
+                 | BotWindow
                  deriving stock (Eq)
 
 data HorizontalPos = LeftWindow
@@ -79,14 +79,16 @@ data CurrentLogState =
                   , _clsCurrentWindowL     :: Window
                   , _clsLogL               :: Log
                   , _clsClockAnimStateL    :: Int
+                  , _clsCompletedGoalsL    :: (Window, Draw CompletedGoals)
+                  , _clsNotCompletedGoalsL :: (Window, Draw NotCompletedGoals)
+                  , _clsCurrentTaskL       :: (Window, Draw CurrentTask)
+                  , _clsStatsL             :: (Window, Draw (Widget Name)) -- NOTE: This is temp
                   }
 
 makeLenses ''CurrentLogConfig
 makeLenses ''CurrentLogState
 
--- clsClockTick :: CurrentLogState -> (Int, Int)
--- clsClockTick clState = clState ^. clsGlobalTickL
---                      & _2 .~ clState ^. clsConfigL . clcClockAnimTimeL
+-- clsWindowsL :: Current
 
 instance Default CurrentLogConfig where
   def = CurrentLogConfig
@@ -101,20 +103,31 @@ instance IsMode CurrentLog where
   drawState        = drawCurrentLogState
   handleEventState = handleAnyStateEvent
 
+
 defCurrentLogState :: IO CurrentLogState
 defCurrentLogState =
   do
 
     elog <- runExceptT $ readCurrentLog (def ^. clcConfigPathL </> "logs")
 
-    case elog of
-      Left err  -> error err
-      Right log -> return $ CurrentLogState
-                          { _clsConfigL            = def
-                          , _clsLogL               = log
-                          , _clsCurrentWindowL     = (TopWindow, LeftWindow)
-                          , _clsClockAnimStateL    = 0
-                          }
+    let log = either error id elog
+
+        completedGoals    = defDraw $ CompletedGoals 0 $ goalsDone $ log  ^. logGoalsL
+        notCompletedGoals = defDraw $ NotCompletedGoals 0 $ goalsNotDone $ log  ^. logGoalsL
+        currentTask       = defDraw $ maybe (NoCurrentTask "There's currently no ongoing task.") 
+                                            (CurrentTask 0) $ ongoingTask log
+        stats             = defDraw $ Border.border $ Core.center $ Core.txt "No Stats!"
+
+    return $ CurrentLogState
+              { _clsConfigL            = def
+              , _clsLogL               = log
+              , _clsCurrentWindowL     = (TopWindow, LeftWindow)
+              , _clsClockAnimStateL    = 0
+              , _clsCompletedGoalsL    = ((BotWindow, LeftWindow), completedGoals)
+              , _clsNotCompletedGoalsL = ((BotWindow, RightWindow), notCompletedGoals)
+              , _clsCurrentTaskL       = ((TopWindow, LeftWindow), currentTask & focusedL .~ True)
+              , _clsStatsL             = ((TopWindow, RightWindow), stats)
+              }
 
 currentLogStateActions :: KeyMap CurrentLog
 currentLogStateActions =
@@ -123,6 +136,7 @@ currentLogStateActions =
                , ("j", down)
                , ("l", right)
                , ("h", left)
+               , ("<tab>", incAction)
                ]
   where
 
@@ -131,15 +145,15 @@ currentLogStateActions =
 
     up, down, left, right :: Action CurrentLog
     up     = modify (gsModeStateL . clsCurrentWindowL . _1 .~ TopWindow) >> continueAction
-    down   = modify (gsModeStateL . clsCurrentWindowL . _1 .~ BottomWindow) >> continueAction
+    down   = modify (gsModeStateL . clsCurrentWindowL . _1 .~ BotWindow) >> continueAction
     left   = modify (gsModeStateL . clsCurrentWindowL . _2 .~ LeftWindow) >> continueAction
     right  = modify (gsModeStateL . clsCurrentWindowL . _2 .~ RightWindow) >> continueAction
 
 
--- changeClockState :: CurrentLogState -> CurrentLogState
--- changeClockState clState
---   = clState & clsClockAnimStateL %~
---       bool id (\n -> mod (n + 1) 4) (uncurry rem (clsClockTick clState) == 0)
+    incAction = do
+      gstate <- get
+
+      return undefined
 
 
 drawCurrentLogState :: DrawMode CurrentLog
@@ -214,8 +228,8 @@ notCompletedGoalsWindow = do
 
   mstate <- (^. gsModeStateL) <$> ask
 
-  let isFocus = checkWindowPos (BottomWindow, RightWindow) mstate
-      widget  = NotCompletedGoals $ goalsNotDone (mstate ^. clsLogL . logGoalsL)
+  let isFocus = checkWindowPos (BotWindow, RightWindow) mstate
+      widget  = NotCompletedGoals 0 $ goalsNotDone (mstate ^. clsLogL . logGoalsL)
 
   return $ Draw { _focusedL = isFocus, _drawableL = widget, _borderTypeL = bordertype isFocus }
 
@@ -224,8 +238,8 @@ completedGoalsWindow = do
 
   mstate <- (^. gsModeStateL) <$> ask
 
-  let isFocus = checkWindowPos (BottomWindow, LeftWindow) mstate
-      widget  = CompletedGoals $ goalsDone $ mstate ^. clsLogL . logGoalsL
+  let isFocus = checkWindowPos (BotWindow, LeftWindow) mstate
+      widget  = CompletedGoals 1 $ goalsDone $ mstate ^. clsLogL . logGoalsL
 
   return $ Draw { _focusedL = isFocus, _drawableL = widget, _borderTypeL = bordertype isFocus }
 
@@ -236,10 +250,10 @@ statusLine = do
 
   let mstate = gstate ^. gsModeStateL
       currWindow = case mstate ^. clsCurrentWindowL of
-                     (TopWindow, LeftWindow)     -> ["OngoingTask"]
-                     (TopWindow, RightWindow)    -> ["Stats"]
-                     (BottomWindow, LeftWindow)  -> ["TODO", "Completed"]
-                     (BottomWindow, RightWindow) -> ["TODO", "NotCompleted"]
+                     (TopWindow, LeftWindow)  -> ["OngoingTask"]
+                     (TopWindow, RightWindow) -> ["Stats"]
+                     (BotWindow, LeftWindow)  -> ["TODO", "Completed"]
+                     (BotWindow, RightWindow) -> ["TODO", "NotCompleted"]
 
       widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
                           , _slModeNameL = "CurrentLog"
@@ -255,3 +269,9 @@ checkWindowPos window clState = window == clState ^. clsCurrentWindowL
 bordertype :: Bool -> Border.BorderStyle
 bordertype True  = Border.unicodeRounded
 bordertype False = Border.borderStyleFromChar ' '
+
+changeFocus :: Window -> [(Window, Draw a)] -> [(Window, Draw a)]
+changeFocus _window []        = []
+changeFocus window ((w,x):xs)
+  | window == w = (w,x & focusedL .~ True)  : changeFocus window xs
+  | otherwise   = (w,x & focusedL .~ False) : changeFocus window xs

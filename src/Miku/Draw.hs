@@ -7,6 +7,7 @@ module Miku.Draw
   , focusedL
   , drawableL
   , borderTypeL
+  , defDraw
   , W
   ) where
 
@@ -30,6 +31,9 @@ data Draw a = Draw { _focusedL    :: Bool
 
 instance Drawable (Widget Name) where
   draw Draw{..} = Core.withBorderStyle _borderTypeL _drawableL
+
+defDraw :: a -> Draw a
+defDraw a = Draw { _focusedL = False, _borderTypeL = Border.borderStyleFromChar ' ', _drawableL = a}
 
 makeLenses ''Draw
 
