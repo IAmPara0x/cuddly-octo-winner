@@ -33,6 +33,7 @@ default-extensions:
 - TypeApplications
 - KindSignatures
 - ScopedTypeVariables
+- GADTs
 
 ghc-options:
   -Wall

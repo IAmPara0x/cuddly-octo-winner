@@ -38,6 +38,7 @@ library
       Miku.Templates.Log
       Miku.Types.Parser
       Miku.Types.Time
+      Miku.Types.Window
       Miku.UI
       Paths_Miku
   hs-source-dirs:
@@ -56,6 +57,7 @@ library
       TypeApplications
       KindSignatures
       ScopedTypeVariables
+      GADTs
   ghc-options: -Wall
   build-depends:
       base >=4.7 && <5
@@ -94,6 +96,7 @@ executable miku
       TypeApplications
       KindSignatures
       ScopedTypeVariables
+      GADTs
   ghc-options: -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
   build-depends:
       Miku
@@ -122,6 +125,7 @@ test-suite timeTracker-test
       TypeApplications
       KindSignatures
       ScopedTypeVariables
+      GADTs
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Miku
