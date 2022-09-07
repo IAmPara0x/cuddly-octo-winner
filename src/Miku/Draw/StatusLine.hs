@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Miku.Draw.StatusLine
   ( drawStatusLine
   , StatusLine(..)

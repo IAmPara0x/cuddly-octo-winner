@@ -58,6 +58,12 @@ library
       KindSignatures
       ScopedTypeVariables
       GADTs
+      TemplateHaskell
+      TypeOperators
+      MultiParamTypeClasses
+      PolyKinds
+      FlexibleInstances
+      TypeFamilies
   ghc-options: -Wall
   build-depends:
       base >=4.7 && <5
@@ -97,6 +103,12 @@ executable miku
       KindSignatures
       ScopedTypeVariables
       GADTs
+      TemplateHaskell
+      TypeOperators
+      MultiParamTypeClasses
+      PolyKinds
+      FlexibleInstances
+      TypeFamilies
   ghc-options: -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
   build-depends:
       Miku
@@ -126,6 +138,12 @@ test-suite timeTracker-test
       KindSignatures
       ScopedTypeVariables
       GADTs
+      TemplateHaskell
+      TypeOperators
+      MultiParamTypeClasses
+      PolyKinds
+      FlexibleInstances
+      TypeFamilies
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Miku

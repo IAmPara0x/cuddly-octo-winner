@@ -1,55 +1,57 @@
-{-# LANGUAGE TypeOperators          #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE UndecidableInstances   #-}
-{-# LANGUAGE PolyKinds              #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleContexts #-}
-
+{-# LANGUAGE StandaloneDeriving #-}
 module Miku.Types.Window
-  ( SWindow(..)
+  ( Window(..)
   , Windows(..)
-  , KnownWindow(..)
   , Layout(..)
   , HorizPos(..)
   , VertPos(..)
+  , Lookup
+  , type (:#)
+  , KnownWindow(..)
   , mapWindows
   )
   where
 
-import Miku.Draw (Draw, defDraw)
+import Miku.Draw (Draw)
 import Relude hiding (Either(..))
 
 data HorizPos = Left | Right
+                deriving (Show)
 data VertPos  = Top  | Bottom
+                deriving (Show)
 
 data Layout = Vert VertPos
             | Horiz HorizPos
             | Stack VertPos HorizPos
+            deriving (Show)
 
-data SWindow (a :: Layout) where
-  TopW    :: SWindow ('Vert 'Top)
-  BottomW :: SWindow ('Vert 'Bottom)
-  LeftW   :: SWindow ('Horiz 'Left)
-  RightW  :: SWindow ('Horiz 'Right)
-  (:#)    :: SWindow ('Vert a) -> SWindow ('Horiz b) -> SWindow ('Stack a b)
+type family (v :: VertPos) :# (h :: HorizPos) where
+  v :# h = 'Stack v h
+
+data Window (a :: Layout) where
+  TopW    :: Window ('Vert 'Top)
+  BottomW :: Window ('Vert 'Bottom)
+  LeftW   :: Window ('Horiz 'Left)
+  RightW  :: Window ('Horiz 'Right)
+  (:#)    :: Window ('Vert a) -> Window ('Horiz b) -> Window (a :# b)
+
+deriving stock instance Show (Window a)
 
 data Windows (a :: [(Layout, Type)]) where
   WNil :: Windows '[]
-  (:>) :: (SWindow p, Draw a) -> Windows xs -> Windows ('(p, a) ': xs)
+  (:>) :: (Window p, Draw a) -> Windows xs -> Windows ('(p, a) ': xs)
 
 infixr 5 :>
 
-type family Lookup (x :: Layout) (xs :: [ (Layout, Type)]) :: Type where
+type family Lookup (x :: Layout) (xs :: [(Layout, Type)]) :: Type where
   Lookup x ( '(x, a) ': _ )  = a
   Lookup x ( '(y, a) ': xs ) = Lookup x xs
 
+class KnownWindow x xs where
+  window  :: Window x -> Windows xs -> Draw (Lookup x xs)
+  modifyW :: Window x -> (Draw (Lookup x xs) -> Draw (Lookup x xs)) -> Windows xs -> Windows xs
 
-class KnownWindow p xs where
-  window  :: SWindow p -> Windows xs -> Draw (Lookup p xs)
-  modifyW :: SWindow p -> (Draw (Lookup p xs) -> Draw (Lookup p xs)) -> Windows xs -> Windows xs
-
-instance {-# OVERLAPPING #-} KnownWindow p ('(p, a) ': xs) where
+instance {-# OVERLAPPING #-} KnownWindow x ('(x, a) ': xs) where
   window _ ((_, a) :> _)    = a
   modifyW _ f ((w,a) :> xs) = (w, f a) :> xs
 

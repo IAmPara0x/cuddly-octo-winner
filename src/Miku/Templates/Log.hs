@@ -1,10 +1,4 @@
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE TemplateHaskell    #-}
-
 {-# OPTIONS_GHC -Wno-orphans #-}
-
 module Miku.Templates.Log
   ( Goal(Goal)
   , goalStatusL

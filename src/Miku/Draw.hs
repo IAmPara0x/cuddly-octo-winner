@@ -1,6 +1,4 @@
-{-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleInstances #-}
 module Miku.Draw
   ( Draw(..)
   , Drawable(..)

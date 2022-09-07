@@ -1,7 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns    #-}
-{-# LANGUAGE TypeFamilies    #-}
-
 module Miku.Mode.Welcome
   ( WelcomeState(..)
   , Welcome
@@ -97,4 +94,4 @@ toWelcomeMode :: forall a. IsMode a => Action a
 toWelcomeMode = do
     gstate <- get
     wstate <- liftIO $ defState @Welcome
-    lift $ Brick.continue (AppState Proxy $ gstate & gsChangeModeL .~ wstate)
+    lift $ Brick.continue (AppState $ gstate & gsChangeModeL .~ wstate)

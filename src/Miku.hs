@@ -53,4 +53,4 @@ run = do
 
   initialVty <- buildVty
 
-  void $ customMain initialVty buildVty (Just chan) app $ AppState Proxy initState
+  void $ customMain initialVty buildVty (Just chan) app $ AppState initState

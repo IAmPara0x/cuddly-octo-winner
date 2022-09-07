@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Miku.Draw.CurrentTask
   ( CurrentTask(..)
   , CurrentTaskName(..)

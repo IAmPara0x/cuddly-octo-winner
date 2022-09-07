@@ -1,7 +1,3 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TemplateHaskell #-}
-
 module Miku.Mode
   ( Action
   , AppState(AppState)
@@ -72,7 +68,7 @@ type Action a   = StateT (GlobalState a) (EventM Name) (Next AppState)
 type DrawMode a = Reader (GlobalState a) [Widget Name]
 
 data AppState where
-  AppState :: forall a. (IsMode a) => Proxy a -> GlobalState a -> AppState
+  AppState :: forall a. (IsMode a) => GlobalState a -> AppState
 
 class IsMode (a :: Type) where
   type ModeState a :: Type
@@ -123,8 +119,8 @@ gsKeysTickL  = lens getter setter
 clearKeysL :: Lens' AppState Keys
 clearKeysL = lens getter setter
   where
-    getter (AppState _ s) = s ^. gsPrevKeysL
-    setter (AppState p s) keys = AppState p $ s & gsPrevKeysL .~ keys
+    getter (AppState s) = s ^. gsPrevKeysL
+    setter (AppState s) keys = AppState $ s & gsPrevKeysL .~ keys
 
 
 handleAnyStateEvent :: forall a. IsMode a => BrickEvent Name Tick -> Action a
@@ -149,10 +145,10 @@ actionWithKeys keys = do
     Nothing     -> continueAction
 
 continueAction :: IsMode a => Action a
-continueAction = get >>= lift . Brick.continue . AppState Proxy
+continueAction = get >>= lift . Brick.continue . AppState
 
 haltAction :: IsMode a => Action a
-haltAction = get >>= lift . Brick.halt . AppState Proxy
+haltAction = get >>= lift . Brick.halt . AppState
 
 tickAction :: IsMode a => Action a
 tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continueAction
@@ -160,15 +156,15 @@ tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continueAction
 -- | Helpers
 
 updateTickCounter :: AppState -> AppState
-updateTickCounter (AppState m gstate) = AppState m $
+updateTickCounter (AppState gstate) = AppState $
   gstate & gsTickCounterL .~ uncurry mod
               (gstate ^. gsTickL & _1 +~ 1)
           & gsKeysTickCounterL .~ uncurry mod
               (gstate ^. gsKeysTickL & _1 +~ 1 & _2 .~ gstate ^. gsTickL . _2)
 
 clearPrevKeys :: AppState -> AppState
-clearPrevKeys (AppState m gstate) =
-    AppState m
+clearPrevKeys (AppState gstate) =
+    AppState
   $ gstate & gsPrevKeysL %~
       bool id (const []) (uncurry rem (gstate ^. gsKeysTickL) == 0)
 

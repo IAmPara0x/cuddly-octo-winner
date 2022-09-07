@@ -8,12 +8,12 @@ import Brick.Types
   , Next
   , Widget
   )
-import Miku.Mode (AppState(AppState), Name, Tick, drawState, handleEventState, IsMode)
+import Miku.Mode (AppState(AppState), Name, Tick, drawState, handleEventState, IsMode, GlobalState)
 
 import Relude
 
 drawUI :: AppState -> [Widget Name]
-drawUI (AppState (_ :: IsMode a => Proxy a) s) = runReader (drawState @a) s
+drawUI (AppState (s :: IsMode a => GlobalState a)) = runReader (drawState @a) s
 
 handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
-handleEvent (AppState _ s) event = evalStateT (handleEventState event) s
+handleEvent (AppState s) event = evalStateT (handleEventState event) s
