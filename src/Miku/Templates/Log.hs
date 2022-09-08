@@ -1,20 +1,18 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Miku.Templates.Log
-  ( Todo (Todo)
-  , TodoStatus (Done, NotDone)
-  , Heading (Heading)
+  ( Heading (Heading)
   , Log (Log)
   , Task (..)
   , TaskDesc (TaskDesc)
   , TaskName (TaskName)
   , TaskTag (TaskTag)
+  , Todo (Todo)
+  , TodoStatus (Done, NotDone)
   , descL
-  , todoDescL
-  , todoStatusL
   , headingL
-  , logTodosL
   , logHeadingL
   , logTasksL
+  , logTodosL
   , nameL
   , tagL
   , taskDescL
@@ -22,15 +20,17 @@ module Miku.Templates.Log
   , taskNameL
   , taskStartL
   , taskTagsL
+  , todoDescL
+  , todoStatusL
     -- * Helper functions
-  , todosDone
-  , todosNotDone
   , logParser
   , ongoingTask
   , showHeading
   , showLog
   , showTags
   , showTask
+  , todosDone
+  , todosNotDone
     -- * IO Stuff
   , readCurrentLog
   , readLog

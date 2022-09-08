@@ -4,6 +4,8 @@ module Miku.Draw.Todos
   , NotCompletedTodos (..)
   , _CompletedTodos
   , _NotCompletedTodos
+  , completedTodos
+  , notCompletedTodos
   ) where
 
 import Brick.Types          (Padding (Pad), Widget)
@@ -24,8 +26,14 @@ import Relude
 data CompletedTodos    = CompletedTodos Int [Todo]
 makePrisms ''CompletedTodos
 
+completedTodos :: Int -> [Todo] -> CompletedTodos
+completedTodos n todos = CompletedTodos (mod n $ length todos) todos
+
 data NotCompletedTodos = NotCompletedTodos Int [Todo]
 makePrisms ''NotCompletedTodos
+
+notCompletedTodos :: Int -> [Todo] -> NotCompletedTodos
+notCompletedTodos n todos = NotCompletedTodos (mod n $ length todos) todos
 
 instance Drawable CompletedTodos where
   draw Draw{ _drawableL=CompletedTodos currIdx todos , .. }

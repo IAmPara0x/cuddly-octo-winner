@@ -18,15 +18,16 @@ import Control.Monad.Trans.Reader (mapReader)
 import Data.Default               (Default (def))
 import Data.Map                   qualified as Map
 
-import Miku.Templates.Log         (Log, todosDone, todosNotDone, logTodosL,
-                                   logHeadingL, ongoingTask, readCurrentLog,
-                                   showHeading)
+import Miku.Templates.Log         (Log, logHeadingL, logTodosL, ongoingTask,
+                                   readCurrentLog, showHeading, todosDone,
+                                   todosNotDone)
 
 import Miku.Draw                  (Draw (..), W, borderTypeL, defDraw, draw,
-                                   focusedL)
+                                   drawableL, focusedL)
 import Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask))
-import Miku.Draw.Todos            (CompletedTodos (..), NotCompletedTodos (..))
 import Miku.Draw.StatusLine       (StatusLine (..))
+import Miku.Draw.Todos            (CompletedTodos (..), NotCompletedTodos (..),
+                                   completedTodos, notCompletedTodos)
 import Miku.Mode                  (Action, DrawMode, IsMode (..), KeyMap, Name,
                                    continueAction, gsEditingModeL, gsModeStateL,
                                    haltAction, handleAnyStateEvent)
@@ -116,7 +117,7 @@ currentLogStateActions =
                , ("j", down)
                , ("l", right)
                , ("h", left)
-               -- , ("<tab>", incAction)
+               , ("<tab>", incAction)
                ]
   where
 
@@ -129,6 +130,16 @@ currentLogStateActions =
     left  = modify (gsModeStateL %~ switchWindow WLeft) >> continueAction
     right = modify (gsModeStateL %~ switchWindow WRight) >> continueAction
 
+    incAction = modify (gsModeStateL %~ (\(AnyCurrentLogState mstate) -> AnyCurrentLogState $ inc mstate))
+              >> continueAction
+
+inc :: CurrentLogState v h -> CurrentLogState v h
+inc mstate =
+  case mstate ^. clsCurrentWindowL of
+    WTop :# WLeft  -> modifyCurrWindow id mstate
+    WTop :# WRight -> modifyCurrWindow id mstate
+    WBottom :# WLeft -> modifyCurrWindow (drawableL %~ (\(CompletedTodos n todos) -> completedTodos (n + 1) todos)) mstate
+    WBottom :# WRight -> modifyCurrWindow (drawableL %~ (\(NotCompletedTodos n todos) -> notCompletedTodos (n + 1) todos)) mstate
 
 drawCurrentLogState :: DrawMode CurrentLog
 drawCurrentLogState = do
