@@ -22,7 +22,7 @@ steps:
   #
   - module_header:
   #     # How many spaces use for indentation in the module header.
-      indent: 4
+      indent: 2
   #
   #     # Should export lists be sorted?  Sorting is only performed within the
   #     # export section, as delineated by Haddock comments.

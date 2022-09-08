@@ -1,6 +1,6 @@
 module Miku
-    ( run
-    ) where
+  ( run
+  ) where
 
 import Brick.AttrMap        (AttrMap, attrMap)
 import Brick.BChan          qualified as BChan
@@ -23,7 +23,7 @@ import Miku.UI              (drawUI, handleEvent)
 import Relude
 
 uiAttrMap :: AttrMap
-uiAttrMap = attrMap (fg Vty.red) [("goal", fg Vty.white), ("current", fg Vty.blue)]
+uiAttrMap = attrMap (fg Vty.red) [("todo", fg Vty.white), ("current", fg Vty.blue)]
 
 app :: App AppState Tick Name
 app = App { appDraw = drawUI

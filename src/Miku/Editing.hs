@@ -1,6 +1,6 @@
 module Miku.Editing
-    ( EMode (Normal, Insert)
-    ) where
+  ( EMode (Normal, Insert)
+  ) where
 
 import Relude
 

@@ -2,9 +2,9 @@
 {-# LANGUAGE NamedFieldPuns   #-}
 {-# LANGUAGE TupleSections    #-}
 module Miku.Mode.CurrentLog
-    ( CurrentLog
-    , currentLogStateActions
-    ) where
+  ( CurrentLog
+  , currentLogStateActions
+  ) where
 
 import Brick.Widgets.Border       qualified as Border
 import Brick.Widgets.Border.Style qualified as Border
@@ -18,14 +18,14 @@ import Control.Monad.Trans.Reader (mapReader)
 import Data.Default               (Default (def))
 import Data.Map                   qualified as Map
 
-import Miku.Templates.Log         (Log, goalsDone, goalsNotDone, logGoalsL,
+import Miku.Templates.Log         (Log, todosDone, todosNotDone, logTodosL,
                                    logHeadingL, ongoingTask, readCurrentLog,
                                    showHeading)
 
 import Miku.Draw                  (Draw (..), W, borderTypeL, defDraw, draw,
                                    focusedL)
 import Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask))
-import Miku.Draw.Goals            (CompletedGoals (..), NotCompletedGoals (..))
+import Miku.Draw.Todos            (CompletedTodos (..), NotCompletedTodos (..))
 import Miku.Draw.StatusLine       (StatusLine (..))
 import Miku.Mode                  (Action, DrawMode, IsMode (..), KeyMap, Name,
                                    continueAction, gsEditingModeL, gsModeStateL,
@@ -43,8 +43,8 @@ type Stats = Widget Name
 
 type AllWindows = '[ '( 'Top :# 'Left, CurrentTask)
                    , '( 'Top :# 'Right, Stats)
-                   , '( 'Bottom :# 'Left, CompletedGoals)
-                   , '( 'Bottom :# 'Right, NotCompletedGoals)
+                   , '( 'Bottom :# 'Left, CompletedTodos)
+                   , '( 'Bottom :# 'Right, NotCompletedTodos)
                    ]
 
 data CurrentLog
@@ -78,7 +78,7 @@ instance Default CurrentLogConfig where
 instance IsMode CurrentLog where
   type ModeState CurrentLog = AnyCurrentLogState
 
-  defState         = ( , currentLogStateActions) . AnyCurrentLogState <$> defCurrentLogState
+  defState         = ( , currentLogStateActions) . switchWindow WTop . AnyCurrentLogState <$> defCurrentLogState
   drawState        = drawCurrentLogState
   handleEventState = handleAnyStateEvent
 
@@ -91,8 +91,8 @@ defCurrentLogState =
 
     let log = either error id elog
 
-        completedGoals    = defDraw $ CompletedGoals 0 $ goalsDone $ log  ^. logGoalsL
-        notCompletedGoals = defDraw $ NotCompletedGoals 0 $ goalsNotDone $ log  ^. logGoalsL
+        completedTodos    = defDraw $ CompletedTodos 0 $ todosDone $ log  ^. logTodosL
+        notCompletedTodos = defDraw $ NotCompletedTodos 0 $ todosNotDone $ log  ^. logTodosL
         currentTask       = defDraw $ maybe (NoCurrentTask "There's currently no ongoing task.")
                                             (CurrentTask 0) $ ongoingTask log
         stats             = defDraw $ Border.border $ Core.center $ Core.txt "No Stats!"
@@ -104,8 +104,8 @@ defCurrentLogState =
               , _clsClockAnimStateL    = 0
               , _clsAllWindowsL        = (WTop :# WLeft, currentTask)
                                       :> (WTop :# WRight, stats)
-                                      :> (WBottom :# WLeft, completedGoals)
-                                      :> (WBottom :# WRight, notCompletedGoals)
+                                      :> (WBottom :# WLeft, completedTodos)
+                                      :> (WBottom :# WRight, notCompletedTodos)
                                       :> WNil
               }
 
@@ -217,13 +217,13 @@ switchWindow newPos (AnyCurrentLogState mstate)
     (v :# h) = mstate ^. clsCurrentWindowL
 
 
--- currWindowState :: CurrentLogState v h -> Draw (Lookup (v :# h) AllWindows)
--- currWindowState CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
---   = case _clsCurrentWindowL of
---       (WTop :# WLeft)     -> window (WTop :# WLeft) _clsAllWindowsL
---       (WTop :# WRight)    -> window (WTop :# WRight) _clsAllWindowsL
---       (WBottom :# WLeft)  -> window (WBottom :# WLeft) _clsAllWindowsL
---       (WBottom :# WRight) -> window (WBottom :# WRight) _clsAllWindowsL
+currWindowState :: CurrentLogState v h -> Draw (Lookup (v :# h) AllWindows)
+currWindowState CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
+  = case _clsCurrentWindowL of
+      (WTop :# WLeft)     -> wGet (WTop :# WLeft) _clsAllWindowsL
+      (WTop :# WRight)    -> wGet (WTop :# WRight) _clsAllWindowsL
+      (WBottom :# WLeft)  -> wGet (WBottom :# WLeft) _clsAllWindowsL
+      (WBottom :# WRight) -> wGet (WBottom :# WRight) _clsAllWindowsL
 
 modifyCurrWindow :: (Draw (Lookup (v :# h) AllWindows) -> Draw (Lookup (v :# h) AllWindows))
                  -> CurrentLogState v h

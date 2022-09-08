@@ -1,12 +1,12 @@
 module Miku.Types.Time
-    ( Time
-    , getCurrentDay
-    , getCurrentTime
-    , mkTime
-    , showTime
-    , timeHrsL
-    , timeMinsL
-    ) where
+  ( Time
+  , getCurrentDay
+  , getCurrentTime
+  , mkTime
+  , showTime
+  , timeHrsL
+  , timeMinsL
+  ) where
 
 import Control.Lens      (makeLenses)
 import Data.Time         (Day, getZonedTime, localDay, localTimeOfDay, todHour,

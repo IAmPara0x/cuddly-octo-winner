@@ -1,41 +1,41 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Miku.Templates.Log
-    ( Goal (Goal)
-    , GoalStatus (Done, NotDone)
-    , Heading (Heading)
-    , Log (Log)
-    , Task (..)
-    , TaskDesc (TaskDesc)
-    , TaskName (TaskName)
-    , TaskTag (TaskTag)
-    , descL
-    , goalDescL
-    , goalStatusL
-    , headingL
-    , logGoalsL
-    , logHeadingL
-    , logTasksL
-    , nameL
-    , tagL
-    , taskDescL
-    , taskEndL
-    , taskNameL
-    , taskStartL
-    , taskTagsL
-      -- * Helper functions
-    , goalsDone
-    , goalsNotDone
-    , logParser
-    , ongoingTask
-    , showHeading
-    , showLog
-    , showTags
-    , showTask
-      -- * IO Stuff
-    , readCurrentLog
-    , readLog
-    , writeLog
-    ) where
+  ( Todo (Todo)
+  , TodoStatus (Done, NotDone)
+  , Heading (Heading)
+  , Log (Log)
+  , Task (..)
+  , TaskDesc (TaskDesc)
+  , TaskName (TaskName)
+  , TaskTag (TaskTag)
+  , descL
+  , todoDescL
+  , todoStatusL
+  , headingL
+  , logTodosL
+  , logHeadingL
+  , logTasksL
+  , nameL
+  , tagL
+  , taskDescL
+  , taskEndL
+  , taskNameL
+  , taskStartL
+  , taskTagsL
+    -- * Helper functions
+  , todosDone
+  , todosNotDone
+  , logParser
+  , ongoingTask
+  , showHeading
+  , showLog
+  , showTags
+  , showTask
+    -- * IO Stuff
+  , readCurrentLog
+  , readLog
+  , writeLog
+  ) where
 
 import Control.Lens               (_head, filtered, folded, makeLenses, (^.),
                                    (^..), (^?))
@@ -194,38 +194,38 @@ showTask :: Task -> Text
 showTask = showAtom @(BluePrint Task)
 
 -----------------------------------------------------------------
--- | 'Goals'
+-- | 'Todos'
 -----------------------------------------------------------------
 
-data GoalStatus = Done
+data TodoStatus = Done
                 | NotDone
                   deriving stock (Show, Eq)
 
-data Goal = Goal
-  { _goalStatusL :: GoalStatus
-  , _goalDescL   :: Text
+data Todo = Todo
+  { _todoStatusL :: TodoStatus
+  , _todoDescL   :: Text
   } deriving stock (Show)
 
-type GoalFormat =  Repeat 2 Space :> Literal "-" :> Space
+type TodoFormat =  Repeat 2 Space :> Literal "-" :> Space
                :>  Literal "[" :> PrintChar <: Literal "]" <: Space
                :+> PrintChars <: Repeat 2 Newline
 
-type GoalF = Char -> Text -> Goal
+type TodoF = Char -> Text -> Todo
 
-goal :: Char -> Text -> Goal
-goal ' ' = Goal NotDone
-goal 'X' = Goal Done
-goal _   = Goal NotDone
+todo :: Char -> Text -> Todo
+todo ' ' = Todo NotDone
+todo 'X' = Todo Done
+todo _   = Todo NotDone
 
-instance MkBluePrint Goal where
-  type Format Goal   = GoalFormat
-  type Function Goal = GoalF
+instance MkBluePrint Todo where
+  type Format Todo   = TodoFormat
+  type Function Todo = TodoF
 
-  parseBP = goal
-  showBP  (Goal Done desc)    = composeS @GoalFormat @GoalF mempty 'X' desc
-  showBP  (Goal NotDone desc) = composeS @GoalFormat @GoalF mempty ' ' desc
+  parseBP = todo
+  showBP  (Todo Done desc)    = composeS @TodoFormat @TodoF mempty 'X' desc
+  showBP  (Todo NotDone desc) = composeS @TodoFormat @TodoF mempty ' ' desc
 
-makeLenses ''Goal
+makeLenses ''Todo
 
 -----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
@@ -234,23 +234,23 @@ makeLenses ''Goal
 data Log = Log
   { _logHeadingL :: Heading
   , _logTasksL   :: [Task]
-  , _logGoalsL   :: [Goal]
+  , _logTodosL   :: [Todo]
   }
   deriving (Show)
 
 type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline
              :+> Many (BluePrint Task)
              :+> Prefix "## TODOs:" :> Repeat 2 Newline
-              :> Many (BluePrint Goal)
+              :> Many (BluePrint Todo)
 
-type LogF = Heading -> [Task] -> [Goal] -> Log
+type LogF = Heading -> [Task] -> [Todo] -> Log
 
 instance MkBluePrint Log where
   type Format Log   = LogFormat
   type Function Log = LogF
 
   parseBP = Log
-  showBP (Log heading tasks goals) = composeS @LogFormat @LogF mempty heading tasks goals
+  showBP (Log heading tasks todos) = composeS @LogFormat @LogF mempty heading tasks todos
 
 makeLenses ''Log
 
@@ -280,11 +280,11 @@ ongoingTask log =
     guard (isNothing $ latestTask ^. taskEndL)
     return latestTask
 
-goalsNotDone :: [Goal] -> [Goal]
-goalsNotDone goals = goals ^.. folded . filtered (\g -> g ^. goalStatusL == NotDone)
+todosNotDone :: [Todo] -> [Todo]
+todosNotDone todos = todos ^.. folded . filtered (\g -> g ^. todoStatusL == NotDone)
 
-goalsDone :: [Goal] -> [Goal]
-goalsDone goals = goals ^.. folded . filtered (\g -> g ^. goalStatusL == Done)
+todosDone :: [Todo] -> [Todo]
+todosDone todos = todos ^.. folded . filtered (\g -> g ^. todoStatusL == Done)
 
 getLogName :: Day -> String
 getLogName day = show day <> "-log.md"

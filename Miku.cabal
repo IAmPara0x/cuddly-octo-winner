@@ -29,8 +29,8 @@ library
   other-modules:
       Miku.Draw
       Miku.Draw.CurrentTask
-      Miku.Draw.Goals
       Miku.Draw.StatusLine
+      Miku.Draw.Todos
       Miku.Editing
       Miku.Mode
       Miku.Mode.CurrentLog

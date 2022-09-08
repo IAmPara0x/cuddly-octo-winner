@@ -1,10 +1,10 @@
 {-# LANGUAGE ViewPatterns    #-}
 module Miku.Mode.Welcome
-    ( Welcome
-    , WelcomeState (..)
-    , toWelcomeMode
-    , wsMsgL
-    ) where
+  ( Welcome
+  , WelcomeState (..)
+  , toWelcomeMode
+  , wsMsgL
+  ) where
 
 import Brick.Main                 qualified as Brick
 import Brick.Widgets.Border.Style qualified as Border

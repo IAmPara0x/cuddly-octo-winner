@@ -1,13 +1,13 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Miku.Draw
-    ( Draw (..)
-    , Drawable (..)
-    , W
-    , borderTypeL
-    , defDraw
-    , drawableL
-    , focusedL
-    ) where
+  ( Draw (..)
+  , Drawable (..)
+  , W
+  , borderTypeL
+  , defDraw
+  , drawableL
+  , focusedL
+  ) where
 
 import Brick.Widgets.Border.Style qualified as Border
 import Brick.Widgets.Core         qualified as Core

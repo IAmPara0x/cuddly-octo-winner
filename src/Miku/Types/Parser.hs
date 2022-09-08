@@ -3,33 +3,33 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Miku.Types.Parser
-    ( AlphaNum
-    , AlphaNums
-    , Atom (..)
-    , BluePrint
-    , Composeable (..)
-    , Digits
-    , Literal
-    , Many
-    , MkBluePrint (..)
-    , Newline
-    , Optional
-    , Parser
-    , Prefix
-    , PrintChar
-    , PrintChars
-    , Repeat
-    , SepBy1
-    , Some
-    , Space
-    , Tab
-    , TakeTill
-    , Token
-    , Try
-    , type (:+>)
-    , type (:>)
-    , type (<:)
-    ) where
+  ( AlphaNum
+  , AlphaNums
+  , Atom (..)
+  , BluePrint
+  , Composeable (..)
+  , Digits
+  , Literal
+  , Many
+  , MkBluePrint (..)
+  , Newline
+  , Optional
+  , Parser
+  , Prefix
+  , PrintChar
+  , PrintChars
+  , Repeat
+  , SepBy1
+  , Some
+  , Space
+  , Tab
+  , TakeTill
+  , Token
+  , Try
+  , type (:+>)
+  , type (:>)
+  , type (<:)
+  ) where
 
 import Data.Text            qualified as T
 import GHC.TypeLits

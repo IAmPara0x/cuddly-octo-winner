@@ -1,17 +1,17 @@
 {-# LANGUAGE PolyKinds          #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Miku.Types.Window
-    ( HorizPos (..)
-    , KnownWindow (..)
-    , Layout (..)
-    , Lookup
-    , VertPos (..)
-    , Window (..)
-    , Windows (..)
-    , type (:#)
-    , wMap
-    , wToList
-    ) where
+  ( HorizPos (..)
+  , KnownWindow (..)
+  , Layout (..)
+  , Lookup
+  , VertPos (..)
+  , Window (..)
+  , Windows (..)
+  , type (:#)
+  , wMap
+  , wToList
+  ) where
 
 import Miku.Draw (Draw, Drawable)
 import Relude    hiding (Either (..))

@@ -1,27 +1,27 @@
 module Miku.Mode
-    ( Action
-    , AppState (AppState)
-    , DrawMode
-    , GlobalConfig (..)
-    , GlobalState (..)
-    , IsMode (..)
-    , KeyMap
-    , Keys
-    , Name
-    , Tick (Tick)
-    , continueAction
-    , gcMaxTickCounterL
-    , gcPathL
-    , gsChangeModeL
-    , gsConfigL
-    , gsEditingModeL
-    , gsKeyMapL
-    , gsModeStateL
-    , gsPrevKeysL
-    , gsTickCounterL
-    , haltAction
-    , handleAnyStateEvent
-    ) where
+  ( Action
+  , AppState (AppState)
+  , DrawMode
+  , GlobalConfig (..)
+  , GlobalState (..)
+  , IsMode (..)
+  , KeyMap
+  , Keys
+  , Name
+  , Tick (Tick)
+  , continueAction
+  , gcMaxTickCounterL
+  , gcPathL
+  , gsChangeModeL
+  , gsConfigL
+  , gsEditingModeL
+  , gsKeyMapL
+  , gsModeStateL
+  , gsPrevKeysL
+  , gsTickCounterL
+  , haltAction
+  , handleAnyStateEvent
+  ) where
 
 import Brick.Main   qualified as Brick
 import Brick.Types  (BrickEvent (AppEvent, VtyEvent), EventM, Next, Widget)

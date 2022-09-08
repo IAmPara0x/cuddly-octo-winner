@@ -1,10 +1,10 @@
 module Miku.Draw.StatusLine
-    ( StatusLine (..)
-    , drawStatusLine
-    , slEditingModeL
-    , slModeNameL
-    , slOtherInfoL
-    ) where
+  ( StatusLine (..)
+  , drawStatusLine
+  , slEditingModeL
+  , slModeNameL
+  , slOtherInfoL
+  ) where
 
 import Brick.Types          (Padding (Pad), Widget)
 import Brick.Widgets.Border qualified as Border

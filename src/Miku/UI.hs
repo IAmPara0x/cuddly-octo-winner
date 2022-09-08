@@ -1,9 +1,9 @@
 {-# LANGUAGE GADTs #-}
 
 module Miku.UI
-    ( drawUI
-    , handleEvent
-    ) where
+  ( drawUI
+  , handleEvent
+  ) where
 
 import Brick.Types (BrickEvent, EventM, Next, Widget)
 import Miku.Mode   (AppState (AppState), GlobalState, IsMode, Name, Tick,

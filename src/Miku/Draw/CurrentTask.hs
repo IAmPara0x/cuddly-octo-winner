@@ -1,9 +1,9 @@
 module Miku.Draw.CurrentTask
-    ( CurrentTask (..)
-    , CurrentTaskDesc (..)
-    , CurrentTaskName (..)
-    , CurrentTaskTags (..)
-    ) where
+  ( CurrentTask (..)
+  , CurrentTaskDesc (..)
+  , CurrentTaskName (..)
+  , CurrentTaskTags (..)
+  ) where
 
 import Brick.Types          (Padding (Pad), Widget)
 import Brick.Widgets.Border qualified as Border
