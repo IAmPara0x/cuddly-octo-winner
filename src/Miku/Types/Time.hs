@@ -1,21 +1,20 @@
 module Miku.Types.Time
-  ( Time
-  , mkTime
-  , timeHrsL
-  , timeMinsL
-  , getCurrentDay
-  , getCurrentTime
-  , showTime
-  )
-where
+    ( Time
+    , getCurrentDay
+    , getCurrentTime
+    , mkTime
+    , showTime
+    , timeHrsL
+    , timeMinsL
+    ) where
 
-import           Control.Lens      (makeLenses)
-import           Data.Time         (Day, getZonedTime, localDay, localTimeOfDay,
-                                    todHour, todMin, zonedTimeToLocalTime)
+import Control.Lens      (makeLenses)
+import Data.Time         (Day, getZonedTime, localDay, localTimeOfDay, todHour,
+                          todMin, zonedTimeToLocalTime)
 
-import           Miku.Types.Parser
+import Miku.Types.Parser
 
-import           Relude
+import Relude
 
 
 data Time = Time

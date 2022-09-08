@@ -1,43 +1,42 @@
 module Miku.Mode
-  ( Action
-  , AppState(AppState)
-  , continueAction
-  , GlobalConfig(..)
-  , gcPathL
-  , gcMaxTickCounterL
-  , GlobalState(..)
-  , gsConfigL
-  , gsTickCounterL
-  , gsModeStateL
-  , gsKeyMapL
-  , gsPrevKeysL
-  , gsEditingModeL
-  , gsChangeModeL
-  , haltAction
-  , handleAnyStateEvent
-  , IsMode(..)
-  , KeyMap
-  , Keys
-  , Name
-  , Tick(Tick)
-  , DrawMode
-  ) where
+    ( Action
+    , AppState (AppState)
+    , DrawMode
+    , GlobalConfig (..)
+    , GlobalState (..)
+    , IsMode (..)
+    , KeyMap
+    , Keys
+    , Name
+    , Tick (Tick)
+    , continueAction
+    , gcMaxTickCounterL
+    , gcPathL
+    , gsChangeModeL
+    , gsConfigL
+    , gsEditingModeL
+    , gsKeyMapL
+    , gsModeStateL
+    , gsPrevKeysL
+    , gsTickCounterL
+    , haltAction
+    , handleAnyStateEvent
+    ) where
 
-import qualified Brick.Main   as Brick
-import           Brick.Types  (BrickEvent (AppEvent, VtyEvent), EventM, Next,
-                               Widget)
-import           Control.Lens (Lens, Lens', _1, _2, lens, makeLenses, (%~),
-                               (+~), (.~), (<>~), (^.))
-import           Data.Default (Default (def))
-import qualified Data.Map     as Map
+import Brick.Main   qualified as Brick
+import Brick.Types  (BrickEvent (AppEvent, VtyEvent), EventM, Next, Widget)
+import Control.Lens (Lens, Lens', _1, _2, lens, makeLenses, (%~), (+~), (.~),
+                     (<>~), (^.))
+import Data.Default (Default (def))
+import Data.Map     qualified as Map
 
-import           Graphics.Vty (Key (KChar, KEsc))
-import qualified Graphics.Vty as Vty
+import Graphics.Vty (Key (KChar, KEsc))
+import Graphics.Vty qualified as Vty
 
-import           Miku.Editing (EMode (..))
+import Miku.Editing (EMode (..))
 
 
-import           Relude
+import Relude
 
 type Name = ()
 data Tick = Tick

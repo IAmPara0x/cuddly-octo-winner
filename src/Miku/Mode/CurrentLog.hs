@@ -2,44 +2,40 @@
 {-# LANGUAGE NamedFieldPuns   #-}
 {-# LANGUAGE TupleSections    #-}
 module Miku.Mode.CurrentLog
-  ( CurrentLog
-  , currentLogStateActions
-  )
-  where
+    ( CurrentLog
+    , currentLogStateActions
+    ) where
 
-import qualified Brick.Widgets.Border       as Border
-import qualified Brick.Widgets.Border.Style as Border
-import qualified Brick.Widgets.Center       as Core
-import qualified Brick.Widgets.Core         as Core
+import Brick.Widgets.Border       qualified as Border
+import Brick.Widgets.Border.Style qualified as Border
+import Brick.Widgets.Center       qualified as Core
+import Brick.Widgets.Core         qualified as Core
 
-import           Brick.Types                (Padding (Pad), Widget)
+import Brick.Types                (Padding (Pad), Widget)
 
-import           Control.Lens               (makeLenses, (%~), (.~), (^.))
-import           Control.Monad.Trans.Reader (mapReader)
-import           Data.Default               (Default (def))
-import qualified Data.Map                   as Map
+import Control.Lens               (makeLenses, (%~), (.~), (^.))
+import Control.Monad.Trans.Reader (mapReader)
+import Data.Default               (Default (def))
+import Data.Map                   qualified as Map
 
-import           Miku.Templates.Log         (Log, goalsDone, goalsNotDone,
-                                             logGoalsL, logHeadingL,
-                                             ongoingTask, readCurrentLog,
-                                             showHeading)
+import Miku.Templates.Log         (Log, goalsDone, goalsNotDone, logGoalsL,
+                                   logHeadingL, ongoingTask, readCurrentLog,
+                                   showHeading)
 
-import           Miku.Draw                  (Draw (..), W, borderTypeL, defDraw,
-                                             draw, focusedL)
-import           Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask))
-import           Miku.Draw.Goals            (CompletedGoals (..),
-                                             NotCompletedGoals (..))
-import           Miku.Draw.StatusLine       (StatusLine (..))
-import           Miku.Mode                  (Action, DrawMode, IsMode (..),
-                                             KeyMap, Name, continueAction,
-                                             gsEditingModeL, gsModeStateL,
-                                             haltAction, handleAnyStateEvent)
+import Miku.Draw                  (Draw (..), W, borderTypeL, defDraw, draw,
+                                   focusedL)
+import Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask))
+import Miku.Draw.Goals            (CompletedGoals (..), NotCompletedGoals (..))
+import Miku.Draw.StatusLine       (StatusLine (..))
+import Miku.Mode                  (Action, DrawMode, IsMode (..), KeyMap, Name,
+                                   continueAction, gsEditingModeL, gsModeStateL,
+                                   haltAction, handleAnyStateEvent)
 
-import           Miku.Types.Window
+import Miku.Types.Window
 
-import           System.FilePath            ((</>))
+import System.FilePath            ((</>))
 
-import           Relude                     hiding (Either (..))
+import Relude                     hiding (Either (..))
 
 
 -- TODO: remove this

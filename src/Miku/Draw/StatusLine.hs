@@ -1,24 +1,23 @@
 module Miku.Draw.StatusLine
-  ( drawStatusLine
-  , StatusLine(..)
-  , slEditingModeL
-  , slModeNameL
-  , slOtherInfoL
-  )
-  where
+    ( StatusLine (..)
+    , drawStatusLine
+    , slEditingModeL
+    , slModeNameL
+    , slOtherInfoL
+    ) where
 
-import           Brick.Types          (Padding (Pad), Widget)
-import qualified Brick.Widgets.Border as Border
-import qualified Brick.Widgets.Center as Core
-import qualified Brick.Widgets.Core   as Core
+import Brick.Types          (Padding (Pad), Widget)
+import Brick.Widgets.Border qualified as Border
+import Brick.Widgets.Center qualified as Core
+import Brick.Widgets.Core   qualified as Core
 
-import           Control.Lens         (makeLenses)
+import Control.Lens         (makeLenses)
 
-import           Miku.Draw            (Draw (..), Drawable (..))
-import           Miku.Editing         (EMode (..))
-import           Miku.Mode            (Name)
+import Miku.Draw            (Draw (..), Drawable (..))
+import Miku.Editing         (EMode (..))
+import Miku.Mode            (Name)
 
-import           Relude
+import Relude
 
 data StatusLine = StatusLine { _slEditingModeL :: EMode
                              , _slModeNameL    :: Text

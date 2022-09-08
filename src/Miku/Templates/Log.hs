@@ -1,67 +1,58 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Miku.Templates.Log
-  ( Goal(Goal)
-  , goalStatusL
-  , goalDescL
-  , GoalStatus(Done, NotDone)
+    ( Goal (Goal)
+    , GoalStatus (Done, NotDone)
+    , Heading (Heading)
+    , Log (Log)
+    , Task (..)
+    , TaskDesc (TaskDesc)
+    , TaskName (TaskName)
+    , TaskTag (TaskTag)
+    , descL
+    , goalDescL
+    , goalStatusL
+    , headingL
+    , logGoalsL
+    , logHeadingL
+    , logTasksL
+    , nameL
+    , tagL
+    , taskDescL
+    , taskEndL
+    , taskNameL
+    , taskStartL
+    , taskTagsL
+      -- * Helper functions
+    , goalsDone
+    , goalsNotDone
+    , logParser
+    , ongoingTask
+    , showHeading
+    , showLog
+    , showTags
+    , showTask
+      -- * IO Stuff
+    , readCurrentLog
+    , readLog
+    , writeLog
+    ) where
 
-  , Heading(Heading)
-  , headingL
+import Control.Lens               (_head, filtered, folded, makeLenses, (^.),
+                                   (^..), (^?))
+import Control.Monad.Trans.Except (throwE)
+import Data.Text                  qualified as T
+import Data.Time                  (Day)
 
-  , Log (Log)
-  , logHeadingL
-  , logTasksL
-  , logGoalsL
+import Miku.Types.Parser
+import Miku.Types.Time            (Time, getCurrentDay)
 
-  , Task(..)
-  , taskNameL
-  , taskStartL
-  , taskDescL
-  , taskEndL
-  , taskTagsL
+import System.Directory           (doesFileExist, doesPathExist)
+import System.FilePath            ((</>))
 
-  , TaskDesc(TaskDesc)
-  , descL
+import Text.Megaparsec            (runParser)
+import Text.Read                  (read)
 
-  , TaskName(TaskName)
-  , nameL
-
-  , TaskTag(TaskTag)
-  , tagL
-
-  -- * Helper functions
-  , goalsDone
-  , goalsNotDone
-  , ongoingTask
-  , logParser
-  , showHeading
-  , showLog
-  , showTask
-  , showTags
-
-  -- * IO Stuff
-  , readCurrentLog
-  , readLog
-  , writeLog
-  )
-where
-
-import           Control.Lens               (_head, filtered, folded,
-                                             makeLenses, (^.), (^..), (^?))
-import           Control.Monad.Trans.Except (throwE)
-import qualified Data.Text                  as T
-import           Data.Time                  (Day)
-
-import           Miku.Types.Parser
-import           Miku.Types.Time            (Time, getCurrentDay)
-
-import           System.Directory           (doesFileExist, doesPathExist)
-import           System.FilePath            ((</>))
-
-import           Text.Megaparsec            (runParser)
-import           Text.Read                  (read)
-
-import           Relude
+import Relude
 
 
 dayP :: DayF

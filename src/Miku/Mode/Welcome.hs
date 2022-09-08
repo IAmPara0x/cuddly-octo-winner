@@ -1,29 +1,27 @@
 {-# LANGUAGE ViewPatterns    #-}
 module Miku.Mode.Welcome
-  ( WelcomeState(..)
-  , Welcome
-  , wsMsgL
-  , toWelcomeMode
-  )
-  where
+    ( Welcome
+    , WelcomeState (..)
+    , toWelcomeMode
+    , wsMsgL
+    ) where
 
-import qualified Brick.Main                 as Brick
-import qualified Brick.Widgets.Border.Style as Border
-import qualified Brick.Widgets.Center       as Core
-import qualified Brick.Widgets.Core         as Core
+import Brick.Main                 qualified as Brick
+import Brick.Widgets.Border.Style qualified as Border
+import Brick.Widgets.Center       qualified as Core
+import Brick.Widgets.Core         qualified as Core
 
-import           Control.Lens               (makeLenses, (.~), (^.))
-import qualified Data.Map                   as Map
+import Control.Lens               (makeLenses, (.~), (^.))
+import Data.Map                   qualified as Map
 
-import           Miku.Draw                  (Draw (..), W, draw)
-import           Miku.Draw.StatusLine       (StatusLine (..))
-import           Miku.Mode                  (Action, AppState (AppState),
-                                             DrawMode, IsMode (..), KeyMap,
-                                             continueAction, gsChangeModeL,
-                                             gsEditingModeL, gsModeStateL,
-                                             haltAction, handleAnyStateEvent)
+import Miku.Draw                  (Draw (..), W, draw)
+import Miku.Draw.StatusLine       (StatusLine (..))
+import Miku.Mode                  (Action, AppState (AppState), DrawMode,
+                                   IsMode (..), KeyMap, continueAction,
+                                   gsChangeModeL, gsEditingModeL, gsModeStateL,
+                                   haltAction, handleAnyStateEvent)
 
-import           Relude
+import Relude
 
 
 data Welcome

@@ -1,31 +1,30 @@
 module Miku.Draw.CurrentTask
-  ( CurrentTask(..)
-  , CurrentTaskName(..)
-  , CurrentTaskTags(..)
-  , CurrentTaskDesc(..)
-  )
-  where
+    ( CurrentTask (..)
+    , CurrentTaskDesc (..)
+    , CurrentTaskName (..)
+    , CurrentTaskTags (..)
+    ) where
 
-import           Brick.Types          (Padding (Pad), Widget)
-import qualified Brick.Widgets.Border as Border
-import qualified Brick.Widgets.Center as Core
-import qualified Brick.Widgets.Core   as Core
+import Brick.Types          (Padding (Pad), Widget)
+import Brick.Widgets.Border qualified as Border
+import Brick.Widgets.Center qualified as Core
+import Brick.Widgets.Core   qualified as Core
 
-import           Brick.Widgets.Core   ((<=>))
+import Brick.Widgets.Core   ((<=>))
 
-import           Control.Lens         (_1, makePrisms, to, (.~), (^.))
+import Control.Lens         (_1, makePrisms, to, (.~), (^.))
 
-import qualified Data.Text            as Text
+import Data.Text            qualified as Text
 
-import           Relude
+import Relude
 
-import           Miku.Draw            (Drawable (..), borderTypeL, drawableL)
-import           Miku.Mode            (Name)
-import           Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag,
-                                       descL, nameL, showTags)
-import           Miku.Types.Time      (Time, showTime)
+import Miku.Draw            (Drawable (..), borderTypeL, drawableL)
+import Miku.Mode            (Name)
+import Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag, descL,
+                             nameL, showTags)
+import Miku.Types.Time      (Time, showTime)
 
-import           Relude.Unsafe        ((!!))
+import Relude.Unsafe        ((!!))
 
 newtype CurrentTaskName = CurrentTaskName TaskName
 makePrisms ''CurrentTaskName

@@ -3,42 +3,41 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Miku.Types.Parser
-  ( Atom(..)
-  , Composeable(..)
-  , MkBluePrint(..)
-  , type (:+>)
-  , type (<:)
-  , type (:>)
-  , AlphaNum
-  , AlphaNums
-  , BluePrint
-  , Digits
-  , Literal
-  , Many
-  , Newline
-  , Optional
-  , Parser
-  , Prefix
-  , PrintChar
-  , PrintChars
-  , Repeat
-  , SepBy1
-  , Some
-  , Space
-  , Tab
-  , TakeTill
-  , Token
-  , Try
-  )
-  where
+    ( AlphaNum
+    , AlphaNums
+    , Atom (..)
+    , BluePrint
+    , Composeable (..)
+    , Digits
+    , Literal
+    , Many
+    , MkBluePrint (..)
+    , Newline
+    , Optional
+    , Parser
+    , Prefix
+    , PrintChar
+    , PrintChars
+    , Repeat
+    , SepBy1
+    , Some
+    , Space
+    , Tab
+    , TakeTill
+    , Token
+    , Try
+    , type (:+>)
+    , type (:>)
+    , type (<:)
+    ) where
 
-import qualified Data.Text            as T
-import           GHC.TypeLits
-import           Text.Megaparsec      hiding (Token, many, some)
-import           Text.Megaparsec.Char
-import           Text.Read            (read)
+import Data.Text            qualified as T
+import GHC.TypeLits
+import Text.Megaparsec      hiding (Token, many, some)
+import Text.Megaparsec.Char
+import Text.Read            (read)
 
-import           Relude               hiding (Alt, natVal)
+import Relude               hiding (Alt, natVal)
 
 class Composeable (a :: Type) (f :: Type) where
   type ComposeP a f :: Type

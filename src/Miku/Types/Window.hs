@@ -1,21 +1,20 @@
 {-# LANGUAGE PolyKinds          #-}
 {-# LANGUAGE StandaloneDeriving #-}
 module Miku.Types.Window
-  ( Window(..)
-  , Windows(..)
-  , Layout(..)
-  , HorizPos(..)
-  , VertPos(..)
-  , Lookup
-  , KnownWindow(..)
-  , type (:#)
-  , wMap
-  , wToList
-  )
-  where
+    ( HorizPos (..)
+    , KnownWindow (..)
+    , Layout (..)
+    , Lookup
+    , VertPos (..)
+    , Window (..)
+    , Windows (..)
+    , type (:#)
+    , wMap
+    , wToList
+    ) where
 
-import           Miku.Draw (Draw, Drawable)
-import           Relude    hiding (Either (..))
+import Miku.Draw (Draw, Drawable)
+import Relude    hiding (Either (..))
 
 data HorizPos = Left | Right
                 deriving (Show)
