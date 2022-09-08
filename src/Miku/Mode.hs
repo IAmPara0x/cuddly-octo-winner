@@ -23,19 +23,21 @@ module Miku.Mode
   , DrawMode
   ) where
 
-import Brick.Main qualified as Brick
-import Brick.Types (Widget, BrickEvent(VtyEvent, AppEvent), EventM, Next)
-import Control.Lens ((^.), (.~), makeLenses, Lens', lens, _1, _2, (+~), (%~), Lens, (<>~))
-import Data.Default (Default(def))
-import Data.Map qualified as Map
+import qualified Brick.Main   as Brick
+import           Brick.Types  (BrickEvent (AppEvent, VtyEvent), EventM, Next,
+                               Widget)
+import           Control.Lens (Lens, Lens', _1, _2, lens, makeLenses, (%~),
+                               (+~), (.~), (<>~), (^.))
+import           Data.Default (Default (def))
+import qualified Data.Map     as Map
 
-import Graphics.Vty (Key(KChar, KEsc))
-import Graphics.Vty qualified as Vty
+import           Graphics.Vty (Key (KChar, KEsc))
+import qualified Graphics.Vty as Vty
 
-import Miku.Editing (EMode(..))
+import           Miku.Editing (EMode (..))
 
 
-import Relude
+import           Relude
 
 type Name = ()
 data Tick = Tick

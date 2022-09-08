@@ -9,15 +9,15 @@ module Miku.Draw
   , W
   ) where
 
-import Brick.Widgets.Border.Style  qualified as Border
-import Brick.Widgets.Core          qualified as Core
+import qualified Brick.Widgets.Border.Style as Border
+import qualified Brick.Widgets.Core         as Core
 
-import Brick.Types (Widget)
-import Control.Lens (makeLenses)
+import           Brick.Types                (Widget)
+import           Control.Lens               (makeLenses)
 
-import Miku.Mode (GlobalState, Name)
+import           Miku.Mode                  (GlobalState, Name)
 
-import Relude
+import           Relude
 
 class Drawable a where
   draw :: Draw a -> Widget Name

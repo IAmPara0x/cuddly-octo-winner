@@ -1,23 +1,24 @@
 module Miku (run) where
 
-import Brick.AttrMap (AttrMap, attrMap)
-import Brick.BChan qualified as BChan
-import Brick.Main    (App(..), neverShowCursor, customMain)
-import Brick.Util    (fg)
-import Data.Map qualified as Map
+import           Brick.AttrMap        (AttrMap, attrMap)
+import qualified Brick.BChan          as BChan
+import           Brick.Main           (App (..), customMain, neverShowCursor)
+import           Brick.Util           (fg)
+import qualified Data.Map             as Map
 
-import Control.Concurrent (threadDelay, forkIO)
-import Data.Default (def)
-import Graphics.Vty qualified as Vty
+import           Control.Concurrent   (forkIO, threadDelay)
+import           Data.Default         (def)
+import qualified Graphics.Vty         as Vty
 
-import Miku.Editing (EMode(Normal))
-import Miku.Mode (AppState(AppState), defState, Name, Tick(Tick), GlobalState(..))
-import Miku.Mode.CurrentLog (CurrentLog)
-import Miku.Mode.Welcome (toWelcomeMode)
+import           Miku.Editing         (EMode (Normal))
+import           Miku.Mode            (AppState (AppState), GlobalState (..),
+                                       Name, Tick (Tick), defState)
+import           Miku.Mode.CurrentLog (CurrentLog)
+import           Miku.Mode.Welcome    (toWelcomeMode)
 
-import Miku.UI (drawUI, handleEvent)
+import           Miku.UI              (drawUI, handleEvent)
 
-import Relude
+import           Relude
 
 uiAttrMap :: AttrMap
 uiAttrMap = attrMap (fg Vty.red) [("goal", fg Vty.white), ("current", fg Vty.blue)]

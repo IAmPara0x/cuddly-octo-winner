@@ -7,31 +7,23 @@ module Miku.Mode.Welcome
   )
   where
 
-import Brick.Main qualified as Brick
-import Brick.Widgets.Border.Style  qualified as Border
-import Brick.Widgets.Center qualified as Core
-import Brick.Widgets.Core   qualified as Core
+import qualified Brick.Main                 as Brick
+import qualified Brick.Widgets.Border.Style as Border
+import qualified Brick.Widgets.Center       as Core
+import qualified Brick.Widgets.Core         as Core
 
-import Control.Lens (makeLenses, (^.), (.~))
-import Data.Map qualified as Map
+import           Control.Lens               (makeLenses, (.~), (^.))
+import qualified Data.Map                   as Map
 
-import Miku.Draw.StatusLine (StatusLine(..))
-import Miku.Draw(draw, W, Draw(..))
-import Miku.Mode
-  ( Action
-  , AppState(AppState)
-  , continueAction
-  , haltAction
-  , gsModeStateL
-  , gsChangeModeL
-  , gsEditingModeL
-  , handleAnyStateEvent
-  , IsMode(..)
-  , KeyMap
-  , DrawMode
-  )
+import           Miku.Draw                  (Draw (..), W, draw)
+import           Miku.Draw.StatusLine       (StatusLine (..))
+import           Miku.Mode                  (Action, AppState (AppState),
+                                             DrawMode, IsMode (..), KeyMap,
+                                             continueAction, gsChangeModeL,
+                                             gsEditingModeL, gsModeStateL,
+                                             haltAction, handleAnyStateEvent)
 
-import Relude
+import           Relude
 
 
 data Welcome

@@ -1,60 +1,45 @@
-{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns   #-}
+{-# LANGUAGE TupleSections    #-}
 module Miku.Mode.CurrentLog
   ( CurrentLog
   , currentLogStateActions
   )
   where
 
-import Brick.Widgets.Border        qualified as Border
-import Brick.Widgets.Border.Style  qualified as Border
-import Brick.Widgets.Center        qualified as Core
-import Brick.Widgets.Core          qualified as Core
+import qualified Brick.Widgets.Border       as Border
+import qualified Brick.Widgets.Border.Style as Border
+import qualified Brick.Widgets.Center       as Core
+import qualified Brick.Widgets.Core         as Core
 
-import Brick.Types
-  ( Widget
-  , Padding(Pad)
-  )
+import           Brick.Types                (Padding (Pad), Widget)
 
-import Control.Lens (makeLenses, (^.), (%~), (.~))
-import Control.Monad.Trans.Reader (mapReader)
-import Data.Default (Default(def))
-import Data.Map             qualified as Map
+import           Control.Lens               (makeLenses, (%~), (.~), (^.))
+import           Control.Monad.Trans.Reader (mapReader)
+import           Data.Default               (Default (def))
+import qualified Data.Map                   as Map
 
-import Miku.Templates.Log
-  ( logHeadingL
-  , logGoalsL
-  , Log
-  , readCurrentLog
-  , showHeading
-  , ongoingTask
-  , goalsDone
-  , goalsNotDone
-  )
+import           Miku.Templates.Log         (Log, goalsDone, goalsNotDone,
+                                             logGoalsL, logHeadingL,
+                                             ongoingTask, readCurrentLog,
+                                             showHeading)
 
-import Miku.Draw             (W, Draw(..), draw, defDraw, focusedL, borderTypeL)
-import Miku.Draw.CurrentTask (CurrentTask(NoCurrentTask, CurrentTask))
-import Miku.Draw.Goals       (CompletedGoals(..), NotCompletedGoals(..))
-import Miku.Draw.StatusLine  (StatusLine(..))
-import Miku.Mode
-  ( Action
-  , handleAnyStateEvent
-  , haltAction
-  , continueAction
-  , gsModeStateL
-  , gsEditingModeL
-  , IsMode(..)
-  , KeyMap
-  , Name
-  , DrawMode
-  )
+import           Miku.Draw                  (Draw (..), W, borderTypeL, defDraw,
+                                             draw, focusedL)
+import           Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask))
+import           Miku.Draw.Goals            (CompletedGoals (..),
+                                             NotCompletedGoals (..))
+import           Miku.Draw.StatusLine       (StatusLine (..))
+import           Miku.Mode                  (Action, DrawMode, IsMode (..),
+                                             KeyMap, Name, continueAction,
+                                             gsEditingModeL, gsModeStateL,
+                                             haltAction, handleAnyStateEvent)
 
-import Miku.Types.Window
+import           Miku.Types.Window
 
-import System.FilePath ((</>))
+import           System.FilePath            ((</>))
 
-import Relude hiding (Either(..))
+import           Relude                     hiding (Either (..))
 
 
 -- TODO: remove this
@@ -69,7 +54,7 @@ type AllWindows = '[ '( 'Top :# 'Left, CurrentTask)
 data CurrentLog
 
 data AnyCurrentLogState where
-  AnyCurrentLogState :: Window (v :# h) -> CurrentLogState v h -> AnyCurrentLogState
+  AnyCurrentLogState :: CurrentLogState v h -> AnyCurrentLogState
 
 data CurrentLogConfig =
   CurrentLogConfig { _clcConfigPathL    :: FilePath
@@ -77,11 +62,11 @@ data CurrentLogConfig =
                    }
 
 data CurrentLogState (v :: VertPos) (h :: HorizPos) =
-  CurrentLogState { _clsConfigL          :: CurrentLogConfig
-                  , _clsCurrentWindowL   :: Window (v :# h)
-                  , _clsLogL             :: Log
-                  , _clsClockAnimStateL  :: Int
-                  , _clsAllWindowsL      :: Windows AllWindows
+  CurrentLogState { _clsConfigL         :: CurrentLogConfig
+                  , _clsCurrentWindowL  :: Window (v :# h)
+                  , _clsLogL            :: Log
+                  , _clsClockAnimStateL :: Int
+                  , _clsAllWindowsL     :: Windows AllWindows
                   }
 
 makeLenses ''CurrentLogConfig
@@ -97,8 +82,7 @@ instance Default CurrentLogConfig where
 instance IsMode CurrentLog where
   type ModeState CurrentLog = AnyCurrentLogState
 
-  defState         = ( , currentLogStateActions) . AnyCurrentLogState (TopW :# LeftW)
-                  <$> defCurrentLogState
+  defState         = ( , currentLogStateActions) . AnyCurrentLogState <$> defCurrentLogState
   drawState        = drawCurrentLogState
   handleEventState = handleAnyStateEvent
 
@@ -120,12 +104,12 @@ defCurrentLogState =
     return $ CurrentLogState
               { _clsConfigL            = def
               , _clsLogL               = log
-              , _clsCurrentWindowL     = TopW :# LeftW
+              , _clsCurrentWindowL     = WTop :# WLeft
               , _clsClockAnimStateL    = 0
-              , _clsAllWindowsL        = (TopW :# LeftW, currentTask)
-                                      :> (TopW :# RightW, stats)
-                                      :> (BottomW :# LeftW, completedGoals)
-                                      :> (BottomW :# RightW, notCompletedGoals)
+              , _clsAllWindowsL        = (WTop :# WLeft, currentTask)
+                                      :> (WTop :# WRight, stats)
+                                      :> (WBottom :# WLeft, completedGoals)
+                                      :> (WBottom :# WRight, notCompletedGoals)
                                       :> WNil
               }
 
@@ -144,50 +128,42 @@ currentLogStateActions =
     exitApp  = haltAction
 
     up, down, left, right :: Action CurrentLog
-    up    = modify (gsModeStateL %~ switchWindow TopW) >> continueAction
-    down  = modify (gsModeStateL %~ switchWindow BottomW) >> continueAction
-    left  = modify (gsModeStateL %~ switchWindow LeftW) >> continueAction
-    right = modify (gsModeStateL %~ switchWindow RightW) >> continueAction
+    up    = modify (gsModeStateL %~ switchWindow WTop) >> continueAction
+    down  = modify (gsModeStateL %~ switchWindow WBottom) >> continueAction
+    left  = modify (gsModeStateL %~ switchWindow WLeft) >> continueAction
+    right = modify (gsModeStateL %~ switchWindow WRight) >> continueAction
 
 
 drawCurrentLogState :: DrawMode CurrentLog
 drawCurrentLogState = do
 
   gstate <- ask
-  (AnyCurrentLogState _ mstate) <- (^. gsModeStateL) <$> ask
+  (AnyCurrentLogState mstate) <- (^. gsModeStateL) <$> ask
 
-  let
-
-      -- TODO: Remove this
-      allWindows = [ mapReader draw heading
-                   , return $ draw $ window (TopW :# LeftW) (mstate ^. clsAllWindowsL)
-                   , return $ draw $ window (TopW :# RightW) (mstate ^. clsAllWindowsL)
-                   , return $ draw $ window (BottomW :# LeftW) (mstate ^. clsAllWindowsL)
-                   , return $ draw $ window (BottomW :# RightW) (mstate ^. clsAllWindowsL)
-                   ]
+  h <- mapReader draw heading
+  let allWindows :: [Widget Name]
+      allWindows = h : wToList draw (mstate ^. clsAllWindowsL)
 
       drawAllWindows :: [Widget Name] -> Widget Name
-      drawAllWindows [headingWindow, topLeftWindow, topRightWindow, botRightWindow, botLeftWindow] =
+      drawAllWindows [headingWindow, topWLeftindow, topWRightindow, botWLeftindow, botWRightindow] =
                 Core.vBox [ headingWindow
-                          , Core.hBox [topLeftWindow, topRightWindow]
+                          , Core.hBox [topWLeftindow, topWRightindow]
                           , Core.padTop (Pad 1) $ Core.hBox
-                              [ botLeftWindow
-                              , botRightWindow
+                              [ botWLeftindow
+                              , botWRightindow
                               ]
                           ]
       drawAllWindows _ = error "x_x"
 
-  windows <- sequence allWindows
-
   return [ Core.vBox
-            [ drawAllWindows windows
+            [ drawAllWindows allWindows
             , draw $ runReader statusLine gstate
             ]
          ]
 
 heading :: W CurrentLog (Widget Name)
 heading = do
-  (AnyCurrentLogState _ mstate) <-  (^. gsModeStateL) <$> ask
+  (AnyCurrentLogState mstate) <-  (^. gsModeStateL) <$> ask
 
   let logHeading = mstate ^. clsLogL . logHeadingL
       widget  = Core.padAll 1 $ Core.hCenter $ Core.txt $ showHeading logHeading
@@ -201,13 +177,13 @@ statusLine :: W CurrentLog StatusLine
 statusLine = do
 
   gstate <- ask
-  (AnyCurrentLogState _ mstate) <- (^. gsModeStateL) <$> ask
+  (AnyCurrentLogState mstate) <- (^. gsModeStateL) <$> ask
 
   let currWindow = case mstate ^. clsCurrentWindowL of
-                         TopW :# LeftW     -> ["OngoingTask"]
-                         TopW :# RightW    -> ["Stats"]
-                         BottomW :# LeftW  -> ["TODO", "Completed"]
-                         BottomW :# RightW -> ["TODO", "NotCompleted"]
+                         WTop :# WLeft     -> ["OngoingTask"]
+                         WTop :# WRight    -> ["Stats"]
+                         WBottom :# WLeft  -> ["TODO", "Completed"]
+                         WBottom :# WRight -> ["TODO", "NotCompleted"]
 
       widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
                           , _slModeNameL = "CurrentLog"
@@ -216,58 +192,49 @@ statusLine = do
   return $ Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
 
 -- Helpers
-
-type family SwitchWindow (a :: Layout) (b :: Layout) :: Layout where
-  SwitchWindow ('Vert 'Top)    ('Stack _ b) = 'Top :# b
-  SwitchWindow ('Vert 'Bottom) ('Stack _ b) = 'Bottom :# b
-  SwitchWindow ('Horiz 'Left)  ('Stack b _) = b :# 'Left
-  SwitchWindow ('Horiz 'Right) ('Stack b _) = b :# 'Right
-
 type family SingleWindow (a :: Layout) :: Bool where
   SingleWindow ('Vert a)  = 'True
   SingleWindow ('Horiz a) = 'True
   SingleWindow _          = 'False
 
 switchWindow :: (SingleWindow a ~ 'True) => Window a -> AnyCurrentLogState -> AnyCurrentLogState
-switchWindow TopW (AnyCurrentLogState (_ :# h) mstate) = AnyCurrentLogState (TopW :# h)
-                                                       $ mstate & clsCurrentWindowL %~ switch TopW
-                                                                & changeFocus
-switchWindow BottomW (AnyCurrentLogState (_ :# h) mstate) = AnyCurrentLogState (BottomW :# h)
-                                                          $ mstate & clsCurrentWindowL %~ switch BottomW
-                                                                   & changeFocus
-switchWindow LeftW (AnyCurrentLogState (v :# _) mstate) = AnyCurrentLogState (v :# LeftW)
-                                                        $ mstate & clsCurrentWindowL %~ switch LeftW
-                                                                 & changeFocus
-switchWindow RightW (AnyCurrentLogState (v :# _) mstate) = AnyCurrentLogState (v :# RightW)
-                                                         $ mstate & clsCurrentWindowL %~ switch RightW
-                                                                  & changeFocus
+switchWindow newPos (AnyCurrentLogState mstate)
+  = case newPos of
+      WTop    -> AnyCurrentLogState
+              $ mstate & clsCurrentWindowL .~ (WTop :# h)
+                       & changeFocus
+      WBottom -> AnyCurrentLogState
+              $ mstate & clsCurrentWindowL .~ (WBottom :# h)
+                       & changeFocus
+      WLeft   -> AnyCurrentLogState
+              $ mstate & clsCurrentWindowL .~ (v :# WLeft)
+                       & changeFocus
+      WRight  -> AnyCurrentLogState
+              $ mstate & clsCurrentWindowL .~ (v :# WRight)
+                       & changeFocus
+  where
 
-changeFocus :: CurrentLogState v h -> CurrentLogState v h
-changeFocus s = s & clsAllWindowsL %~ mapWindows ((borderTypeL .~ Border.borderStyleFromChar ' ') . (focusedL .~ False))
-                  & modifyCurrWindow ((borderTypeL .~ Border.unicodeRounded) . (focusedL .~ True))
+    changeFocus :: CurrentLogState v h -> CurrentLogState v h
+    changeFocus s = s & clsAllWindowsL %~ wMap ((borderTypeL .~ Border.borderStyleFromChar ' ') . (focusedL .~ False))
+                      & modifyCurrWindow ((borderTypeL .~ Border.unicodeRounded) . (focusedL .~ True))
+
+    (v :# h) = mstate ^. clsCurrentWindowL
 
 
-switch :: forall a b c. (SingleWindow a ~ 'True)
-       => Window a -> Window (b :# c) -> Window (SwitchWindow a (b :# c))
-switch TopW (_ :# b)    = TopW :# b
-switch BottomW (_ :# b) = BottomW :# b
-switch LeftW (b :# _)   = b :# LeftW
-switch RightW (b :# _)  = b :# RightW
-
-currWindowState :: CurrentLogState v h -> Draw (Lookup (v :# h) AllWindows)
-currWindowState CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
-  = case _clsCurrentWindowL of
-      (TopW :# LeftW)     -> window (TopW :# LeftW) _clsAllWindowsL
-      (TopW :# RightW)    -> window (TopW :# RightW) _clsAllWindowsL
-      (BottomW :# LeftW)  -> window (BottomW :# LeftW) _clsAllWindowsL
-      (BottomW :# RightW) -> window (BottomW :# RightW) _clsAllWindowsL
+-- currWindowState :: CurrentLogState v h -> Draw (Lookup (v :# h) AllWindows)
+-- currWindowState CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
+--   = case _clsCurrentWindowL of
+--       (WTop :# WLeft)     -> window (WTop :# WLeft) _clsAllWindowsL
+--       (WTop :# WRight)    -> window (WTop :# WRight) _clsAllWindowsL
+--       (WBottom :# WLeft)  -> window (WBottom :# WLeft) _clsAllWindowsL
+--       (WBottom :# WRight) -> window (WBottom :# WRight) _clsAllWindowsL
 
 modifyCurrWindow :: (Draw (Lookup (v :# h) AllWindows) -> Draw (Lookup (v :# h) AllWindows))
                  -> CurrentLogState v h
                  -> CurrentLogState v h
 modifyCurrWindow f mstate@CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
   = case _clsCurrentWindowL of
-      (TopW :# LeftW)     -> mstate {_clsAllWindowsL = modifyW (TopW :# LeftW) f _clsAllWindowsL}
-      (TopW :# RightW)    -> mstate {_clsAllWindowsL = modifyW (TopW :# RightW) f _clsAllWindowsL}
-      (BottomW :# LeftW)  -> mstate {_clsAllWindowsL = modifyW (BottomW :# LeftW) f _clsAllWindowsL}
-      (BottomW :# RightW) -> mstate {_clsAllWindowsL = modifyW (BottomW :# RightW) f _clsAllWindowsL}
+      (WTop :# WLeft)     -> mstate {_clsAllWindowsL = wModify (WTop :# WLeft) f _clsAllWindowsL}
+      (WTop :# WRight)    -> mstate {_clsAllWindowsL = wModify (WTop :# WRight) f _clsAllWindowsL}
+      (WBottom :# WLeft)  -> mstate {_clsAllWindowsL = wModify (WBottom :# WLeft) f _clsAllWindowsL}
+      (WBottom :# WRight) -> mstate {_clsAllWindowsL = wModify (WBottom :# WRight) f _clsAllWindowsL}

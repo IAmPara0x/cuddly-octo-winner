@@ -46,29 +46,22 @@ module Miku.Templates.Log
   )
 where
 
-import  Data.Text    qualified as T
-import  Control.Lens
-  ( (^?)
-  , (^.)
-  , (^..)
-  , folded
-  , filtered
-  , _head
-  , makeLenses
-  )
-import Control.Monad.Trans.Except (throwE)
-import  Data.Time                 (Day)
+import           Control.Lens               (_head, filtered, folded,
+                                             makeLenses, (^.), (^..), (^?))
+import           Control.Monad.Trans.Except (throwE)
+import qualified Data.Text                  as T
+import           Data.Time                  (Day)
 
-import  Miku.Types.Parser
-import  Miku.Types.Time           (Time, getCurrentDay)
+import           Miku.Types.Parser
+import           Miku.Types.Time            (Time, getCurrentDay)
 
-import  System.FilePath           ((</>))
-import  System.Directory          (doesPathExist, doesFileExist)
+import           System.Directory           (doesFileExist, doesPathExist)
+import           System.FilePath            ((</>))
 
-import  Text.Megaparsec           (runParser)
-import  Text.Read                 (read)
+import           Text.Megaparsec            (runParser)
+import           Text.Read                  (read)
 
-import  Relude
+import           Relude
 
 
 dayP :: DayF
@@ -238,8 +231,8 @@ instance MkBluePrint Goal where
   type Function Goal = GoalF
 
   parseBP = goal
-  showBP  (Goal Done desc)      = composeS @GoalFormat @GoalF mempty 'X' desc
-  showBP  (Goal NotDone desc)   = composeS @GoalFormat @GoalF mempty ' ' desc
+  showBP  (Goal Done desc)    = composeS @GoalFormat @GoalF mempty 'X' desc
+  showBP  (Goal NotDone desc) = composeS @GoalFormat @GoalF mempty ' ' desc
 
 makeLenses ''Goal
 

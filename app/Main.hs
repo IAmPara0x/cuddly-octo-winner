@@ -1,8 +1,8 @@
 module Main where
 
-import Relude hiding (put)
+import           Relude hiding (put)
 
-import Miku (run)
+import           Miku   (run)
 -- import Miku.Data.Time
 -- import Types
 

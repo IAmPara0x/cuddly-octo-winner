@@ -9,20 +9,13 @@ module Miku.Types.Time
   )
 where
 
-import Control.Lens (makeLenses)
-import Data.Time
-  ( getZonedTime
-  , zonedTimeToLocalTime
-  , localDay
-  , localTimeOfDay
-  , todHour
-  , todMin
-  , Day
-  )
+import           Control.Lens      (makeLenses)
+import           Data.Time         (Day, getZonedTime, localDay, localTimeOfDay,
+                                    todHour, todMin, zonedTimeToLocalTime)
 
-import Miku.Types.Parser
+import           Miku.Types.Parser
 
-import Relude
+import           Relude
 
 
 data Time = Time

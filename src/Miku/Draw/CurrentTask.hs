@@ -6,33 +6,26 @@ module Miku.Draw.CurrentTask
   )
   where
 
-import Brick.Types (Padding (Pad), Widget)
-import Brick.Widgets.Border        qualified as Border
-import Brick.Widgets.Center        qualified as Core
-import Brick.Widgets.Core          qualified as Core
+import           Brick.Types          (Padding (Pad), Widget)
+import qualified Brick.Widgets.Border as Border
+import qualified Brick.Widgets.Center as Core
+import qualified Brick.Widgets.Core   as Core
 
-import Brick.Widgets.Core ((<=>))
+import           Brick.Widgets.Core   ((<=>))
 
-import Control.Lens ((^.), makePrisms, to, _1, (.~))
+import           Control.Lens         (_1, makePrisms, to, (.~), (^.))
 
-import Data.Text qualified as Text
+import qualified Data.Text            as Text
 
-import Relude
+import           Relude
 
-import Miku.Templates.Log
-  ( Task(..)
-  , TaskName
-  , TaskTag
-  , TaskDesc
-  , showTags
-  , descL
-  , nameL
-  )
-import Miku.Types.Time (Time, showTime)
-import Miku.Draw (Drawable(..), drawableL, borderTypeL)
-import Miku.Mode (Name)
+import           Miku.Draw            (Drawable (..), borderTypeL, drawableL)
+import           Miku.Mode            (Name)
+import           Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag,
+                                       descL, nameL, showTags)
+import           Miku.Types.Time      (Time, showTime)
 
-import Relude.Unsafe ((!!))
+import           Relude.Unsafe        ((!!))
 
 newtype CurrentTaskName = CurrentTaskName TaskName
 makePrisms ''CurrentTaskName
@@ -126,6 +119,3 @@ noOngoinTaskWidget :: Text -> Widget Name
 noOngoinTaskWidget = Core.hLimitPercent 50
                    . Core.center
                    . Core.txt
-
-
-

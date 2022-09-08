@@ -1,6 +1,6 @@
 module Miku.Editing (EMode(Normal, Insert)) where
 
-import Relude
+import           Relude
 
 data EMode = Normal | Insert
              deriving stock (Show)

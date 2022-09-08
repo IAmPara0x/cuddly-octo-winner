@@ -7,30 +7,21 @@ module Miku.Draw.Goals
   , _NotCompletedGoals
   ) where
 
-import Brick.Types (Padding (Pad), Widget)
+import           Brick.Types          (Padding (Pad), Widget)
 
-import Brick.Widgets.Border        qualified as Border
-import Brick.Widgets.Center        qualified as Core
-import Brick.Widgets.Core          qualified as Core
+import qualified Brick.Widgets.Border as Border
+import qualified Brick.Widgets.Center as Core
+import qualified Brick.Widgets.Core   as Core
 
-import Control.Lens
-  ( to
-  , makePrisms
-  , ifolded
-  , withIndex
-  , (^.)
-  , (^..)
-  )
+import           Control.Lens         (ifolded, makePrisms, to, withIndex, (^.),
+                                       (^..))
 
-import Miku.Templates.Log
-  ( Goal
-  , goalDescL
-  )
+import           Miku.Templates.Log   (Goal, goalDescL)
 
-import Miku.Draw (Drawable(..), Draw(..))
-import Miku.Mode (Name)
+import           Miku.Draw            (Draw (..), Drawable (..))
+import           Miku.Mode            (Name)
 
-import Relude
+import           Relude
 
 data CompletedGoals    = CompletedGoals Int [Goal]
 makePrisms ''CompletedGoals

@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wno-orphans       #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Miku.Types.Parser
   ( Atom(..)
@@ -32,13 +32,13 @@ module Miku.Types.Parser
   )
   where
 
-import  Data.Text                 qualified as T
-import  GHC.TypeLits
-import  Text.Megaparsec           hiding (Token, many, some)
-import  Text.Megaparsec.Char
-import  Text.Read                        (read)
+import qualified Data.Text            as T
+import           GHC.TypeLits
+import           Text.Megaparsec      hiding (Token, many, some)
+import           Text.Megaparsec.Char
+import           Text.Read            (read)
 
-import  Relude                    hiding (natVal, Alt)
+import           Relude               hiding (Alt, natVal)
 
 class Composeable (a :: Type) (f :: Type) where
   type ComposeP a f :: Type
