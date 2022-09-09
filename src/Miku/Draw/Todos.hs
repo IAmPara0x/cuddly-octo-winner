@@ -1,11 +1,13 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module Miku.Draw.Todos
-  ( CompletedTodos (..)
-  , NotCompletedTodos (..)
-  , _CompletedTodos
-  , _NotCompletedTodos
-  , completedTodos
-  , notCompletedTodos
+  ( Completed
+  , NotCompleted
+  , Todos (_getTodosL, _currTodoIdxL)
+  , changeTodoIdx
+  , currTodoIdxL
+  , getTodosL
+  , mkCompletedTodos
+  , mkNotCompletedTodos
   ) where
 
 import Brick.Types          (Padding (Pad), Widget)
@@ -14,7 +16,7 @@ import Brick.Widgets.Border qualified as Border
 import Brick.Widgets.Center qualified as Core
 import Brick.Widgets.Core   qualified as Core
 
-import Control.Lens         (ifolded, makePrisms, to, withIndex, (^.), (^..))
+import Control.Lens         (ifolded, makeLenses, to, withIndex, (^.), (^..))
 
 import Miku.Templates.Log   (Todo, todoDescL)
 
@@ -23,20 +25,25 @@ import Miku.Mode            (Name)
 
 import Relude
 
-data CompletedTodos    = CompletedTodos Int [Todo]
-makePrisms ''CompletedTodos
+data Completed
+data NotCompleted
+data Todos a = Todos { _currTodoIdxL :: Int
+                     , _getTodosL    :: [Todo]
+                     }
 
-completedTodos :: Int -> [Todo] -> CompletedTodos
-completedTodos n todos = CompletedTodos (mod n $ length todos) todos
+makeLenses ''Todos
 
-data NotCompletedTodos = NotCompletedTodos Int [Todo]
-makePrisms ''NotCompletedTodos
+mkCompletedTodos :: Int -> [Todo] -> Todos Completed
+mkCompletedTodos n todos = Todos (mod n $ length todos) todos
 
-notCompletedTodos :: Int -> [Todo] -> NotCompletedTodos
-notCompletedTodos n todos = NotCompletedTodos (mod n $ length todos) todos
+mkNotCompletedTodos :: Int -> [Todo] -> Todos NotCompleted
+mkNotCompletedTodos n todos = Todos (mod n $ length todos) todos
 
-instance Drawable CompletedTodos where
-  draw Draw{ _drawableL=CompletedTodos currIdx todos , .. }
+changeTodoIdx :: Int -> Todos a -> Todos a
+changeTodoIdx n (Todos idx todos) = Todos (mod (n + idx) $ length todos) todos
+
+instance Drawable (Todos Completed) where
+  draw Draw{ _drawableL=Todos currIdx todos , .. }
     = Core.withBorderStyle _borderTypeL $ drawTodos "[✓] Completed"
 
     where drawTodos heading =
@@ -53,9 +60,9 @@ instance Drawable CompletedTodos where
               | not _focusedL  = Core.withAttr "todo"    $ drawTodo todo
               | idx == currIdx = Core.withAttr "current" $ drawTodo todo
               | otherwise      = drawTodo todo
-
-instance Drawable NotCompletedTodos where
-  draw Draw{ _drawableL=NotCompletedTodos currIdx todos , .. }
+--
+instance Drawable (Todos NotCompleted) where
+  draw Draw{ _drawableL=Todos currIdx todos , .. }
     = Core.withBorderStyle _borderTypeL $ drawTodos "[✕] Not Completed"
     where drawTodos heading =
             Border.border

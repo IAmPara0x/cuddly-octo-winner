@@ -30,7 +30,7 @@ import Control.Lens (Lens, Lens', _1, _2, lens, makeLenses, (%~), (+~), (.~),
 import Data.Default (Default (def))
 import Data.Map     qualified as Map
 
-import Graphics.Vty (Key (KChar, KEsc))
+import Graphics.Vty (Key (KBackTab, KChar, KEsc))
 import Graphics.Vty qualified as Vty
 
 import Miku.Editing (EMode (..))
@@ -132,6 +132,7 @@ handleAnyStateEvent (VtyEvent (Vty.EvKey key [])) =
     (KChar '\t') -> actionWithKeys "<tab>"
     (KChar ' ')  -> actionWithKeys "<spc>"
     (KChar c)    -> actionWithKeys [c]
+    KBackTab            -> actionWithKeys "<shift>+<tab>"
     _            -> continueAction
 handleAnyStateEvent _               = continueAction
 

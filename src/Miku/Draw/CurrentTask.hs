@@ -50,7 +50,7 @@ makePrisms ''CurrentTaskDesc
 instance Drawable CurrentTaskDesc where
   draw drawState = drawState ^. drawableL
                               . _CurrentTaskDesc
-                              . to (maybe "" (^. descL))
+                              . to (maybe "No Description." (^. descL))
                               . to (Core.vCenter . Core.txt)
 
 newtype StartTime = StartTime Time
