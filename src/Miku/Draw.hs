@@ -22,10 +22,12 @@ import Relude
 class Drawable a where
   draw :: Draw a -> Widget Name
 
-data Draw a = Draw { _focusedL    :: Bool
-                   , _borderTypeL :: Border.BorderStyle
-                   , _drawableL   :: a
-                   }
+data Draw a
+  = Draw
+      { _focusedL    :: Bool
+      , _borderTypeL :: Border.BorderStyle
+      , _drawableL   :: a
+      }
 
 instance Drawable (Widget Name) where
   draw Draw{..} = Core.withBorderStyle _borderTypeL _drawableL
@@ -36,4 +38,4 @@ defDraw a = Draw { _focusedL = False, _borderTypeL = Border.borderStyleFromChar 
 makeLenses ''Draw
 
 -- -- TODO: rename this.
-type W m a = Reader (GlobalState m) (Draw a)
+type W emode mode a = Reader (GlobalState emode mode) (Draw a)

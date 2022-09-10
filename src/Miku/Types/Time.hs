@@ -17,10 +17,11 @@ import Miku.Types.Parser
 import Relude
 
 
-data Time = Time
-  { _timeHrsL  :: Integer,
-    _timeMinsL :: Integer
-  }
+data Time
+  = Time
+      { _timeHrsL  :: Integer
+      , _timeMinsL :: Integer
+      }
   deriving (Show)
 
 type TimeFormat = Digits <: Literal "h" <: Token ":" :+> Digits <: Literal "m"

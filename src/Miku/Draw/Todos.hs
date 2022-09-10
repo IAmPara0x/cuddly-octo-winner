@@ -27,9 +27,11 @@ import Relude
 
 data Completed
 data NotCompleted
-data Todos a = Todos { _currTodoIdxL :: Int
-                     , _getTodosL    :: [Todo]
-                     }
+data Todos a
+  = Todos
+      { _currTodoIdxL :: Int
+      , _getTodosL    :: [Todo]
+      }
 
 makeLenses ''Todos
 

@@ -16,8 +16,9 @@ import Data.Map                   qualified as Map
 
 import Miku.Draw                  (Draw (..), W, draw)
 import Miku.Draw.StatusLine       (StatusLine (..))
+import Miku.Editing               (EditingMode (..))
 import Miku.Mode                  (Action, AppState (AppState), DrawMode,
-                                   IsMode (..), KeyMap, continueAction,
+                                   IsMode (..), KeyMap (..), continueAction,
                                    gsChangeModeL, gsEditingModeL, gsModeStateL,
                                    haltAction, handleAnyStateEvent)
 
@@ -28,9 +29,8 @@ data Welcome
 
 -- | Welcome State
 
-newtype WelcomeState =
-    WelcomeState { _wsMsgL       :: Text
-                 }
+newtype WelcomeState
+  = WelcomeState { _wsMsgL :: Text }
 makeLenses ''WelcomeState
 
 instance IsMode Welcome where
@@ -40,7 +40,7 @@ instance IsMode Welcome where
   drawState        = drawWelcomeState
   handleEventState = handleAnyStateEvent
 
-drawWelcomeState :: DrawMode Welcome
+drawWelcomeState :: DrawMode emode Welcome
 drawWelcomeState  = do
   gstate <- ask
 
@@ -52,7 +52,7 @@ drawWelcomeState  = do
              ]
          ]
 
-statusLine :: W Welcome StatusLine
+statusLine :: W emode Welcome (StatusLine emode)
 statusLine = do
   gstate <- ask
 
@@ -65,22 +65,25 @@ statusLine = do
 
 welcomeStateActions :: KeyMap Welcome
 welcomeStateActions =
-  Map.fromList [ ("c", changeMsg)
-               , ("q", exitApp)
-               , ("<spc>w", changeMsgAgain)
-               ]
+  KeyMap { _normalModeMapL =
+              Map.fromList [ ("c", changeMsg)
+                           , ("q", exitApp)
+                           , ("<spc>w", changeMsgAgain)
+                           ]
+         , _insertModeMapL = mempty
+         }
   where
 
-    changeMsg :: Action Welcome
+    changeMsg :: Action 'Normal Welcome
     changeMsg = modify (gsModeStateL . wsMsgL .~ "welcome!") >> continueAction
 
-    changeMsgAgain :: Action Welcome
+    changeMsgAgain :: Action 'Normal Welcome
     changeMsgAgain = modify (gsModeStateL . wsMsgL .~ "welcome again!") >> continueAction
 
-    exitApp :: Action Welcome
+    exitApp :: Action 'Normal Welcome
     exitApp  = haltAction
 
-toWelcomeMode :: forall a. IsMode a => Action a
+toWelcomeMode :: forall a. IsMode a => Action 'Normal a
 toWelcomeMode = do
     gstate <- get
     wstate <- liftIO $ defState @Welcome

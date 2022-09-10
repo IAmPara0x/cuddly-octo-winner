@@ -30,10 +30,12 @@ import Miku.Draw.StatusLine       (StatusLine (..))
 import Miku.Draw.Todos            (Completed, NotCompleted, Todos,
                                    changeTodoIdx, mkCompletedTodos,
                                    mkNotCompletedTodos)
-import Miku.Mode                  (Action, DrawMode, IsMode (..), KeyMap, Name,
-                                   continueAction, gsEditingModeL, gsModeStateL,
-                                   haltAction, handleAnyStateEvent)
+import Miku.Mode                  (Action, DrawMode, IsMode (..), KeyMap (..),
+                                   Name, continueAction, gsEditingModeL,
+                                   gsModeStateL, haltAction,
+                                   handleAnyStateEvent, toNormalMode)
 
+import Miku.Editing               (EditingMode (..))
 import Miku.Types.Window          (HorizPos (..), KnownWindow (wModify),
                                    Layout (Horiz, Vert), Lookup, VertPos (..),
                                    Window (..), Windows (..), type (:#), wMap,
@@ -59,18 +61,20 @@ data CurrentLog
 data AnyCurrentLogState where
   AnyCurrentLogState :: CurrentLogState v h -> AnyCurrentLogState
 
-data CurrentLogConfig =
-  CurrentLogConfig { _clcConfigPathL    :: FilePath
-                   , _clcClockAnimTimeL :: Int
-                   }
+data CurrentLogConfig
+  = CurrentLogConfig
+      { _clcConfigPathL    :: FilePath
+      , _clcClockAnimTimeL :: Int
+      }
 
-data CurrentLogState (v :: VertPos) (h :: HorizPos) =
-  CurrentLogState { _clsConfigL         :: CurrentLogConfig
-                  , _clsCurrentWindowL  :: Window (v :# h)
-                  , _clsLogL            :: Log
-                  , _clsClockAnimStateL :: Int
-                  , _clsAllWindowsL     :: Windows AllWindows
-                  }
+data CurrentLogState (v :: VertPos) (h :: HorizPos)
+  = CurrentLogState
+      { _clsConfigL         :: CurrentLogConfig
+      , _clsCurrentWindowL  :: Window (v :# h)
+      , _clsLogL            :: Log
+      , _clsClockAnimStateL :: Int
+      , _clsAllWindowsL     :: Windows AllWindows
+      }
 
 makeLenses ''CurrentLogConfig
 makeLenses ''CurrentLogState
@@ -118,21 +122,26 @@ defCurrentLogState =
               }
 
 currentLogStateActions :: KeyMap CurrentLog
-currentLogStateActions =
-  Map.fromList [ ("q", exitApp)
-               , ("k", up)
-               , ("j", down)
-               , ("l", right)
-               , ("h", left)
-               , ("<tab>", incAction)
-               , ("<shift>+<tab>", decAction)
-               ]
+currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
+                                , _insertModeMapL = Map.fromList [("jk", toNormalMode)]
+                                }
+
   where
 
-    exitApp :: Action CurrentLog
+    normalKeyMap =
+      Map.fromList [ ("q", exitApp)
+                   , ("k", up)
+                   , ("j", down)
+                   , ("l", right)
+                   , ("h", left)
+                   , ("<tab>", incAction)
+                   , ("<shift>+<tab>", decAction)
+                   ]
+
+    exitApp :: Action 'Normal CurrentLog
     exitApp  = haltAction
 
-    up, down, left, right :: Action CurrentLog
+    up, down, left, right :: Action 'Normal CurrentLog
     up    = modify (gsModeStateL %~ switchWindow WTop) >> continueAction
     down  = modify (gsModeStateL %~ switchWindow WBottom) >> continueAction
     left  = modify (gsModeStateL %~ switchWindow WLeft) >> continueAction
@@ -147,7 +156,7 @@ currentLogStateActions =
     changeFocus n = modifyAllWindow (id , id, drawableL %~ changeTodoIdx n, drawableL %~ changeTodoIdx n)
 
 
-drawCurrentLogState :: DrawMode CurrentLog
+drawCurrentLogState :: DrawMode emode CurrentLog
 drawCurrentLogState = do
 
   gstate <- ask
@@ -174,7 +183,7 @@ drawCurrentLogState = do
             ]
          ]
 
-heading :: W CurrentLog (Widget Name)
+heading :: W emode CurrentLog (Widget Name)
 heading = do
   (AnyCurrentLogState mstate) <-  (^. gsModeStateL) <$> ask
 
@@ -186,7 +195,7 @@ heading = do
                 , _borderTypeL = Border.borderStyleFromChar ' '
                 }
 
-statusLine :: W CurrentLog StatusLine
+statusLine :: W emode CurrentLog (StatusLine emode)
 statusLine = do
 
   gstate <- ask

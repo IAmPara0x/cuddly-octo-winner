@@ -75,8 +75,9 @@ instance MkBluePrint Day where
 -- | 'Heading'
 -----------------------------------------------------------------
 
-newtype Heading = Heading { _headingL :: Day }
-                  deriving stock (Show, Eq)
+newtype Heading
+  = Heading { _headingL :: Day }
+  deriving stock (Eq, Show)
 
 type HeadingFormat = Prefix "# Date:" :> BluePrint Day <: Many Space
 type HeadingF      = Day -> Heading
@@ -94,8 +95,9 @@ makeLenses ''Heading
 -- | 'TaskName'
 -----------------------------------------------------------------
 
-newtype TaskName = TaskName { _nameL :: Text }
-               deriving stock (Show, Eq)
+newtype TaskName
+  = TaskName { _nameL :: Text }
+  deriving stock (Eq, Show)
 
 type TaskNameFormat = Prefix "###" :> TakeTill "(" <: Token "("
 type TaskNameF      = Text -> TaskName
@@ -113,8 +115,9 @@ makeLenses ''TaskName
 -- | 'TaskDesc'
 -----------------------------------------------------------------
 
-newtype TaskDesc = TaskDesc { _descL :: Text }
-                      deriving stock (Show, Eq)
+newtype TaskDesc
+  = TaskDesc { _descL :: Text }
+  deriving stock (Eq, Show)
 
 
 type DescLine = Repeat 2 Space :> AlphaNums
@@ -142,8 +145,9 @@ makeLenses ''TaskDesc
 -- | 'TaskTags'
 -----------------------------------------------------------------
 
-newtype TaskTag = TaskTag { _tagL :: Text}
-              deriving stock (Show, Eq)
+newtype TaskTag
+  = TaskTag { _tagL :: Text }
+  deriving stock (Eq, Show)
 
 type TaskTagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
                      :> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
@@ -163,13 +167,14 @@ makeLenses ''TaskTag
 -- | 'Task'
 -----------------------------------------------------------------
 
-data Task = Task
-  { _taskNameL  :: TaskName
-  , _taskStartL :: Time
-  , _taskEndL   :: Maybe Time
-  , _taskDescL  :: Maybe TaskDesc
-  , _taskTagsL  :: [TaskTag]
-  }
+data Task
+  = Task
+      { _taskNameL  :: TaskName
+      , _taskStartL :: Time
+      , _taskEndL   :: Maybe Time
+      , _taskDescL  :: Maybe TaskDesc
+      , _taskTagsL  :: [TaskTag]
+      }
   deriving (Show)
 
 type TaskF   = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
@@ -197,14 +202,17 @@ showTask = showAtom @(BluePrint Task)
 -- | 'Todos'
 -----------------------------------------------------------------
 
-data TodoStatus = Done
-                | NotDone
-                  deriving stock (Show, Eq)
+data TodoStatus
+  = Done
+  | NotDone
+  deriving stock (Eq, Show)
 
-data Todo = Todo
-  { _todoStatusL :: TodoStatus
-  , _todoDescL   :: Text
-  } deriving stock (Show)
+data Todo
+  = Todo
+      { _todoStatusL :: TodoStatus
+      , _todoDescL   :: Text
+      }
+  deriving stock (Show)
 
 type TodoFormat =  Repeat 2 Space :> Literal "-" :> Space
                :>  Literal "[" :> PrintChar <: Literal "]" <: Space
@@ -231,11 +239,12 @@ makeLenses ''Todo
 -- | 'Log' type stores every information about the current log.
 -----------------------------------------------------------------
 
-data Log = Log
-  { _logHeadingL :: Heading
-  , _logTasksL   :: [Task]
-  , _logTodosL   :: [Todo]
-  }
+data Log
+  = Log
+      { _logHeadingL :: Heading
+      , _logTasksL   :: [Task]
+      , _logTodosL   :: [Todo]
+      }
   deriving (Show)
 
 type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline

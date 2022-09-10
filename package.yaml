@@ -37,12 +37,22 @@ default-extensions:
 - TemplateHaskell
 - TypeOperators
 - MultiParamTypeClasses
-- PolyKinds              
+- PolyKinds
 - FlexibleInstances
 - TypeFamilies
+- StandaloneKindSignatures
 
 ghc-options:
   -Wall
+  -Wcompat
+  -Widentities
+  -Wincomplete-uni-patterns
+  -Wincomplete-record-updates
+  -Wredundant-constraints
+  -Wmissing-export-lists
+  -Wpartial-fields
+  -Wmissing-deriving-strategies
+  -Wunused-packages
 
 library:
   source-dirs: src

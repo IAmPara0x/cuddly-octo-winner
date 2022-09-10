@@ -14,19 +14,22 @@ import Brick.Widgets.Core   qualified as Core
 import Control.Lens         (makeLenses)
 
 import Miku.Draw            (Draw (..), Drawable (..))
-import Miku.Editing         (EMode (..))
+import Miku.Editing         (EditingMode (..), SEditingMode (..))
 import Miku.Mode            (Name)
 
 import Relude
 
-data StatusLine = StatusLine { _slEditingModeL :: EMode
-                             , _slModeNameL    :: Text
-                             , _slOtherInfoL   :: [Text]
-                             }
+type StatusLine :: EditingMode -> Type
+data StatusLine emode
+  = StatusLine
+      { _slEditingModeL :: SEditingMode emode
+      , _slModeNameL    :: Text
+      , _slOtherInfoL   :: [Text]
+      }
 
 makeLenses ''StatusLine
 
-instance Drawable StatusLine where
+instance Drawable (StatusLine a) where
   draw Draw{_drawableL=StatusLine{..}}
     = Core.vLimit 2
     $ Core.vBox [ Core.vLimit 1
@@ -36,7 +39,7 @@ instance Drawable StatusLine where
                 , Core.fill ' '
                 ]
 
-drawMode :: EMode -> Widget Name
+drawMode :: SEditingMode emode -> Widget Name
 drawMode = Core.padLeft (Pad 1) . Core.txt . show
 
 drawInfo :: [Text] -> Widget Name

@@ -26,7 +26,8 @@ import Miku.Types.Time      (Time, showTime)
 
 import Relude.Unsafe        ((!!))
 
-newtype CurrentTaskName = CurrentTaskName TaskName
+newtype CurrentTaskName
+  = CurrentTaskName TaskName
 makePrisms ''CurrentTaskName
 
 instance Drawable CurrentTaskName where
@@ -44,7 +45,8 @@ instance Drawable CurrentTaskName where
               [ Core.hCenter (Core.txt (taskName ^. nameL))
               ]
 
-newtype CurrentTaskDesc = CurrentTaskDesc (Maybe TaskDesc)
+newtype CurrentTaskDesc
+  = CurrentTaskDesc (Maybe TaskDesc)
 makePrisms ''CurrentTaskDesc
 
 instance Drawable CurrentTaskDesc where
@@ -53,7 +55,8 @@ instance Drawable CurrentTaskDesc where
                               . to (maybe "No Description." (^. descL))
                               . to (Core.vCenter . Core.txt)
 
-newtype StartTime = StartTime Time
+newtype StartTime
+  = StartTime Time
 makePrisms ''StartTime
 
 instance Drawable StartTime where
@@ -65,7 +68,8 @@ instance Drawable StartTime where
                               . to (Core.padLeft $ Pad 1)
 
 
-data EndTime = EndTime Int (Maybe Time)
+data EndTime
+  = EndTime Int (Maybe Time)
 makePrisms ''EndTime
 
 instance Drawable EndTime where
@@ -80,7 +84,8 @@ instance Drawable EndTime where
 clockAnimationStates :: [Char]
 clockAnimationStates = '◴' : ['◷','◶','◵']
 
-newtype CurrentTaskTags = CurrentTaskTags [TaskTag]
+newtype CurrentTaskTags
+  = CurrentTaskTags [TaskTag]
 makePrisms ''CurrentTaskTags
 
 instance Drawable CurrentTaskTags where
@@ -91,8 +96,9 @@ instance Drawable CurrentTaskTags where
     where
       drawTaskTags tags = Core.padTopBottom 1 $ Core.txt $ showTags tags
 
-data CurrentTask = CurrentTask Int Task
-                 | NoCurrentTask Text
+data CurrentTask
+  = CurrentTask Int Task
+  | NoCurrentTask Text
 
 instance Drawable CurrentTask where
   draw drawState =

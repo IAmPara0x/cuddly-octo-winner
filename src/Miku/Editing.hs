@@ -1,8 +1,18 @@
+{-# LANGUAGE StandaloneDeriving #-}
 module Miku.Editing
-  ( EMode (Normal, Insert)
+  ( EditingMode (Normal, Insert)
+  , SEditingMode (SNormal, SInsert)
   ) where
 
 import Relude
 
-data EMode = Normal | Insert
-             deriving stock (Show)
+data EditingMode
+  = Normal
+  | Insert
+  deriving stock (Show)
+
+data SEditingMode (a :: EditingMode) where
+  SNormal :: SEditingMode 'Normal
+  SInsert :: SEditingMode 'Insert
+
+deriving stock instance Show (SEditingMode a)

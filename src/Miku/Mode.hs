@@ -5,7 +5,7 @@ module Miku.Mode
   , GlobalConfig (..)
   , GlobalState (..)
   , IsMode (..)
-  , KeyMap
+  , KeyMap (..)
   , Keys
   , Name
   , Tick (Tick)
@@ -21,6 +21,9 @@ module Miku.Mode
   , gsTickCounterL
   , haltAction
   , handleAnyStateEvent
+  , insertModeMapL
+  , normalModeMapL
+  , toNormalMode
   ) where
 
 import Brick.Main   qualified as Brick
@@ -33,19 +36,21 @@ import Data.Map     qualified as Map
 import Graphics.Vty (Key (KBackTab, KChar, KEsc))
 import Graphics.Vty qualified as Vty
 
-import Miku.Editing (EMode (..))
+import Miku.Editing (EditingMode (..), SEditingMode (SInsert, SNormal))
 
 
 import Relude
 
 type Name = ()
-data Tick = Tick
+data Tick
+  = Tick
 
-data GlobalConfig =
-  GlobalConfig { _gcPathL           :: FilePath
-               , _gcMaxTickCounterL :: Int
-               , _gcClearKeysTimeL  :: Int
-               }
+data GlobalConfig
+  = GlobalConfig
+      { _gcPathL           :: FilePath
+      , _gcMaxTickCounterL :: Int
+      , _gcClearKeysTimeL  :: Int
+      }
 
 instance Default GlobalConfig where
   def = GlobalConfig { _gcPathL = "/home/iamparadox/.miku/"
@@ -53,37 +58,51 @@ instance Default GlobalConfig where
                      , _gcClearKeysTimeL = 5
                      }
 
-data GlobalState a = IsMode a =>
-  GlobalState { _gsConfigL          :: GlobalConfig
-              , _gsKeysTickCounterL :: Int
-              , _gsTickCounterL     :: Int
-              , _gsModeStateL       :: ModeState a
-              , _gsKeyMapL          :: KeyMap a
-              , _gsPrevKeysL        :: Keys
-              , _gsEditingModeL     :: EMode
-              }
+type GlobalState :: EditingMode -> Type -> Type
+data GlobalState emode mode
+  = IsMode mode => GlobalState
+      { _gsConfigL          :: GlobalConfig
+      , _gsKeysTickCounterL :: Int
+      , _gsTickCounterL     :: Int
+      , _gsModeStateL       :: ModeState mode
+      , _gsKeyMapL          :: KeyMap mode
+      , _gsPrevKeysL        :: Keys
+      , _gsEditingModeL     :: SEditingMode emode
+      }
 
-type KeyMap a   = Map Keys (Action a)
-type Keys       = [Char]
-type Action a   = StateT (GlobalState a) (EventM Name) (Next AppState)
-type DrawMode a = Reader (GlobalState a) [Widget Name]
+
+data KeyMap mode
+  = KeyMap
+      { _insertModeMapL :: Map Keys (Action 'Insert mode)
+      , _normalModeMapL :: Map Keys (Action 'Normal mode)
+      }
+
+getKeyMap :: GlobalState emode mode -> Map Keys (Action emode mode)
+getKeyMap gstate = case _gsEditingModeL gstate of
+                    SNormal -> _normalModeMapL $ _gsKeyMapL gstate
+                    SInsert -> _insertModeMapL $ _gsKeyMapL gstate
+
+type Keys                = [Char]
+type Action emode mode   = StateT (GlobalState emode mode) (EventM Name) (Next AppState)
+type DrawMode emode mode = Reader (GlobalState emode mode) [Widget Name]
 
 data AppState where
-  AppState :: forall a. (IsMode a) => GlobalState a -> AppState
+  AppState :: forall (emode :: EditingMode) (mode :: Type). (IsMode mode) => GlobalState emode mode -> AppState
 
-class IsMode (a :: Type) where
-  type ModeState a :: Type
+class IsMode (mode :: Type) where
+  type ModeState mode :: Type
 
-  defState         :: IO (ModeState a, KeyMap a)
-  drawState        :: DrawMode a
-  handleEventState :: BrickEvent Name Tick -> Action a
+  defState         :: IO (ModeState mode, KeyMap mode)
+  drawState        :: DrawMode emode mode
+  handleEventState :: BrickEvent Name Tick -> Action emode mode
 
+makeLenses ''KeyMap
 makeLenses ''GlobalState
 makeLenses ''GlobalConfig
 
 gsChangeModeL :: IsMode b =>
-  Lens (GlobalState a)
-       (GlobalState b)
+  Lens (GlobalState 'Normal a)
+       (GlobalState 'Normal b)
        (ModeState a, KeyMap a)
        (ModeState b, KeyMap b)
 gsChangeModeL = lens getter setter
@@ -95,11 +114,10 @@ gsChangeModeL = lens getter setter
                                                   , _gsTickCounterL     = _gsTickCounterL gstate
                                                   , _gsKeysTickCounterL = _gsKeysTickCounterL gstate
                                                   , _gsPrevKeysL        = []
-                                                  , _gsEditingModeL     = Normal
+                                                  , _gsEditingModeL     = _gsEditingModeL gstate
                                                   }
 
-
-gsTickL :: Lens' (GlobalState a) (Int, Int)
+gsTickL :: Lens' (GlobalState emode mode) (Int, Int)
 gsTickL  = lens getter setter
   where
     getter gstate
@@ -108,7 +126,7 @@ gsTickL  = lens getter setter
         = gstate  & gsTickCounterL .~ val
                   & gsConfigL . gcMaxTickCounterL .~ conf
 
-gsKeysTickL :: Lens' (GlobalState a) (Int, Int)
+gsKeysTickL :: Lens' (GlobalState emode mode) (Int, Int)
 gsKeysTickL  = lens getter setter
   where
     getter gstate
@@ -123,39 +141,61 @@ clearKeysL = lens getter setter
     getter (AppState s) = s ^. gsPrevKeysL
     setter (AppState s) keys = AppState $ s & gsPrevKeysL .~ keys
 
+handleAnyStateEvent :: IsMode a => BrickEvent Name Tick -> Action emode a
+handleAnyStateEvent event = do
+  gstate <- get
+  case gstate ^. gsEditingModeL of
+    SNormal -> handleNormalStateEvent event
+    SInsert -> handleInsertStateEvent event
 
-handleAnyStateEvent :: forall a. IsMode a => BrickEvent Name Tick -> Action a
-handleAnyStateEvent (AppEvent Tick) = tickAction
-handleAnyStateEvent (VtyEvent (Vty.EvKey key [])) =
+handleNormalStateEvent :: forall a. IsMode a => BrickEvent Name Tick -> Action 'Normal a
+handleNormalStateEvent (AppEvent Tick) = tickAction
+handleNormalStateEvent (VtyEvent (Vty.EvKey key [])) =
   case key of
     KEsc         -> modify ((gsPrevKeysL .~ []) . (gsKeysTickCounterL .~ 0)) >> continueAction
     (KChar '\t') -> actionWithKeys "<tab>"
     (KChar ' ')  -> actionWithKeys "<spc>"
+    (KChar 'i')  -> toInsertMode
     (KChar c)    -> actionWithKeys [c]
-    KBackTab            -> actionWithKeys "<shift>+<tab>"
+    KBackTab     -> actionWithKeys "<shift>+<tab>"
     _            -> continueAction
-handleAnyStateEvent _               = continueAction
+handleNormalStateEvent _               = continueAction
 
+handleInsertStateEvent :: forall a. IsMode a => BrickEvent Name Tick -> Action 'Insert a
+handleInsertStateEvent (AppEvent Tick)                     = tickAction
+handleInsertStateEvent (VtyEvent (Vty.EvKey KEsc []))      = toNormalMode
+handleInsertStateEvent (VtyEvent (Vty.EvKey (KChar c) [])) = actionWithKeys [c]
+handleInsertStateEvent _                                   = continueAction
 
-actionWithKeys :: IsMode a => Keys -> Action a
+-- | Helpers
+
+toInsertMode :: IsMode a => Action 'Normal a
+toInsertMode = do
+  gstate <- get
+  lift $ Brick.continue (AppState $ gstate & gsEditingModeL .~ SInsert)
+
+toNormalMode :: IsMode a => Action 'Insert a
+toNormalMode = do
+  gstate <- get
+  lift $ Brick.continue (AppState $ gstate & gsEditingModeL .~ SNormal)
+
+actionWithKeys :: forall a emode. IsMode a => Keys -> Action emode a
 actionWithKeys keys = do
   modify ((gsPrevKeysL <>~ keys) . (gsKeysTickCounterL .~ 0))
   gstate <- get
 
-  case Map.lookup (gstate ^. gsPrevKeysL) (gstate ^. gsKeyMapL) of
+  case Map.lookup (gstate ^. gsPrevKeysL) (getKeyMap gstate) of
     Just action -> fmap (clearKeysL .~ []) <$> action
     Nothing     -> continueAction
 
-continueAction :: IsMode a => Action a
+continueAction :: IsMode mode => Action emode mode
 continueAction = get >>= lift . Brick.continue . AppState
 
-haltAction :: IsMode a => Action a
+haltAction :: IsMode mode => Action 'Normal mode
 haltAction = get >>= lift . Brick.halt . AppState
 
-tickAction :: IsMode a => Action a
+tickAction :: IsMode mode => Action emode mode
 tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continueAction
-
--- | Helpers
 
 updateTickCounter :: AppState -> AppState
 updateTickCounter (AppState gstate) = AppState $

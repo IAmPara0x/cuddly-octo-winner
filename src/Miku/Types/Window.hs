@@ -16,31 +16,36 @@ module Miku.Types.Window
 import Miku.Draw (Draw, Drawable)
 import Relude    hiding (Either (..))
 
-data HorizPos = Left | Right
-                deriving (Show)
-data VertPos  = Top  | Bottom
-                deriving (Show)
+data HorizPos
+  = Left
+  | Right
+  deriving (Show)
+data VertPos
+  = Top
+  | Bottom
+  deriving (Show)
 
-data Layout = Vert VertPos
-            | Horiz HorizPos
-            | Stack VertPos HorizPos
-            deriving (Show)
+data Layout
+  = Vert VertPos
+  | Horiz HorizPos
+  | Stack VertPos HorizPos
+  deriving (Show)
 
 type family (v :: VertPos) :# (h :: HorizPos) where
   v :# h = 'Stack v h
 
 data Window (a :: Layout) where
-  WTop    :: Window ('Vert 'Top)
+  WTop :: Window ('Vert 'Top)
   WBottom :: Window ('Vert 'Bottom)
-  WLeft   :: Window ('Horiz 'Left)
-  WRight  :: Window ('Horiz 'Right)
-  (:#)    :: Window ('Vert a) -> Window ('Horiz b) -> Window (a :# b)
+  WLeft :: Window ('Horiz 'Left)
+  WRight :: Window ('Horiz 'Right)
+  (:#) :: Window ('Vert a) -> Window ('Horiz b) -> Window (a :# b)
 
 deriving stock instance Show (Window a)
 
 data Windows (a :: [(Layout, Type)]) where
   WNil :: Windows '[]
-  (:>) :: Drawable a => (Window p, Draw a) -> Windows xs -> Windows ('(p, a) ': xs)
+  (:>) :: Drawable a => (Window p, Draw a) -> Windows xs -> Windows ('(p, a) : xs)
 
 infixr 5 :>
 

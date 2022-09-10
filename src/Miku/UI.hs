@@ -12,7 +12,7 @@ import Miku.Mode   (AppState (AppState), GlobalState, IsMode, Name, Tick,
 import Relude
 
 drawUI :: AppState -> [Widget Name]
-drawUI (AppState (s :: IsMode a => GlobalState a)) = runReader (drawState @a) s
+drawUI (AppState (s :: IsMode mode => GlobalState emode mode)) = runReader (drawState @mode) s
 
 handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
 handleEvent (AppState s) event = evalStateT (handleEventState event) s
