@@ -23,7 +23,9 @@ import Miku.Templates.Log         (Log, logHeadingL, logTodosL, ongoingTask,
 
 import Miku.Draw                  (Draw (..), Drawable, W, borderTypeL, defDraw,
                                    draw, drawableL, focusedL)
-import Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask))
+import Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask),
+                                   CurrentTaskItem (TaskName),
+                                   changeCurrentTaskFocus)
 import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..),
                                    StatusLineInfo (..))
 import Miku.Draw.Todos            (Completed, NotCompleted, Todos,
@@ -117,13 +119,12 @@ defCurrentLogState =
 
     let log = either error id elog
 
-        -- completedTodos :: _
         completedTodos    = defDraw $ mkCompletedTodos 0 $ todosDone $ log  ^. logTodosL
 
         notCompletedTodos = defDraw $ mkNotCompletedTodos 0 $ todosNotDone $ log  ^. logTodosL
 
         currentTask       = defDraw $ maybe (NoCurrentTask "There's currently no ongoing task.")
-                                            (CurrentTask 0) $ ongoingTask log
+                                            (CurrentTask TaskName) $ ongoingTask log
 
         stats             = defDraw $ Stats $ Border.border $ Core.center $ Core.txt "No Stats!"
 
@@ -171,7 +172,12 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
               >> continueAction
 
     changeFocus :: Int -> CurrentLogState v h -> CurrentLogState v h
-    changeFocus n = modifyAllWindow (id , id, drawableL %~ changeTodoIdx n, drawableL %~ changeTodoIdx n)
+    changeFocus n = modifyAllWindow
+      ( drawableL %~ changeCurrentTaskFocus n
+      , id
+      , drawableL %~ changeTodoIdx n
+      , drawableL %~ changeTodoIdx n
+      )
 
 
 drawCurrentLogState :: DrawMode emode CurrentLog

@@ -1,8 +1,10 @@
 module Miku.Draw.CurrentTask
   ( CurrentTask (..)
   , CurrentTaskDesc (..)
+  , CurrentTaskItem (..)
   , CurrentTaskName (..)
   , CurrentTaskTags (..)
+  , changeCurrentTaskFocus
   ) where
 
 import Brick.Types          (Padding (Pad), Widget)
@@ -12,13 +14,13 @@ import Brick.Widgets.Core   qualified as Core
 
 import Brick.Widgets.Core   ((<=>))
 
-import Control.Lens         (_1, makePrisms, to, (.~), (^.))
+import Control.Lens         (_1, ix, makePrisms, to, (%~), (.~), (^.))
 
 import Data.Text            qualified as Text
 
 import Relude
 
-import Miku.Draw            (Drawable (..), borderTypeL, drawableL)
+import Miku.Draw            (Draw (..), Drawable (..), borderTypeL, drawableL)
 import Miku.Draw.StatusLine (StatusLineInfo (..))
 import Miku.Mode            (Name)
 import Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag, descL,
@@ -97,33 +99,56 @@ instance Drawable CurrentTaskTags where
     where
       drawTaskTags tags = Core.padTopBottom 1 $ Core.txt $ showTags tags
 
+data CurrentTaskItem
+  = TaskName
+  | TaskDesc
+  | TaskStartTime
+  | TaskTags
+  deriving stock (Bounded, Enum, Show)
+
+instance StatusLineInfo CurrentTaskItem where
+  statusLineInfo TaskName      = ["Name"]
+  statusLineInfo TaskDesc      = ["Desc"]
+  statusLineInfo TaskStartTime = ["Start"]
+  statusLineInfo TaskTags      = ["Tags"]
+
 data CurrentTask
-  = CurrentTask Int Task
+  = CurrentTask CurrentTaskItem Task
   | NoCurrentTask Text
 
+changeCurrentTaskFocus :: Int -> CurrentTask -> CurrentTask
+changeCurrentTaskFocus n (CurrentTask item task)
+  = CurrentTask (toEnum $ mod (fromEnum item + n) (fromEnum @CurrentTaskItem maxBound + 1)) task
+changeCurrentTaskFocus _ t = t
+
 instance StatusLineInfo CurrentTask where
-  statusLineInfo CurrentTask{}   = ["CurrentTask"]
-  statusLineInfo NoCurrentTask{} = ["NoCurrentTask"]
+  statusLineInfo (CurrentTask item _) = ["CurrentTask"] <> statusLineInfo item
+  statusLineInfo NoCurrentTask{}      = ["NoCurrentTask"]
 
 instance Drawable CurrentTask where
-  draw drawState =
-    case drawState ^. drawableL of
-      NoCurrentTask msg        -> Core.withBorderStyle (drawState ^. borderTypeL)
-                                $ Border.border $ noOngoinTaskWidget msg
-      CurrentTask idx Task{..} -> Core.withBorderStyle (drawState ^. borderTypeL)
-                                $ Border.border $ Core.hLimitPercent 50
-                                $ Core.vBox
-                                  [ draw $ drawState & drawableL .~ CurrentTaskName _taskNameL
-                                  , Core.padTop (Pad 1)
-                                    $ Core.vLimit 2
-                                    $ Core.hBox [ draw $ drawState & drawableL .~ StartTime _taskStartL
-                                                , Core.fill ' '
-                                                , draw $ drawState & drawableL .~ EndTime idx _taskEndL
-                                                ]
-                                  , Core.padLeft (Pad 4) $ Core.padTopBottom 1
-                                    $ draw $ drawState & drawableL .~ CurrentTaskDesc _taskDescL
-                                  , draw $ drawState & drawableL .~ CurrentTaskTags _taskTagsL
-                                  ]
+  draw drawState@Draw{..} =
+    case _drawableL of
+      NoCurrentTask msg           -> Core.withBorderStyle _borderTypeL
+                                   $ Border.border $ noOngoinTaskWidget msg
+      CurrentTask item Task{..}  -> Core.withBorderStyle _borderTypeL
+                                   $ Border.border $ Core.hLimitPercent 50
+                                   $ Core.vBox
+                                   $ addAttr _focusedL item
+                                     [ draw $ drawState & drawableL .~ CurrentTaskName _taskNameL
+                                     , Core.padTop (Pad 1)
+                                       $ Core.vLimit 2
+                                       $ Core.hBox [ draw $ drawState & drawableL .~ StartTime _taskStartL
+                                                   , Core.fill ' '
+                                                   , draw $ drawState & drawableL .~ EndTime 0 _taskEndL
+                                                   ]
+                                     , Core.padLeft (Pad 4) $ Core.padTopBottom 1
+                                       $ draw $ drawState & drawableL .~ CurrentTaskDesc _taskDescL
+                                     , draw $ drawState & drawableL .~ CurrentTaskTags _taskTagsL
+                                     ]
+    where
+      addAttr :: Bool -> CurrentTaskItem -> [Widget Name] -> [Widget Name]
+      addAttr False _   widgets = widgets
+      addAttr True item widgets  = widgets & ix (fromEnum item) %~ Core.withAttr "current"
 
 noOngoinTaskWidget :: Text -> Widget Name
 noOngoinTaskWidget = Core.hLimitPercent 50
