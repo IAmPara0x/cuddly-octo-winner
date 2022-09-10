@@ -159,10 +159,10 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
     exitApp  = haltAction
 
     up, down, left, right :: Action 'Normal CurrentLog
-    up    = modify (gsModeStateL %~ switchWindow WTop) >> continueAction
+    up    = modify (gsModeStateL %~ switchWindow WTop)    >> continueAction
     down  = modify (gsModeStateL %~ switchWindow WBottom) >> continueAction
-    left  = modify (gsModeStateL %~ switchWindow WLeft) >> continueAction
-    right = modify (gsModeStateL %~ switchWindow WRight) >> continueAction
+    left  = modify (gsModeStateL %~ switchWindow WLeft)   >> continueAction
+    right = modify (gsModeStateL %~ switchWindow WRight)  >> continueAction
 
     incAction = modify (gsModeStateL %~ modifyAnyCurrentLogState (changeFocus 1))
               >> continueAction
@@ -226,9 +226,9 @@ statusLine = do
                           }
 
       windowStatusInfo = case mstate ^. clsCurrentWindowL of
-                            WTop :# WLeft  -> StatusInfo $ currWindowState mstate
-                            WTop :# WRight -> StatusInfo $ currWindowState mstate
-                            WBottom :# WLeft -> StatusInfo $ currWindowState mstate
+                            WTop :# WLeft     -> StatusInfo $ currWindowState mstate
+                            WTop :# WRight    -> StatusInfo $ currWindowState mstate
+                            WBottom :# WLeft  -> StatusInfo $ currWindowState mstate
                             WBottom :# WRight -> StatusInfo $ currWindowState mstate
 
   return $ Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
