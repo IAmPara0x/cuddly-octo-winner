@@ -154,7 +154,7 @@ instance ( MkBluePrint a
   parseAtom = composeP @(Format a) @(Function a) (parseBP @a)
   showAtom  = showBP
 
-instance (MkBluePrint p, Atom p, AtomType p ~ a) => Composeable (BluePrint p) (a -> b) where
+instance (Atom p, AtomType p ~ a) => Composeable (BluePrint p) (a -> b) where
   type ComposeP (BluePrint p) (a -> b) = b
   type ComposeS (BluePrint p)          = AtomType p -> Text
 

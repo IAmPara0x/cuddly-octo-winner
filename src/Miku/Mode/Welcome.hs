@@ -83,7 +83,7 @@ welcomeStateActions =
     exitApp :: Action 'Normal Welcome
     exitApp  = haltAction
 
-toWelcomeMode :: forall a. IsMode a => Action 'Normal a
+toWelcomeMode :: Action 'Normal a
 toWelcomeMode = do
     gstate <- get
     wstate <- liftIO $ defState @Welcome

@@ -2,6 +2,7 @@
 {-# LANGUAGE NamedFieldPuns   #-}
 {-# LANGUAGE PatternSynonyms  #-}
 {-# LANGUAGE TupleSections    #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 module Miku.Mode.CurrentLog
   ( CurrentLog
   , currentLogStateActions
@@ -237,8 +238,14 @@ switchWindow newPos (AnyCurrentLogState mstate)
   where
 
     changeFocus :: CurrentLogState v h -> CurrentLogState v h
-    changeFocus s = s & clsAllWindowsL %~ wMap ((borderTypeL .~ Border.borderStyleFromChar ' ') . (focusedL .~ False))
-                      & modifyCurrWindow ((borderTypeL .~ Border.unicodeRounded) . (focusedL .~ True))
+    changeFocus s = s & clsAllWindowsL %~ wMap offFocus
+                      & modifyCurrWindow onFocus
+
+    onFocus, offFocus :: Draw a -> Draw a
+    onFocus d = d & borderTypeL .~ Border.unicodeRounded
+                  & focusedL .~ True
+    offFocus d = d & borderTypeL .~ Border.borderStyleFromChar ' '
+                   & focusedL .~ False
 
     (v :# h) = mstate ^. clsCurrentWindowL
 
@@ -256,8 +263,11 @@ modifyAllWindow :: ( ModifyWindow 'Top 'Left
                    , ModifyWindow 'Top 'Right
                    , ModifyWindow 'Bottom 'Left
                    , ModifyWindow 'Bottom 'Right
-                   ) -> CurrentLogState v h -> CurrentLogState v h
-modifyAllWindow (tl, tr, bl, br) mstate@CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
+                   )
+                -> CurrentLogState v h
+                -> CurrentLogState v h
+modifyAllWindow (tl, tr, bl, br)
+  mstate@CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
   = case _clsCurrentWindowL of
       (WTop :# WLeft)     -> mstate {_clsAllWindowsL = wModify (WTop :# WLeft) tl _clsAllWindowsL}
       (WTop :# WRight)    -> mstate {_clsAllWindowsL = wModify (WTop :# WRight) tr _clsAllWindowsL}
@@ -265,7 +275,8 @@ modifyAllWindow (tl, tr, bl, br) mstate@CurrentLogState{_clsCurrentWindowL, _cls
       (WBottom :# WRight) -> mstate {_clsAllWindowsL = wModify (WBottom :# WRight) br _clsAllWindowsL}
 
 modifyCurrWindow :: ModifyWindow v h -> CurrentLogState v h -> CurrentLogState v h
-modifyCurrWindow f mstate@CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
+modifyCurrWindow f
+  mstate@CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
   = case _clsCurrentWindowL of
       (WTop :# WLeft)     -> mstate {_clsAllWindowsL = wModify (WTop :# WLeft) f _clsAllWindowsL}
       (WTop :# WRight)    -> mstate {_clsAllWindowsL = wModify (WTop :# WRight) f _clsAllWindowsL}

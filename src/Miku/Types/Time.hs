@@ -22,7 +22,7 @@ data Time
       { _timeHrsL  :: Integer
       , _timeMinsL :: Integer
       }
-  deriving (Show)
+  deriving stock (Show)
 
 type TimeFormat = Digits <: Literal "h" <: Token ":" :+> Digits <: Literal "m"
 type TimeF      = Integer -> Integer -> Time
@@ -58,7 +58,7 @@ instance Num Time where
   abs (Time h m)                = mkTime (abs h) (abs m)
   signum (Time h m)             = if h < 0 || m < 0 then Time 0 (-1) else Time 0 1
   negate (Time h m)             = mkTime (- h) (- m)
-  fromInteger                   = mkTime 0 . fromIntegral
+  fromInteger                   = mkTime 0
 
 instance Semigroup Time where
   (Time h1 m1) <> (Time h2 m2) = Time (h1 + h2) (m1 + m2)

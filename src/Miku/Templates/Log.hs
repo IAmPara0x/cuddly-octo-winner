@@ -175,7 +175,7 @@ data Task
       , _taskDescL  :: Maybe TaskDesc
       , _taskTagsL  :: [TaskTag]
       }
-  deriving (Show)
+  deriving stock (Show)
 
 type TaskF   = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
@@ -245,7 +245,7 @@ data Log
       , _logTasksL   :: [Task]
       , _logTodosL   :: [Todo]
       }
-  deriving (Show)
+  deriving stock (Show)
 
 type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline
              :+> Many (BluePrint Task)

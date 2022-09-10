@@ -19,17 +19,17 @@ import Relude    hiding (Either (..))
 data HorizPos
   = Left
   | Right
-  deriving (Show)
+  deriving stock (Show)
 data VertPos
   = Top
   | Bottom
-  deriving (Show)
+  deriving stock (Show)
 
 data Layout
   = Vert VertPos
   | Horiz HorizPos
   | Stack VertPos HorizPos
-  deriving (Show)
+  deriving stock (Show)
 
 type family (v :: VertPos) :# (h :: HorizPos) where
   v :# h = 'Stack v h
