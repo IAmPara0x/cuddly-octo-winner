@@ -29,10 +29,11 @@ import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..),
 import Miku.Draw.Todos            (Completed, NotCompleted, Todos,
                                    changeTodoIdx, mkCompletedTodos,
                                    mkNotCompletedTodos)
-import Miku.Mode                  (Action, DrawMode, GlobalState, IsMode (..),
-                                   KeyMap (..), Name, continueAction,
-                                   gsEditingModeL, gsModeStateL, haltAction,
+import Miku.Events                (continueAction, haltAction,
                                    handleAnyStateEvent, toNormalMode)
+import Miku.Mode                  (Action, DrawMode, GlobalState, IsMode (..),
+                                   KeyMap (..), Name, gsEditingModeL,
+                                   gsModeStateL)
 
 import Miku.Editing               (EditingMode (..))
 import Miku.Types.Window          (HorizPos (..), KnownWindow (wGet, wModify),

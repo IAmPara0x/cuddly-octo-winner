@@ -15,17 +15,24 @@ import Control.Lens               (makeLenses, (.~), (^.))
 import Data.Map                   qualified as Map
 
 import Miku.Draw                  (Draw (..), W, draw)
-import Miku.Draw.StatusLine       (StatusLine (..))
+import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..),
+                                   StatusLineInfo (..))
 import Miku.Editing               (EditingMode (..))
+import Miku.Events                (continueAction, haltAction,
+                                   handleAnyStateEvent)
 import Miku.Mode                  (Action, AppState (AppState), DrawMode,
-                                   IsMode (..), KeyMap (..), continueAction,
-                                   gsChangeModeL, gsEditingModeL, gsModeStateL,
-                                   haltAction, handleAnyStateEvent)
+                                   IsMode (..), KeyMap (..), gsChangeModeL,
+                                   gsEditingModeL, gsModeStateL)
 
 import Relude
 
 
 data Welcome
+  = Welcome
+  deriving stock (Show)
+
+instance StatusLineInfo Welcome where
+  statusLineInfo a = [show a]
 
 -- | Welcome State
 
@@ -57,9 +64,7 @@ statusLine = do
   gstate <- ask
 
   let widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
-                          , _slInfoL = []
-                          -- , _slModeNameL = "Welcome"
-                          -- , _slOtherInfoL = []
+                          , _slInfoL = [StatusInfo Welcome]
                           }
 
   return Draw { _focusedL = False , _drawableL = widget, _borderTypeL = Border.unicode }

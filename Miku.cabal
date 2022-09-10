@@ -33,6 +33,7 @@ library
     Miku.Draw.StatusLine
     Miku.Draw.Todos
     Miku.Editing
+    Miku.Events
     Miku.Mode
     Miku.Mode.CurrentLog
     Miku.Mode.Welcome

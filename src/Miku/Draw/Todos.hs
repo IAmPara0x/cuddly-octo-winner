@@ -33,60 +33,61 @@ data Todos a
       { _currTodoIdxL :: Int
       , _getTodosL    :: [Todo]
       }
+  | NoTodos
 
 makeLenses ''Todos
 
 mkCompletedTodos :: Int -> [Todo] -> Todos Completed
+mkCompletedTodos _ []    = NoTodos
 mkCompletedTodos n todos = Todos (mod n $ length todos) todos
 
 mkNotCompletedTodos :: Int -> [Todo] -> Todos NotCompleted
+mkNotCompletedTodos _ []    = NoTodos
 mkNotCompletedTodos n todos = Todos (mod n $ length todos) todos
 
 changeTodoIdx :: Int -> Todos a -> Todos a
+changeTodoIdx _ NoTodos           = NoTodos
 changeTodoIdx n (Todos idx todos) = Todos (mod (n + idx) $ length todos) todos
 
 instance StatusLineInfo (Todos Completed) where
-  statusLineInfo Todos{..} = ["Todos", "Completed", show _currTodoIdxL]
+  statusLineInfo Todos{..} = ["Todos", "Completed", "[" <> show _currTodoIdxL <> "]"]
+  statusLineInfo NoTodos   = ["Todos", "Completed"]
 
 instance StatusLineInfo (Todos NotCompleted) where
-  statusLineInfo Todos{..} = ["Todos", "NotCompleted", show _currTodoIdxL]
+  statusLineInfo Todos{..} = ["Todos", "NotCompleted", "[" <> show _currTodoIdxL <> "]"]
+  statusLineInfo NoTodos   = ["Todos", "NotCompleted"]
 
 instance Drawable (Todos Completed) where
-  draw Draw{ _drawableL=Todos currIdx todos , .. }
-    = Core.withBorderStyle _borderTypeL $ drawTodos "[✓] Completed"
+  draw x@Draw {..} = Core.withBorderStyle _borderTypeL $ drawTodos "[✓] Completed" x
 
-    where drawTodos heading =
+drawTodos :: Text -> Draw (Todos a) -> Widget Name
+drawTodos heading Draw{..} =
+  case _drawableL of
+    Todos currIdx todos ->
             Border.border
             $ Core.center
             $ Core.vBox
                 [ Core.padTopBottom 1 $ Core.hCenter $ Core.txt heading
                 , Core.vBox
-                    (todos ^.. ifolded . withIndex . to addAttr)
+                    (todos ^.. ifolded . withIndex . to (addAttr currIdx))
+                , Core.fill ' '
+                ]
+    NoTodos ->
+            Border.border
+            $ Core.center
+            $ Core.vBox
+                [ Core.padTopBottom 1 $ Core.hCenter $ Core.txt heading
                 , Core.fill ' '
                 ]
 
-          addAttr (idx, todo)
-              | not _focusedL  = Core.withAttr "todo"    $ drawTodo todo
-              | idx == currIdx = Core.withAttr "current" $ drawTodo todo
-              | otherwise      = drawTodo todo
---
+  where
+    addAttr currIdx (idx, todo)
+        | not _focusedL  = Core.withAttr "todo"    $ drawTodo todo
+        | idx == currIdx = Core.withAttr "current" $ drawTodo todo
+        | otherwise      = drawTodo todo
+
 instance Drawable (Todos NotCompleted) where
-  draw Draw{ _drawableL=Todos currIdx todos , .. }
-    = Core.withBorderStyle _borderTypeL $ drawTodos "[✕] Not Completed"
-    where drawTodos heading =
-            Border.border
-            $ Core.center
-            $ Core.vBox
-                [ Core.padTopBottom 1 $ Core.hCenter $ Core.txt heading
-                , Core.vBox
-                    (todos ^.. ifolded . withIndex . to addAttr)
-                , Core.fill ' '
-                ]
-
-          addAttr (idx, todo)
-              | not _focusedL  = Core.withAttr "todo"    $ drawTodo todo
-              | idx == currIdx = Core.withAttr "current" $ drawTodo todo
-              | otherwise      = drawTodo todo
+  draw x@Draw {..} = Core.withBorderStyle _borderTypeL $ drawTodos "[✕] Not Completed" x
 
 drawTodo :: Todo -> Widget Name
 drawTodo todo = Core.padBottom (Pad 1) $
