@@ -21,6 +21,7 @@ import Control.Lens         (ifolded, makeLenses, to, withIndex, (^.), (^..))
 import Miku.Templates.Log   (Todo, todoDescL)
 
 import Miku.Draw            (Draw (..), Drawable (..))
+import Miku.Draw.StatusLine (StatusLineInfo (..))
 import Miku.Mode            (Name)
 
 import Relude
@@ -43,6 +44,12 @@ mkNotCompletedTodos n todos = Todos (mod n $ length todos) todos
 
 changeTodoIdx :: Int -> Todos a -> Todos a
 changeTodoIdx n (Todos idx todos) = Todos (mod (n + idx) $ length todos) todos
+
+instance StatusLineInfo (Todos Completed) where
+  statusLineInfo Todos{..} = ["Todos", "Completed", show _currTodoIdxL]
+
+instance StatusLineInfo (Todos NotCompleted) where
+  statusLineInfo Todos{..} = ["Todos", "NotCompleted", show _currTodoIdxL]
 
 instance Drawable (Todos Completed) where
   draw Draw{ _drawableL=Todos currIdx todos , .. }

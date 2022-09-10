@@ -19,6 +19,7 @@ import Data.Text            qualified as Text
 import Relude
 
 import Miku.Draw            (Drawable (..), borderTypeL, drawableL)
+import Miku.Draw.StatusLine (StatusLineInfo (..))
 import Miku.Mode            (Name)
 import Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag, descL,
                              nameL, showTags)
@@ -99,6 +100,10 @@ instance Drawable CurrentTaskTags where
 data CurrentTask
   = CurrentTask Int Task
   | NoCurrentTask Text
+
+instance StatusLineInfo CurrentTask where
+  statusLineInfo CurrentTask{}   = ["CurrentTask"]
+  statusLineInfo NoCurrentTask{} = ["NoCurrentTask"]
 
 instance Drawable CurrentTask where
   draw drawState =

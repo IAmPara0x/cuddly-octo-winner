@@ -1,9 +1,10 @@
 module Miku.Draw.StatusLine
-  ( StatusLine (..)
+  ( StatusInfo (..)
+  , StatusLine (..)
+  , StatusLineInfo (..)
   , drawStatusLine
   , slEditingModeL
-  , slModeNameL
-  , slOtherInfoL
+  , slInfoL
   ) where
 
 import Brick.Types          (Padding (Pad), Widget)
@@ -19,12 +20,17 @@ import Miku.Mode            (Name)
 
 import Relude
 
+class StatusLineInfo (a :: Type) where
+  statusLineInfo :: a -> [Text]
+
+data StatusInfo
+  = forall a. StatusLineInfo a => StatusInfo a
+
 type StatusLine :: EditingMode -> Type
 data StatusLine emode
   = StatusLine
       { _slEditingModeL :: SEditingMode emode
-      , _slModeNameL    :: Text
-      , _slOtherInfoL   :: [Text]
+      , _slInfoL        :: [StatusInfo]
       }
 
 makeLenses ''StatusLine
@@ -34,7 +40,7 @@ instance Drawable (StatusLine a) where
     = Core.vLimit 2
     $ Core.vBox [ Core.vLimit 1
                 $ Core.hBox [ drawMode _slEditingModeL
-                            , drawInfo $ _slModeNameL : _slOtherInfoL
+                            , drawInfo $ concatMap (\(StatusInfo a) -> statusLineInfo a) _slInfoL
                             ]
                 , Core.fill ' '
                 ]

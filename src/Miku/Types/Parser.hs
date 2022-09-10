@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -Wno-orphans       #-}
-{-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Miku.Types.Parser

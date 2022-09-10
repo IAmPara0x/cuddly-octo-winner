@@ -57,8 +57,9 @@ statusLine = do
   gstate <- ask
 
   let widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
-                          , _slModeNameL = "Welcome"
-                          , _slOtherInfoL = []
+                          , _slInfoL = []
+                          -- , _slModeNameL = "Welcome"
+                          -- , _slOtherInfoL = []
                           }
 
   return Draw { _focusedL = False , _drawableL = widget, _borderTypeL = Border.unicode }

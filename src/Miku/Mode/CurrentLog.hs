@@ -1,8 +1,5 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NamedFieldPuns   #-}
-{-# LANGUAGE PatternSynonyms  #-}
-{-# LANGUAGE TupleSections    #-}
 {-# OPTIONS_GHC -Wno-redundant-constraints #-}
+{-# LANGUAGE UndecidableInstances #-}
 module Miku.Mode.CurrentLog
   ( CurrentLog
   , currentLogStateActions
@@ -24,20 +21,21 @@ import Miku.Templates.Log         (Log, logHeadingL, logTodosL, ongoingTask,
                                    readCurrentLog, showHeading, todosDone,
                                    todosNotDone)
 
-import Miku.Draw                  (Draw (..), W, borderTypeL, defDraw, draw,
-                                   drawableL, focusedL)
+import Miku.Draw                  (Draw (..), Drawable, W, borderTypeL, defDraw,
+                                   draw, drawableL, focusedL)
 import Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask))
-import Miku.Draw.StatusLine       (StatusLine (..))
+import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..),
+                                   StatusLineInfo (..))
 import Miku.Draw.Todos            (Completed, NotCompleted, Todos,
                                    changeTodoIdx, mkCompletedTodos,
                                    mkNotCompletedTodos)
-import Miku.Mode                  (Action, DrawMode, IsMode (..), KeyMap (..),
-                                   Name, continueAction, gsEditingModeL,
-                                   gsModeStateL, haltAction,
+import Miku.Mode                  (Action, DrawMode, GlobalState, IsMode (..),
+                                   KeyMap (..), Name, continueAction,
+                                   gsEditingModeL, gsModeStateL, haltAction,
                                    handleAnyStateEvent, toNormalMode)
 
 import Miku.Editing               (EditingMode (..))
-import Miku.Types.Window          (HorizPos (..), KnownWindow (wModify),
+import Miku.Types.Window          (HorizPos (..), KnownWindow (wGet, wModify),
                                    Layout (Horiz, Vert), Lookup, VertPos (..),
                                    Window (..), Windows (..), type (:#), wMap,
                                    wToList)
@@ -48,16 +46,27 @@ import Relude                     hiding (Either (..))
 
 
 -- TODO: remove this
-type Stats = Widget Name
+newtype Stats
+  = Stats (Widget Name)
+  deriving newtype (Drawable)
+
+instance StatusLineInfo Stats where
+  statusLineInfo _ = ["Stats"]
 
 type AllWindows = '[ '( 'Top :# 'Left, CurrentTask)
                    , '( 'Top :# 'Right, Stats)
                    , '( 'Bottom :# 'Left, Todos NotCompleted)
                    , '( 'Bottom :# 'Right, Todos Completed)
                    ]
+
+class (Drawable a, StatusLineInfo a) => WindowConstraints a
+instance (Drawable a, StatusLineInfo a) => WindowConstraints a
+
 type ModifyWindow v h = Draw (Lookup (v :# h) AllWindows) -> Draw (Lookup (v :# h) AllWindows)
 
 data CurrentLog
+  = CurrentLog
+  deriving stock (Show)
 
 data AnyCurrentLogState where
   AnyCurrentLogState :: CurrentLogState v h -> AnyCurrentLogState
@@ -74,7 +83,7 @@ data CurrentLogState (v :: VertPos) (h :: HorizPos)
       , _clsCurrentWindowL  :: Window (v :# h)
       , _clsLogL            :: Log
       , _clsClockAnimStateL :: Int
-      , _clsAllWindowsL     :: Windows AllWindows
+      , _clsAllWindowsL     :: Windows WindowConstraints AllWindows
       }
 
 makeLenses ''CurrentLogConfig
@@ -86,6 +95,9 @@ instance Default CurrentLogConfig where
           { _clcConfigPathL = "/home/iamparadox/.miku/"
           , _clcClockAnimTimeL = 5
           }
+
+instance StatusLineInfo CurrentLog where
+  statusLineInfo x = [show x]
 
 instance IsMode CurrentLog where
   type ModeState CurrentLog = AnyCurrentLogState
@@ -104,11 +116,15 @@ defCurrentLogState =
 
     let log = either error id elog
 
+        -- completedTodos :: _
         completedTodos    = defDraw $ mkCompletedTodos 0 $ todosDone $ log  ^. logTodosL
+
         notCompletedTodos = defDraw $ mkNotCompletedTodos 0 $ todosNotDone $ log  ^. logTodosL
+
         currentTask       = defDraw $ maybe (NoCurrentTask "There's currently no ongoing task.")
                                             (CurrentTask 0) $ ongoingTask log
-        stats             = defDraw $ Border.border $ Core.center $ Core.txt "No Stats!"
+
+        stats             = defDraw $ Stats $ Border.border $ Core.center $ Core.txt "No Stats!"
 
     return $ CurrentLogState
               { _clsConfigL            = def
@@ -199,19 +215,22 @@ heading = do
 statusLine :: W emode CurrentLog (StatusLine emode)
 statusLine = do
 
-  gstate <- ask
-  (AnyCurrentLogState mstate) <- (^. gsModeStateL) <$> ask
+  (gstate :: GlobalState emode CurrentLog) <- ask
+  (AnyCurrentLogState (mstate :: CurrentLogState v h)) <- (^. gsModeStateL) <$> ask
 
-  let currWindow = case mstate ^. clsCurrentWindowL of
-                         WTop :# WLeft     -> ["OngoingTask"]
-                         WTop :# WRight    -> ["Stats"]
-                         WBottom :# WLeft  -> ["TODO", "NotCompleted"]
-                         WBottom :# WRight -> ["TODO", "Completed"]
-
+  let widget :: StatusLine emode
       widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
-                          , _slModeNameL = "CurrentLog"
-                          , _slOtherInfoL = currWindow
+                          , _slInfoL = [ StatusInfo CurrentLog
+                                       , windowStatusInfo
+                                       ]
                           }
+
+      windowStatusInfo = case mstate ^. clsCurrentWindowL of
+                            WTop :# WLeft  -> StatusInfo $ currWindowState mstate
+                            WTop :# WRight -> StatusInfo $ currWindowState mstate
+                            WBottom :# WLeft -> StatusInfo $ currWindowState mstate
+                            WBottom :# WRight -> StatusInfo $ currWindowState mstate
+
   return $ Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
 
 -- Helpers
@@ -238,8 +257,12 @@ switchWindow newPos (AnyCurrentLogState mstate)
   where
 
     changeFocus :: CurrentLogState v h -> CurrentLogState v h
-    changeFocus s = s & clsAllWindowsL %~ wMap offFocus
-                      & modifyCurrWindow onFocus
+    changeFocus s = let news = s & clsAllWindowsL %~ wMap offFocus in
+      case s ^. clsCurrentWindowL of
+          WTop :# WLeft     -> modifyCurrWindow onFocus news
+          WTop :# WRight    -> modifyCurrWindow onFocus news
+          WBottom :# WLeft  -> modifyCurrWindow onFocus news
+          WBottom :# WRight -> modifyCurrWindow onFocus news
 
     onFocus, offFocus :: Draw a -> Draw a
     onFocus d = d & borderTypeL .~ Border.unicodeRounded
@@ -250,13 +273,9 @@ switchWindow newPos (AnyCurrentLogState mstate)
     (v :# h) = mstate ^. clsCurrentWindowL
 
 
--- currWindowState :: CurrentLogState v h -> Draw (Lookup (v :# h) AllWindows)
--- currWindowState CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
---   = case _clsCurrentWindowL of
---       (WTop :# WLeft)     -> wGet (WTop :# WLeft) _clsAllWindowsL
---       (WTop :# WRight)    -> wGet (WTop :# WRight) _clsAllWindowsL
---       (WBottom :# WLeft)  -> wGet (WBottom :# WLeft) _clsAllWindowsL
---       (WBottom :# WRight) -> wGet (WBottom :# WRight) _clsAllWindowsL
+currWindowState :: KnownWindow (v :# h) AllWindows => CurrentLogState v h -> Lookup (v :# h) AllWindows
+currWindowState CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
+  = wGet _clsCurrentWindowL _clsAllWindowsL ^. drawableL
 
 -- TODO: Using something better instead of Tuple.
 modifyAllWindow :: ( ModifyWindow 'Top 'Left
@@ -274,14 +293,13 @@ modifyAllWindow (tl, tr, bl, br)
       (WBottom :# WLeft)  -> mstate {_clsAllWindowsL = wModify (WBottom :# WLeft) bl _clsAllWindowsL}
       (WBottom :# WRight) -> mstate {_clsAllWindowsL = wModify (WBottom :# WRight) br _clsAllWindowsL}
 
-modifyCurrWindow :: ModifyWindow v h -> CurrentLogState v h -> CurrentLogState v h
+modifyCurrWindow :: KnownWindow (v :# h) AllWindows
+                 => ModifyWindow v h
+                 -> CurrentLogState v h
+                 -> CurrentLogState v h
 modifyCurrWindow f
   mstate@CurrentLogState{_clsCurrentWindowL, _clsAllWindowsL}
-  = case _clsCurrentWindowL of
-      (WTop :# WLeft)     -> mstate {_clsAllWindowsL = wModify (WTop :# WLeft) f _clsAllWindowsL}
-      (WTop :# WRight)    -> mstate {_clsAllWindowsL = wModify (WTop :# WRight) f _clsAllWindowsL}
-      (WBottom :# WLeft)  -> mstate {_clsAllWindowsL = wModify (WBottom :# WLeft) f _clsAllWindowsL}
-      (WBottom :# WRight) -> mstate {_clsAllWindowsL = wModify (WBottom :# WRight) f _clsAllWindowsL}
+    = mstate {_clsAllWindowsL = wModify _clsCurrentWindowL f _clsAllWindowsL}
 
 modifyAnyCurrentLogState :: (forall v h. CurrentLogState v h -> CurrentLogState v h)
                          -> AnyCurrentLogState
