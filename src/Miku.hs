@@ -1,25 +1,27 @@
-module Miku (run) where
+module Miku
+  ( run
+  ) where
 
-import Brick.AttrMap (AttrMap, attrMap)
-import Brick.BChan qualified as BChan
-import Brick.Main    (App(..), neverShowCursor, customMain)
-import Brick.Util    (fg)
-import Data.Map qualified as Map
+import Brick.AttrMap        (AttrMap, attrMap)
+import Brick.BChan          qualified as BChan
+import Brick.Main           (App (..), customMain, neverShowCursor)
+import Brick.Util           (fg)
 
-import Control.Concurrent (threadDelay, forkIO)
-import Data.Default (def)
-import Graphics.Vty qualified as Vty
+import Control.Concurrent   (forkIO, threadDelay)
+import Data.Default         (def)
+import Graphics.Vty         qualified as Vty
 
-import Miku.UI.State (AppState(AppState), defState, Name, Tick(Tick), GlobalState(..))
-import Miku.UI.Mode.CurrentLog (CurrentLog)
-import Miku.UI.Mode.Welcome (toWelcomeMode)
+import Miku.Editing         (SEditingMode (SNormal))
+import Miku.Mode            (AppState (AppState), GlobalState (..), Name,
+                             Tick (Tick), defState)
+import Miku.Mode.CurrentLog (CurrentLog)
 
-import Miku.UI (drawUI, handleEvent)
+import Miku.UI              (drawUI, handleEvent)
 
 import Relude
 
 uiAttrMap :: AttrMap
-uiAttrMap = attrMap (fg Vty.red) []
+uiAttrMap = attrMap (fg Vty.red) [("todo", fg Vty.white), ("current", fg Vty.blue)]
 
 app :: App AppState Tick Name
 app = App { appDraw = drawUI
@@ -45,10 +47,11 @@ run = do
                               , _gsKeysTickCounterL = 0
                               , _gsTickCounterL = 0
                               , _gsModeStateL = s
-                              , _gsKeyMapL = Map.insert "<spc>wm" toWelcomeMode k
+                              , _gsKeyMapL = k
                               , _gsPrevKeysL = []
+                              , _gsEditingModeL = SNormal
                               }
 
   initialVty <- buildVty
 
-  void $ customMain initialVty buildVty (Just chan) app $ AppState Proxy initState
+  void $ customMain initialVty buildVty (Just chan) app $ AppState initState

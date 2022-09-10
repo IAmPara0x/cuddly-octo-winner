@@ -1,64 +1,86 @@
-cabal-version: 1.12
+cabal-version:      1.12
 
 -- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 
-name:           Miku
-version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/IAmParad0x/Mikur#readme>
-homepage:       https://github.com/IAmParad0x/Miku#readme
-bug-reports:    https://github.com/IAmParad0x/Miku/issues
-author:         IAmParadox
-maintainer:     confusedstudent13@gmail.com
-copyright:      2022 IAmParadox
-license:        MIT
-license-file:   LICENSE
-build-type:     Simple
+name:               Miku
+version:            0.1.0.0
+description:
+  Please see the README on GitHub at <https://github.com/IAmParad0x/Mikur#readme>
+
+homepage:           https://github.com/IAmParad0x/Miku#readme
+bug-reports:        https://github.com/IAmParad0x/Miku/issues
+author:             IAmParadox
+maintainer:         confusedstudent13@gmail.com
+copyright:          2022 IAmParadox
+license:            MIT
+license-file:       LICENSE
+build-type:         Simple
 extra-source-files:
-    README.md
-    ChangeLog.md
+  ChangeLog.md
+  README.md
 
 source-repository head
-  type: git
+  type:     git
   location: https://github.com/IAmParad0x/Miku
 
 library
-  exposed-modules:
-      Miku
+  exposed-modules:    Miku
   other-modules:
-      Miku.Templates.Log
-      Miku.Types.Parser
-      Miku.Types.Time
-      Miku.UI
-      Miku.UI.Draw
-      Miku.UI.Draw.CurrentTask
-      Miku.UI.Draw.Goals
-      Miku.UI.Draw.StatusLine
-      Miku.UI.Mode.CurrentLog
-      Miku.UI.Mode.Welcome
-      Miku.UI.State
-      Paths_Miku
-  hs-source-dirs:
-      src
+    Miku.Draw
+    Miku.Draw.CurrentTask
+    Miku.Draw.StatusLine
+    Miku.Draw.Todos
+    Miku.Editing
+    Miku.Mode
+    Miku.Mode.CurrentLog
+    Miku.Mode.Welcome
+    Miku.Templates.Log
+    Miku.Types.Parser
+    Miku.Types.Time
+    Miku.Types.Window
+    Miku.UI
+    Paths_Miku
+
+  hs-source-dirs:     src
   default-extensions:
-      AllowAmbiguousTypes
-      DataKinds
-      DerivingStrategies
-      OverloadedStrings
-      ImportQualifiedPost
-      LambdaCase
-      NoImplicitPrelude
-      RankNTypes
-      RecordWildCards
-      TupleSections
-      TypeApplications
-      KindSignatures
-      ScopedTypeVariables
-  ghc-options: -Wall
+    NoImplicitPrelude
+    AllowAmbiguousTypes
+    DataKinds
+    DerivingStrategies
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NamedFieldPuns
+    OverloadedStrings
+    PatternSynonyms
+    PolyKinds
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneKindSignatures
+    TemplateHaskell
+    TupleSections
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies -Wunused-packages
+
   build-depends:
-      base >=4.7 && <5
-    , brick >=0.69
+      base          >=4.7    && <5
+    , brick         >=0.69
     , containers
     , data-default
     , directory
@@ -70,60 +92,99 @@ library
     , text
     , time
     , transformers
-    , vty >=5.35.1
-  default-language: Haskell2010
+    , vty           >=5.35.1
+
+  default-language:   Haskell2010
 
 executable miku
-  main-is: Main.hs
-  other-modules:
-      Paths_Miku
-  hs-source-dirs:
-      app
+  main-is:            Main.hs
+  other-modules:      Paths_Miku
+  hs-source-dirs:     app
   default-extensions:
-      AllowAmbiguousTypes
-      DataKinds
-      DerivingStrategies
-      OverloadedStrings
-      ImportQualifiedPost
-      LambdaCase
-      NoImplicitPrelude
-      RankNTypes
-      RecordWildCards
-      TupleSections
-      TypeApplications
-      KindSignatures
-      ScopedTypeVariables
-  ghc-options: -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
+    NoImplicitPrelude
+    AllowAmbiguousTypes
+    DataKinds
+    DerivingStrategies
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NamedFieldPuns
+    OverloadedStrings
+    PatternSynonyms
+    PolyKinds
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneKindSignatures
+    TemplateHaskell
+    TupleSections
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies -Wunused-packages -threaded -O2
+    -rtsopts -with-rtsopts=-N
+
   build-depends:
-      Miku
-    , base >=4.7 && <5
+      base    >=4.7 && <5
+    , Miku
     , relude
-  default-language: Haskell2010
+
+  default-language:   Haskell2010
 
 test-suite timeTracker-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_Miku
-  hs-source-dirs:
-      test
+  type:               exitcode-stdio-1.0
+  main-is:            Spec.hs
+  other-modules:      Paths_Miku
+  hs-source-dirs:     test
   default-extensions:
-      AllowAmbiguousTypes
-      DataKinds
-      DerivingStrategies
-      OverloadedStrings
-      ImportQualifiedPost
-      LambdaCase
-      NoImplicitPrelude
-      RankNTypes
-      RecordWildCards
-      TupleSections
-      TypeApplications
-      KindSignatures
-      ScopedTypeVariables
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+    NoImplicitPrelude
+    AllowAmbiguousTypes
+    DataKinds
+    DerivingStrategies
+    FlexibleContexts
+    FlexibleInstances
+    GADTs
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NamedFieldPuns
+    OverloadedStrings
+    PatternSynonyms
+    PolyKinds
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    StandaloneKindSignatures
+    TemplateHaskell
+    TupleSections
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+  ghc-options:
+    -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+    -Wincomplete-record-updates -Wredundant-constraints
+    -Wmissing-export-lists -Wpartial-fields
+    -Wmissing-deriving-strategies -Wunused-packages -threaded -rtsopts
+    -with-rtsopts=-N
+
   build-depends:
-      Miku
-    , base >=4.7 && <5
+      base    >=4.7 && <5
+    , Miku
     , relude
-  default-language: Haskell2010
+
+  default-language:   Haskell2010

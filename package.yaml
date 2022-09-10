@@ -20,22 +20,44 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/IAmParad0x/Mikur#readme>
 
 default-extensions:
-- AllowAmbiguousTypes
-- DataKinds
-- DerivingStrategies
-- OverloadedStrings
-- ImportQualifiedPost
-- LambdaCase
-- NoImplicitPrelude
-- RankNTypes
-- RecordWildCards
-- TupleSections
-- TypeApplications
-- KindSignatures
-- ScopedTypeVariables
+ - NoImplicitPrelude
+ - AllowAmbiguousTypes
+ - DataKinds
+ - DerivingStrategies
+ - FlexibleContexts
+ - FlexibleInstances
+ - GADTs
+ - GeneralizedNewtypeDeriving
+ - ImportQualifiedPost
+ - KindSignatures
+ - LambdaCase
+ - MultiParamTypeClasses
+ - NamedFieldPuns
+ - OverloadedStrings
+ - PatternSynonyms
+ - PolyKinds
+ - RankNTypes
+ - RecordWildCards
+ - ScopedTypeVariables
+ - StandaloneKindSignatures
+ - TemplateHaskell
+ - TupleSections
+ - TupleSections
+ - TypeApplications
+ - TypeFamilies
+ - TypeOperators
 
 ghc-options:
   -Wall
+  -Wcompat
+  -Widentities
+  -Wincomplete-uni-patterns
+  -Wincomplete-record-updates
+  -Wredundant-constraints
+  -Wmissing-export-lists
+  -Wpartial-fields
+  -Wmissing-deriving-strategies
+  -Wunused-packages
 
 library:
   source-dirs: src

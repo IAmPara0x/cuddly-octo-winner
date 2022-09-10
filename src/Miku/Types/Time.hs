@@ -1,41 +1,28 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE TypeOperators     #-}
-{-# LANGUAGE TemplateHaskell   #-}
-
 module Miku.Types.Time
   ( Time
-  , mkTime
-  , timeHrsL
-  , timeMinsL
   , getCurrentDay
   , getCurrentTime
+  , mkTime
   , showTime
-  )
-where
+  , timeHrsL
+  , timeMinsL
+  ) where
 
-import Control.Lens (makeLenses)
-import Data.Time
-  ( getZonedTime
-  , zonedTimeToLocalTime
-  , localDay
-  , localTimeOfDay
-  , todHour
-  , todMin
-  , Day
-  )
+import Control.Lens      (makeLenses)
+import Data.Time         (Day, getZonedTime, localDay, localTimeOfDay, todHour,
+                          todMin, zonedTimeToLocalTime)
 
 import Miku.Types.Parser
 
 import Relude
 
 
-data Time = Time
-  { _timeHrsL  :: Integer,
-    _timeMinsL :: Integer
-  }
-  deriving (Show)
+data Time
+  = Time
+      { _timeHrsL  :: Integer
+      , _timeMinsL :: Integer
+      }
+  deriving stock (Show)
 
 type TimeFormat = Digits <: Literal "h" <: Token ":" :+> Digits <: Literal "m"
 type TimeF      = Integer -> Integer -> Time
@@ -47,8 +34,8 @@ instance MkBluePrint Time where
   parseBP = mkTime
   showBP (Time hrs mins)  = composeS @TimeFormat @TimeF "" hrs mins
 
--- parseTime :: Parser 
--- parseTime 
+-- parseTime :: Parser
+-- parseTime
 
 showTime :: Time -> Text
 showTime = showAtom @(BluePrint Time)
@@ -71,7 +58,7 @@ instance Num Time where
   abs (Time h m)                = mkTime (abs h) (abs m)
   signum (Time h m)             = if h < 0 || m < 0 then Time 0 (-1) else Time 0 1
   negate (Time h m)             = mkTime (- h) (- m)
-  fromInteger                   = mkTime 0 . fromIntegral
+  fromInteger                   = mkTime 0
 
 instance Semigroup Time where
   (Time h1 m1) <> (Time h2 m2) = Time (h1 + h2) (m1 + m2)

@@ -1,80 +1,58 @@
-{-# LANGUAGE FlexibleInstances  #-}
-{-# LANGUAGE TypeFamilies       #-}
-{-# LANGUAGE TypeOperators      #-}
-{-# LANGUAGE TemplateHaskell    #-}
-
 {-# OPTIONS_GHC -Wno-orphans #-}
-
 module Miku.Templates.Log
-  ( Goal(Goal)
-  , goalStatusL
-  , goalDescL
-  , GoalStatus(Done, NotDone)
-
-  , Heading(Heading)
-  , headingL
-
+  ( Heading (Heading)
   , Log (Log)
+  , Task (..)
+  , TaskDesc (TaskDesc)
+  , TaskName (TaskName)
+  , TaskTag (TaskTag)
+  , Todo (Todo)
+  , TodoStatus (Done, NotDone)
+  , descL
+  , headingL
   , logHeadingL
   , logTasksL
-  , logGoalsL
-
-  , Task(..)
-  , taskNameL
-  , taskStartL
+  , logTodosL
+  , nameL
+  , tagL
   , taskDescL
   , taskEndL
+  , taskNameL
+  , taskStartL
   , taskTagsL
-
-  , TaskDesc(TaskDesc)
-  , descL
-
-  , TaskName(TaskName)
-  , nameL
-
-  , TaskTag(TaskTag)
-  , tagL
-
-  -- * Helper functions
-  , goalsDone
-  , goalsNotDone
-  , ongoingTask
+  , todoDescL
+  , todoStatusL
+    -- * Helper functions
   , logParser
+  , ongoingTask
   , showHeading
   , showLog
-  , showTask
   , showTags
-
-  -- * IO Stuff
+  , showTask
+  , todosDone
+  , todosNotDone
+    -- * IO Stuff
   , readCurrentLog
   , readLog
   , writeLog
-  )
-where
+  ) where
 
-import  Data.Text    qualified as T
-import  Control.Lens
-  ( (^?)
-  , (^.)
-  , (^..)
-  , folded
-  , filtered
-  , _head
-  , makeLenses
-  )
+import Control.Lens               (_head, filtered, folded, makeLenses, (^.),
+                                   (^..), (^?))
 import Control.Monad.Trans.Except (throwE)
-import  Data.Time                 (Day)
+import Data.Text                  qualified as T
+import Data.Time                  (Day)
 
-import  Miku.Types.Parser
-import  Miku.Types.Time           (Time, getCurrentDay)
+import Miku.Types.Parser
+import Miku.Types.Time            (Time, getCurrentDay)
 
-import  System.FilePath           ((</>))
-import  System.Directory          (doesPathExist, doesFileExist)
+import System.Directory           (doesFileExist, doesPathExist)
+import System.FilePath            ((</>))
 
-import  Text.Megaparsec           (runParser)
-import  Text.Read                 (read)
+import Text.Megaparsec            (runParser)
+import Text.Read                  (read)
 
-import  Relude
+import Relude
 
 
 dayP :: DayF
@@ -97,8 +75,9 @@ instance MkBluePrint Day where
 -- | 'Heading'
 -----------------------------------------------------------------
 
-newtype Heading = Heading { _headingL :: Day }
-                  deriving stock (Show, Eq)
+newtype Heading
+  = Heading { _headingL :: Day }
+  deriving stock (Eq, Show)
 
 type HeadingFormat = Prefix "# Date:" :> BluePrint Day <: Many Space
 type HeadingF      = Day -> Heading
@@ -116,8 +95,9 @@ makeLenses ''Heading
 -- | 'TaskName'
 -----------------------------------------------------------------
 
-newtype TaskName = TaskName { _nameL :: Text }
-               deriving stock (Show, Eq)
+newtype TaskName
+  = TaskName { _nameL :: Text }
+  deriving stock (Eq, Show)
 
 type TaskNameFormat = Prefix "###" :> TakeTill "(" <: Token "("
 type TaskNameF      = Text -> TaskName
@@ -135,8 +115,9 @@ makeLenses ''TaskName
 -- | 'TaskDesc'
 -----------------------------------------------------------------
 
-newtype TaskDesc = TaskDesc { _descL :: Text }
-                      deriving stock (Show, Eq)
+newtype TaskDesc
+  = TaskDesc { _descL :: Text }
+  deriving stock (Eq, Show)
 
 
 type DescLine = Repeat 2 Space :> AlphaNums
@@ -164,8 +145,9 @@ makeLenses ''TaskDesc
 -- | 'TaskTags'
 -----------------------------------------------------------------
 
-newtype TaskTag = TaskTag { _tagL :: Text}
-              deriving stock (Show, Eq)
+newtype TaskTag
+  = TaskTag { _tagL :: Text }
+  deriving stock (Eq, Show)
 
 type TaskTagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
                      :> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
@@ -185,14 +167,15 @@ makeLenses ''TaskTag
 -- | 'Task'
 -----------------------------------------------------------------
 
-data Task = Task
-  { _taskNameL  :: TaskName
-  , _taskStartL :: Time
-  , _taskEndL   :: Maybe Time
-  , _taskDescL  :: Maybe TaskDesc
-  , _taskTagsL  :: [TaskTag]
-  }
-  deriving (Show)
+data Task
+  = Task
+      { _taskNameL  :: TaskName
+      , _taskStartL :: Time
+      , _taskEndL   :: Maybe Time
+      , _taskDescL  :: Maybe TaskDesc
+      , _taskTagsL  :: [TaskTag]
+      }
+  deriving stock (Show)
 
 type TaskF   = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
@@ -216,63 +199,67 @@ showTask :: Task -> Text
 showTask = showAtom @(BluePrint Task)
 
 -----------------------------------------------------------------
--- | 'Goals'
+-- | 'Todos'
 -----------------------------------------------------------------
 
-data GoalStatus = Done
-                | NotDone
-                  deriving stock (Show, Eq)
+data TodoStatus
+  = Done
+  | NotDone
+  deriving stock (Eq, Show)
 
-data Goal = Goal
-  { _goalStatusL :: GoalStatus
-  , _goalDescL   :: Text
-  } deriving stock (Show)
+data Todo
+  = Todo
+      { _todoStatusL :: TodoStatus
+      , _todoDescL   :: Text
+      }
+  deriving stock (Show)
 
-type GoalFormat =  Repeat 2 Space :> Literal "-" :> Space
+type TodoFormat =  Repeat 2 Space :> Literal "-" :> Space
                :>  Literal "[" :> PrintChar <: Literal "]" <: Space
                :+> PrintChars <: Repeat 2 Newline
 
-type GoalF = Char -> Text -> Goal
+type TodoF = Char -> Text -> Todo
 
-goal :: Char -> Text -> Goal
-goal ' ' = Goal NotDone
-goal 'X' = Goal Done
-goal _   = Goal NotDone
+todo :: Char -> Text -> Todo
+todo ' ' = Todo NotDone
+todo 'X' = Todo Done
+todo _   = Todo NotDone
 
-instance MkBluePrint Goal where
-  type Format Goal   = GoalFormat
-  type Function Goal = GoalF
+instance MkBluePrint Todo where
+  type Format Todo   = TodoFormat
+  type Function Todo = TodoF
 
-  parseBP = goal
-  showBP  (Goal Done desc)      = composeS @GoalFormat @GoalF mempty 'X' desc
-  showBP  (Goal NotDone desc)   = composeS @GoalFormat @GoalF mempty ' ' desc
+  parseBP = todo
+  showBP  (Todo Done desc)    = composeS @TodoFormat @TodoF mempty 'X' desc
+  showBP  (Todo NotDone desc) = composeS @TodoFormat @TodoF mempty ' ' desc
 
-makeLenses ''Goal
+makeLenses ''Todo
 
 -----------------------------------------------------------------
 -- | 'Log' type stores every information about the current log.
 -----------------------------------------------------------------
 
-data Log = Log
-  { _logHeadingL :: Heading
-  , _logTasksL   :: [Task]
-  , _logGoalsL   :: [Goal]
-  }
-  deriving (Show)
+data Log
+  = Log
+      { _logHeadingL :: Heading
+      , _logTasksL   :: [Task]
+      , _logTodosL   :: [Todo]
+      }
+  deriving stock (Show)
 
 type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline
              :+> Many (BluePrint Task)
-             :+> Prefix "## Goals:" :> Repeat 2 Newline
-              :> Many (BluePrint Goal)
+             :+> Prefix "## TODOs:" :> Repeat 2 Newline
+              :> Many (BluePrint Todo)
 
-type LogF = Heading -> [Task] -> [Goal] -> Log
+type LogF = Heading -> [Task] -> [Todo] -> Log
 
 instance MkBluePrint Log where
   type Format Log   = LogFormat
   type Function Log = LogF
 
   parseBP = Log
-  showBP (Log heading tasks goals) = composeS @LogFormat @LogF mempty heading tasks goals
+  showBP (Log heading tasks todos) = composeS @LogFormat @LogF mempty heading tasks todos
 
 makeLenses ''Log
 
@@ -302,11 +289,11 @@ ongoingTask log =
     guard (isNothing $ latestTask ^. taskEndL)
     return latestTask
 
-goalsNotDone :: [Goal] -> [Goal]
-goalsNotDone goals = goals ^.. folded . filtered (\g -> g ^. goalStatusL == NotDone)
+todosNotDone :: [Todo] -> [Todo]
+todosNotDone todos = todos ^.. folded . filtered (\g -> g ^. todoStatusL == NotDone)
 
-goalsDone :: [Goal] -> [Goal]
-goalsDone goals = goals ^.. folded . filtered (\g -> g ^. goalStatusL == Done)
+todosDone :: [Todo] -> [Todo]
+todosDone todos = todos ^.. folded . filtered (\g -> g ^. todoStatusL == Done)
 
 getLogName :: Day -> String
 getLogName day = show day <> "-log.md"
@@ -334,7 +321,7 @@ readLog logsDir day =
 
     let logPath :: FilePath
         logPath = getLogPath logsDir day
-        
+
         logName :: String
         logName = getLogName day
 

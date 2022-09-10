@@ -1,28 +1,16 @@
 {-# OPTIONS_GHC -Wno-orphans       #-}
-
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Miku.Types.Parser
-  ( Atom(..)
-  , Composeable(..)
-  , MkBluePrint(..)
-  , type (:+>)
-  , type (<:)
-  , type (:>)
-  , AlphaNum
+  ( AlphaNum
   , AlphaNums
+  , Atom (..)
   , BluePrint
+  , Composeable (..)
   , Digits
   , Literal
   , Many
+  , MkBluePrint (..)
   , Newline
   , Optional
   , Parser
@@ -37,16 +25,18 @@ module Miku.Types.Parser
   , TakeTill
   , Token
   , Try
-  )
-  where
+  , type (:+>)
+  , type (:>)
+  , type (<:)
+  ) where
 
-import  Data.Text                 qualified as T
-import  GHC.TypeLits
-import  Text.Megaparsec           hiding (Token, many, some)
-import  Text.Megaparsec.Char
-import  Text.Read                        (read)
+import Data.Text            qualified as T
+import GHC.TypeLits
+import Text.Megaparsec      hiding (Token, many, some)
+import Text.Megaparsec.Char
+import Text.Read            (read)
 
-import  Relude                    hiding (natVal, Alt)
+import Relude               hiding (Alt, natVal)
 
 class Composeable (a :: Type) (f :: Type) where
   type ComposeP a f :: Type
@@ -163,7 +153,7 @@ instance ( MkBluePrint a
   parseAtom = composeP @(Format a) @(Function a) (parseBP @a)
   showAtom  = showBP
 
-instance (MkBluePrint p, Atom p, AtomType p ~ a) => Composeable (BluePrint p) (a -> b) where
+instance (Atom p, AtomType p ~ a) => Composeable (BluePrint p) (a -> b) where
   type ComposeP (BluePrint p) (a -> b) = b
   type ComposeS (BluePrint p)          = AtomType p -> Text
 
