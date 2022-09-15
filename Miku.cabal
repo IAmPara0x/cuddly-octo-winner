@@ -36,11 +36,12 @@ library
     Miku.Events
     Miku.Mode
     Miku.Mode.CurrentLog
+    Miku.Mode.Utility
     Miku.Mode.Welcome
     Miku.Templates.Log
     Miku.Types.Parser
+    Miku.Types.Rec
     Miku.Types.Time
-    Miku.Types.Window
     Miku.UI
     Paths_Miku
 

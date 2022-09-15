@@ -9,7 +9,6 @@ module Miku.Events
   , toNormalMode
   ) where
 
-
 import Brick.Main   qualified as Brick
 import Brick.Types  (BrickEvent (AppEvent, VtyEvent))
 

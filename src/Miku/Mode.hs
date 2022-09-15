@@ -39,6 +39,7 @@ import Miku.Editing (EditingMode (..), SEditingMode (SInsert, SNormal))
 import Relude
 
 type Name = ()
+
 data Tick
   = Tick
 
@@ -67,17 +68,17 @@ data GlobalState emode mode
       , _gsEditingModeL     :: SEditingMode emode
       }
 
-
 data KeyMap mode
   = KeyMap
       { _insertModeMapL :: Map Keys (Action 'Insert mode)
       , _normalModeMapL :: Map Keys (Action 'Normal mode)
       }
 
-getKeyMap :: GlobalState emode mode -> Map Keys (Action emode mode)
-getKeyMap gstate = case _gsEditingModeL gstate of
-                    SNormal -> _normalModeMapL $ _gsKeyMapL gstate
-                    SInsert -> _insertModeMapL $ _gsKeyMapL gstate
+instance Semigroup (KeyMap mode) where
+  KeyMap i1 n1 <> KeyMap i2 n2 = KeyMap (i1 <> i2) (n1 <> n2)
+
+instance Monoid (KeyMap mode) where
+  mempty = KeyMap mempty mempty
 
 type Keys                = [Char]
 type Action emode mode   = StateT (GlobalState emode mode) (EventM Name) (Next AppState)
@@ -96,6 +97,11 @@ class IsMode (mode :: Type) where
 makeLenses ''KeyMap
 makeLenses ''GlobalState
 makeLenses ''GlobalConfig
+
+getKeyMap :: GlobalState emode mode -> Map Keys (Action emode mode)
+getKeyMap gstate = case _gsEditingModeL gstate of
+                     SNormal -> _normalModeMapL $ _gsKeyMapL gstate
+                     SInsert -> _insertModeMapL $ _gsKeyMapL gstate
 
 gsChangeModeL :: IsMode b =>
   Lens (GlobalState 'Normal a)
