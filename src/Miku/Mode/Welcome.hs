@@ -105,8 +105,8 @@ welcomeStateActions = KeyMap
   exitApp :: Action 'Normal Welcome
   exitApp = haltAction
 
-toWelcomeMode :: Action 'Normal a
+toWelcomeMode :: forall a . IsMode a => Action 'Normal a
 toWelcomeMode = do
   gstate <- get
-  wstate <- liftIO $ _
+  wstate <- liftIO $ defState @a
   lift $ Brick.continue (AppState $ gstate & gsChangeModeL .~ wstate)

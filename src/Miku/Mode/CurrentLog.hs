@@ -292,11 +292,21 @@ switchWindow f x = x & clsWindowL %~ f & changeFocus
 
   changeFocus :: CurrentLogState -> CurrentLogState
   changeFocus mstate = case viewWindow (mstate ^. clsWindowL) of
-    (0, 0) -> mstate & clsAllWindowsL %~ _ focused . rmap notfocused
-    (1, 0) -> mstate & clsAllWindowsL %~ _ focused . rmap notfocused
-    (0, 1) -> mstate & clsAllWindowsL %~ _ focused . rmap notfocused
-    (1, 1) -> mstate & clsAllWindowsL %~ _ focused . rmap notfocused
-    a      -> error $ "Window of coord " <> show a <> " is not possible!"
+    (0, 0) ->
+      mstate
+        &  clsAllWindowsL
+        %~ rmodify @(Todos NotCompleted) focused
+        .  rmap notfocused
+    (1, 0) ->
+      mstate
+        &  clsAllWindowsL
+        %~ rmodify @(Todos Completed) focused
+        .  rmap notfocused
+    (0, 1) ->
+      mstate & clsAllWindowsL %~ rmodify @CurrentTask focused . rmap notfocused
+    (1, 1) ->
+      mstate & clsAllWindowsL %~ rmodify @Stats focused . rmap notfocused
+    a -> error $ "Window of coord " <> show a <> " is not possible!"
 
 
   focused :: Draw a -> Draw a

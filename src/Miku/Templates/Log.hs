@@ -64,15 +64,15 @@ import Relude
 
 dayP :: DayF
 dayP y m d = read (show y <> "-" <> m' <> "-" <> d')
-  where
-    m' = if m < 10 then "0" <> show m else show m
-    d' = if d < 10 then "0" <> show d else show d
+ where
+  m' = if m < 10 then "0" <> show m else show m
+  d' = if d < 10 then "0" <> show d else show d
 
 type DayFormat = Digits <: Literal "-" :+> Digits <: Literal "-" :+> Digits
-type DayF      = Integer -> Integer -> Integer -> Day
+type DayF = Integer -> Integer -> Integer -> Day
 
 instance MkBluePrint Day where
-  type Format Day   = DayFormat
+  type Format Day = DayFormat
   type Function Day = DayF
 
   parseBP = dayP
@@ -87,14 +87,15 @@ newtype Heading
   deriving stock (Eq, Show)
 
 type HeadingFormat = Prefix "# Date:" :> BluePrint Day <: Many Space
-type HeadingF      = Day -> Heading
+type HeadingF = Day -> Heading
 
 instance MkBluePrint Heading where
   type Format Heading = HeadingFormat
   type Function Heading = HeadingF
 
-  parseBP              = Heading
-  showBP (Heading day) = composeS @(Format Heading) @(Function Heading) mempty day
+  parseBP = Heading
+  showBP (Heading day) =
+    composeS @(Format Heading) @(Function Heading) mempty day
 
 makeLenses ''Heading
 
@@ -107,10 +108,10 @@ newtype TaskName
   deriving stock (Eq, Show)
 
 type TaskNameFormat = Prefix "###" :> TakeTill "(" <: Token "("
-type TaskNameF      = Text -> TaskName
+type TaskNameF = Text -> TaskName
 
 instance MkBluePrint TaskName where
-  type Format TaskName   = TaskNameFormat
+  type Format TaskName = TaskNameFormat
   type Function TaskName = TaskNameF
 
   parseBP = TaskName
@@ -135,16 +136,17 @@ instance Atom DescLine where
   parseAtom = composeP @DescLine (<>)
   showAtom  = composeS @DescLine @(Text -> Text -> Text) mempty mempty
 
-type TaskDescFormat  =  Many DescLine <: Repeat 1 Newline
-type TaskDescF       =  [Text] -> TaskDesc
+type TaskDescFormat = Many DescLine <: Repeat 1 Newline
+type TaskDescF = [Text] -> TaskDesc
 
 
 instance MkBluePrint TaskDesc where
-  type Format TaskDesc   = TaskDescFormat
+  type Format TaskDesc = TaskDescFormat
   type Function TaskDesc = TaskDescF
 
-  parseBP                    = TaskDesc . T.unlines
-  showBP  (TaskDesc desc) = composeS @TaskDescFormat @TaskDescF mempty (T.lines desc)
+  parseBP = TaskDesc . T.unlines
+  showBP (TaskDesc desc) =
+    composeS @TaskDescFormat @TaskDescF mempty (T.lines desc)
 
 makeLenses ''TaskDesc
 
@@ -159,7 +161,7 @@ newtype TaskTag
 type TaskTagsFormat  =  Repeat 2 Space :> Literal "**" :> Prefix "Tags: "
                      :> SepBy1 AlphaNums (Token "," <: Space <: Many Space)
                      <: Literal "**" <: Repeat 2 Newline
-type TaskTagsF       = [Text] -> [TaskTag]
+type TaskTagsF = [Text] -> [TaskTag]
 
 instance MkBluePrint [TaskTag] where
   type Format [TaskTag] = TaskTagsFormat
@@ -184,8 +186,10 @@ data Task
       }
   deriving stock (Show)
 
-type TaskF   = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
-type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
+type TaskF
+  = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
+type TaskSep
+  = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
 type TaskFormat = BluePrint TaskName
               :+> BluePrint Time <: Space <: Token "-" <: Space
@@ -197,8 +201,9 @@ instance MkBluePrint Task where
   type Format Task = TaskFormat
   type Function Task = TaskF
 
-  parseBP                                = Task
-  showBP (Task name start end desc tags) = composeS @TaskFormat @TaskF mempty name start end desc tags
+  parseBP = Task
+  showBP (Task name start end desc tags) =
+    composeS @TaskFormat @TaskF mempty name start end desc tags
 
 makeLenses ''Task
 
@@ -233,12 +238,12 @@ todo 'X' = Todo Done
 todo _   = Todo NotDone
 
 instance MkBluePrint Todo where
-  type Format Todo   = TodoFormat
+  type Format Todo = TodoFormat
   type Function Todo = TodoF
 
   parseBP = todo
-  showBP  (Todo Done desc)    = composeS @TodoFormat @TodoF mempty 'X' desc
-  showBP  (Todo NotDone desc) = composeS @TodoFormat @TodoF mempty ' ' desc
+  showBP (Todo Done    desc) = composeS @TodoFormat @TodoF mempty 'X' desc
+  showBP (Todo NotDone desc) = composeS @TodoFormat @TodoF mempty ' ' desc
 
 makeLenses ''Todo
 
@@ -262,11 +267,12 @@ type LogFormat = BluePrint Heading <: Repeat 3 Newline <: Many Newline
 type LogF = Heading -> [Task] -> [Todo] -> Log
 
 instance MkBluePrint Log where
-  type Format Log   = LogFormat
+  type Format Log = LogFormat
   type Function Log = LogF
 
   parseBP = Log
-  showBP (Log heading tasks todos) = composeS @LogFormat @LogF mempty heading tasks todos
+  showBP (Log heading tasks todos) =
+    composeS @LogFormat @LogF mempty heading tasks todos
 
 makeLenses ''Log
 
@@ -290,14 +296,14 @@ mkNewLog :: Heading -> Log
 mkNewLog date = Log date [] []
 
 ongoingTask :: Log -> Maybe Task
-ongoingTask log =
-  do
-    latestTask <- log ^? logTasksL . _head
-    guard (isNothing $ latestTask ^. taskEndL)
-    return latestTask
+ongoingTask log = do
+  latestTask <- log ^? logTasksL . _head
+  guard (isNothing $ latestTask ^. taskEndL)
+  return latestTask
 
 todosNotDone :: [Todo] -> [Todo]
-todosNotDone todos = todos ^.. folded . filtered (\g -> g ^. todoStatusL == NotDone)
+todosNotDone todos =
+  todos ^.. folded . filtered (\g -> g ^. todoStatusL == NotDone)
 
 todosDone :: [Todo] -> [Todo]
 todosDone todos = todos ^.. folded . filtered (\g -> g ^. todoStatusL == Done)
@@ -313,35 +319,37 @@ getLogPath logsDir day = logsDir </> getLogName day
 -----------------------------------------------------------------
 
 logsDirExists :: FilePath -> ExceptT Text IO ()
-logsDirExists logsDir =
-  do
-    dirExists <- liftIO $ doesPathExist logsDir
+logsDirExists logsDir = do
+  dirExists <- liftIO $ doesPathExist logsDir
 
-    unless dirExists
-      (throwE $ "The following directory for logs doesn't exists: " <> T.pack logsDir)
+  unless
+    dirExists
+    (  throwE
+    $  "The following directory for logs doesn't exists: "
+    <> T.pack logsDir
+    )
 
 readLog :: FilePath -> Day -> ExceptT Text IO Log
-readLog logsDir day =
-  do
+readLog logsDir day = do
 
-    void $ logsDirExists logsDir
+  void $ logsDirExists logsDir
 
-    let logPath :: FilePath
-        logPath = getLogPath logsDir day
+  let logPath :: FilePath
+      logPath = getLogPath logsDir day
 
-        logName :: String
-        logName = getLogName day
+      logName :: String
+      logName = getLogName day
 
-    logExists <- liftIO $ doesFileExist logPath
+  logExists <- liftIO $ doesFileExist logPath
 
-    unless logExists
-      (throwE $ "The following log file doesn't exist: " <> T.pack logPath)
+  unless logExists
+         (throwE $ "The following log file doesn't exist: " <> T.pack logPath)
 
-    input <- readFileText logPath
+  input <- readFileText logPath
 
-    case runParser logParser logPath input of
-      Left _    -> throwE $ "Failed to parse log from " <> T.pack logName
-      Right log -> return log
+  case runParser logParser logPath input of
+    Left  _   -> throwE $ "Failed to parse log from " <> T.pack logName
+    Right log -> return log
 
 readCurrentLog :: FilePath -> ExceptT Text IO Log
 readCurrentLog logsDir = do
@@ -364,14 +372,13 @@ readCurrentLog logsDir = do
 
 
 writeLog :: FilePath -> Day -> Log -> ExceptT Text IO ()
-writeLog logsDir day log =
-  do
-    void $ logsDirExists logsDir
+writeLog logsDir day log = do
+  void $ logsDirExists logsDir
 
-    let logPath :: FilePath
-        logPath = logsDir </> logName
+  let logPath :: FilePath
+      logPath = logsDir </> logName
 
-        logName :: String
-        logName = getLogName day
+      logName :: String
+      logName = getLogName day
 
-    writeFileText logPath (showLog log)
+  writeFileText logPath (showLog log)

@@ -85,8 +85,8 @@ type Action emode mode
   = StateT (GlobalState emode mode) (EventM Name) (Next AppState)
 type DrawMode emode mode = Reader (GlobalState emode mode) [Widget Name]
 
-data AppState where
-  AppState :: (emode :: EditingMode) (mode :: Type) (IsMode mode) => GlobalState emode mode -> AppState
+data AppState
+  = forall emode mode. (IsMode mode) => AppState (GlobalState emode mode)
 
 class IsMode (mode :: Type) where
   type ModeState mode :: Type

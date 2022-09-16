@@ -19,7 +19,7 @@ import Relude
 
 drawUI :: AppState -> [Widget Name]
 drawUI (AppState (s :: IsMode mode => GlobalState emode mode)) =
-  runReader (_) s
+  runReader drawState s
 
 handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
 handleEvent (AppState s) event = evalStateT (handleEventState event) s

@@ -53,7 +53,7 @@ instance Drawable CurrentTaskName where
     drawTaskName :: TaskName -> Widget n
     drawTaskName taskName =
       Core.vLimitPercent 15 $ Core.padTopBottom 1 $ Core.vBox
-        [Core.hCenter (Core.txt (taskName ^. nameL))]
+        [Core.hCenter $ Core.txt $ taskName ^. nameL]
 
 newtype CurrentTaskDesc
   = CurrentTaskDesc (Maybe TaskDesc)
@@ -128,8 +128,9 @@ data CurrentTask
   | NoCurrentTask Text
 
 changeCurrentTaskFocus :: Int -> CurrentTask -> CurrentTask
-changeCurrentTaskFocus n (CurrentTask item task) =
-  CurrentTask (toEnum $ mod (fromEnum item + n) (_ maxBound + 1)) task
+changeCurrentTaskFocus n (CurrentTask item task) = CurrentTask
+  (toEnum $ mod (fromEnum item + n) (fromEnum @CurrentTaskItem maxBound + 1))
+  task
 changeCurrentTaskFocus _ t = t
 
 instance StatusLineInfo CurrentTask where
@@ -168,5 +169,5 @@ instance Drawable CurrentTask where
     addAttr True item widgets =
       widgets & ix (fromEnum item) %~ Core.withAttr "current"
 
-noOngoinTaskWidget :: Text -> Widget Name
-noOngoinTaskWidget = Core.hLimitPercent 50 . Core.center . Core.txt
+    noOngoinTaskWidget :: Text -> Widget Name
+    noOngoinTaskWidget = Core.hLimitPercent 50 . Core.center . Core.txt

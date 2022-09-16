@@ -40,7 +40,7 @@ app = App { appDraw         = drawUI
 
 run :: IO ()
 run = do
-  (s, k) <- _
+  (s, k) <- defState @CurrentLog
 
   chan   <- BChan.newBChan 10
 
