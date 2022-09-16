@@ -3,9 +3,9 @@
 module Miku.Types.Rec
   ( Elem
   , Field (..)
+  , Miku.Types.Rec.toList
   , Rec (..)
   , Unit
-  , recToList
   , rfilterMap
   , rfmap
   , rmap
@@ -65,9 +65,9 @@ rfmap _ _ RNil = RNil
 rfmap p (f :> fs) (x :> xs) | p x       = fmap (runIdentity f) x :> rfmap p fs xs
                             | otherwise = x :> rfmap p fs xs
 
-recToList :: (forall x . AllC cs x => f x -> a) -> Rec cs xs f -> [a]
-recToList _ RNil      = []
-recToList f (x :> xs) = f x : recToList f xs
+toList :: (forall x . AllC cs x => f x -> a) -> Rec cs xs f -> [a]
+toList _ RNil      = []
+toList f (x :> xs) = f x : Miku.Types.Rec.toList f xs
 
 rfilterMap
   :: (forall x . AllC cs x => f x -> Bool)

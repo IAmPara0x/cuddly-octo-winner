@@ -1,9 +1,7 @@
 {-# LANGUAGE ViewPatterns    #-}
 module Miku.Mode.Welcome
   ( Welcome
-  , WelcomeState (..)
   , toWelcomeMode
-  , wsMsgL
   ) where
 
 import Brick.Main           qualified as Brick
@@ -15,7 +13,7 @@ import Data.Map             qualified as Map
 
 import Miku.Draw.StatusLine (StatusLineInfo (..))
 import Miku.Editing         (EditingMode (..))
-import Miku.Events          (halt, handleAnyStateEvent, modifyAndContinue)
+import Miku.Events          qualified as Events
 import Miku.Mode
   ( Action
   , AppState (AppState)
@@ -39,35 +37,36 @@ instance StatusLineInfo Welcome where
 -- | Welcome State
 
 newtype WelcomeState
-  = WelcomeState { _wsMsgL :: Text }
+  = WelcomeState { _msgL :: Text }
 makeLenses ''WelcomeState
 
 instance IsMode Welcome where
   type ModeState Welcome = WelcomeState
 
-  defState         = return (WelcomeState { _wsMsgL = "Moshi Moshi!" }, welcomeStateActions)
+  defState         = return (WelcomeState { _msgL = "Moshi Moshi!" }, welcomeStateActions)
   drawState        = drawWelcomeState
-  handleEventState = handleAnyStateEvent
+  handleEventState = Events.handleAnyStateEvent
 
 drawWelcomeState :: DrawMode emode Welcome
 drawWelcomeState = do
   gstate <- ask
 
   let wstate = gstate ^. gsModeStateL
-  return (Core.center $ Core.txt (wstate ^. wsMsgL))
+  return (Core.center $ Core.txt (wstate ^. msgL))
 
 welcomeStateActions :: KeyMap Welcome
 welcomeStateActions = KeyMap
-  { _normalModeMapL = Map.fromList [("c", changeMsg), ("q", halt), ("<spc>w", changeMsgAgain)]
+  { _normalModeMapL = Map.fromList
+                        [("c", changeMsg), ("q", Events.halt), ("<spc>w", changeMsgAgain)]
   , _insertModeMapL = mempty
   }
  where
 
   changeMsg :: Action 'Normal Welcome
-  changeMsg = modifyAndContinue (gsModeStateL . wsMsgL .~ "welcome!")
+  changeMsg = Events.modifyAndContinue (gsModeStateL . msgL .~ "welcome!")
 
   changeMsgAgain :: Action 'Normal Welcome
-  changeMsgAgain = modifyAndContinue (gsModeStateL . wsMsgL .~ "welcome again!")
+  changeMsgAgain = Events.modifyAndContinue (gsModeStateL . msgL .~ "welcome again!")
 
 toWelcomeMode :: forall a . IsMode a => Action 'Normal a
 toWelcomeMode = do

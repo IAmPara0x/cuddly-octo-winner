@@ -18,14 +18,17 @@ import Control.Lens         (_1, ix, makePrisms, to, (%~), (.~), (^.))
 
 import Data.Text            qualified as Text
 
-import Relude
 
-import Miku.Draw            (Draw (..), Drawable (..), borderTypeL, drawableL)
+import Miku.Draw            (Draw (..), Drawable (..), drawableL)
+import Miku.Draw            qualified as Draw
 import Miku.Draw.StatusLine (StatusLineInfo (..))
 import Miku.Resource        (Res)
-import Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag, descL, nameL, showTags)
-import Miku.Types.Time      (Time, showTime)
+import Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag)
+import Miku.Templates.Log   qualified as Log
+import Miku.Types.Time      (Time)
+import Miku.Types.Time      qualified as Time
 
+import Relude
 import Relude.Unsafe        ((!!))
 
 newtype CurrentTaskName
@@ -35,12 +38,12 @@ makePrisms ''CurrentTaskName
 instance Drawable Draw CurrentTaskName where
   draw drawState =
     drawState ^. drawableL . _CurrentTaskName . to drawTaskName . to (<=> Border.hBorder) . to
-      (Core.withBorderStyle $ drawState ^. borderTypeL)
+      (Core.withBorderStyle $ drawState ^. Draw.borderTypeL)
 
    where
     drawTaskName :: TaskName -> Widget n
     drawTaskName taskName = Core.vLimitPercent 15 $ Core.padTopBottom 1 $ Core.vBox
-      [Core.hCenter $ Core.txt $ taskName ^. nameL]
+      [Core.hCenter $ Core.txt $ taskName ^. Log.nameL]
 
 newtype CurrentTaskDesc
   = CurrentTaskDesc (Maybe TaskDesc)
@@ -48,7 +51,7 @@ makePrisms ''CurrentTaskDesc
 
 instance Drawable Draw CurrentTaskDesc where
   draw drawState =
-    drawState ^. drawableL . _CurrentTaskDesc . to (maybe "No Description." (^. descL)) . to
+    drawState ^. drawableL . _CurrentTaskDesc . to (maybe "No Description." (^. Log.descL)) . to
       (Core.vCenter . Core.txt)
 
 newtype StartTime
@@ -57,7 +60,7 @@ makePrisms ''StartTime
 
 instance Drawable Draw StartTime where
   draw drawState =
-    drawState ^. drawableL . _StartTime . to showTime . to ("From: " <>) . to Core.txt . to
+    drawState ^. drawableL . _StartTime . to Time.showTime . to ("From: " <>) . to Core.txt . to
       (Core.padLeft $ Pad 1)
 
 
@@ -86,7 +89,7 @@ makePrisms ''CurrentTaskTags
 instance Drawable Draw CurrentTaskTags where
   draw drawState = drawState ^. drawableL . _CurrentTaskTags . to drawTaskTags . to
     (Border.hBorder <=>)
-    where drawTaskTags tags = Core.padTopBottom 1 $ Core.txt $ showTags tags
+    where drawTaskTags tags = Core.padTopBottom 1 $ Core.txt $ Log.showTags tags
 
 data CurrentTaskItem
   = TaskName

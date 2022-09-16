@@ -18,7 +18,8 @@ import Brick.Widgets.Core   qualified as Core
 
 import Control.Lens         (ifolded, makeLenses, to, withIndex, (^.), (^..))
 
-import Miku.Templates.Log   (Todo, todoDescL)
+import Miku.Templates.Log   (Todo)
+import Miku.Templates.Log   qualified as Log
 
 import Miku.Draw            (Draw (..), Drawable (..))
 import Miku.Draw.StatusLine (StatusLineInfo (..))
@@ -80,4 +81,4 @@ instance Drawable Draw (Todos NotCompleted) where
 
 drawTodo :: Todo -> Widget Res
 drawTodo todo =
-  Core.padBottom (Pad 1) $ Core.hBox [Core.padLeft (Pad 1) $ Core.txt $ todo ^. todoDescL]
+  Core.padBottom (Pad 1) $ Core.hBox [Core.padLeft (Pad 1) $ Core.txt $ todo ^. Log.todoDescL]

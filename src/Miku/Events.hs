@@ -20,24 +20,10 @@ import Data.Map             qualified as Map
 import Graphics.Vty         (Key (KBackTab, KChar, KEsc))
 import Graphics.Vty         qualified as Vty
 
-import Miku.Draw.StatusLine (slEditingModeL)
+import Miku.Draw.StatusLine qualified as StatusLine
 import Miku.Editing         (EditingMode (Insert, Normal), SEditingMode (SInsert, SNormal))
-import Miku.Mode
-  ( Action
-  , AppState (..)
-  , GlobalState (..)
-  , IsMode
-  , Keys
-  , Tick (..)
-  , clearKeysL
-  , getKeyMap
-  , gsEditingModeL
-  , gsKeysTickCounterL
-  , gsKeysTickL
-  , gsPrevKeysL
-  , gsTickCounterL
-  , gsTickL
-  )
+import Miku.Mode            (Action, AppState (..), GlobalState (..), IsMode, Keys, Tick (..))
+import Miku.Mode            qualified as Mode
 import Miku.Resource        (Res)
 
 import Relude
@@ -45,14 +31,14 @@ import Relude
 handleAnyStateEvent :: IsMode a => BrickEvent Res Tick -> Action emode a
 handleAnyStateEvent event = do
   gstate <- get
-  case gstate ^. gsEditingModeL of
+  case gstate ^. Mode.gsEditingModeL of
     SNormal -> handleNormalStateEvent event
     SInsert -> handleInsertStateEvent event
 
 handleNormalStateEvent :: forall a . IsMode a => BrickEvent Res Tick -> Action 'Normal a
 handleNormalStateEvent (AppEvent Tick              ) = tickAction
 handleNormalStateEvent (VtyEvent (Vty.EvKey key [])) = case key of
-  KEsc         -> modify ((gsPrevKeysL .~ []) . (gsKeysTickCounterL .~ 0)) >> continue
+  KEsc         -> modify ((Mode.gsPrevKeysL .~ []) . (Mode.gsKeysTickCounterL .~ 0)) >> continue
   (KChar '\t') -> actionWithKeys "<tab>"
   (KChar ' ' ) -> actionWithKeys "<spc>"
   (KChar 'i' ) -> toInsertMode
@@ -83,22 +69,24 @@ tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continue
   updateTickCounter (AppState gstate) =
     AppState
       $  gstate
-      &  gsTickCounterL
-      .~ uncurry mod (gstate ^. gsTickL & _1 +~ 1)
-      &  gsKeysTickCounterL
-      .~ uncurry mod (gstate ^. gsKeysTickL & _1 +~ 1 & _2 .~ gstate ^. gsTickL . _2)
+      &  Mode.gsTickCounterL
+      .~ uncurry mod (gstate ^. Mode.gsTickL & _1 +~ 1)
+      &  Mode.gsKeysTickCounterL
+      .~ uncurry mod (gstate ^. Mode.gsKeysTickL & _1 +~ 1 & _2 .~ gstate ^. Mode.gsTickL . _2)
 
   clearPrevKeys :: AppState -> AppState
-  clearPrevKeys (AppState gstate) =
-    AppState $ gstate & gsPrevKeysL %~ bool id (const []) (uncurry rem (gstate ^. gsKeysTickL) == 0)
+  clearPrevKeys (AppState gstate) = AppState $ gstate & Mode.gsPrevKeysL %~ bool
+    id
+    (const [])
+    (uncurry rem (gstate ^. Mode.gsKeysTickL) == 0)
 
 actionWithKeys :: forall a emode . IsMode a => Keys -> Action emode a
 actionWithKeys keys = do
-  modify ((gsPrevKeysL <>~ keys) . (gsKeysTickCounterL .~ 0))
+  modify ((Mode.gsPrevKeysL <>~ keys) . (Mode.gsKeysTickCounterL .~ 0))
   gstate <- get
 
-  case Map.lookup (gstate ^. gsPrevKeysL) (getKeyMap gstate) of
-    Just action -> fmap (clearKeysL .~ []) <$> action
+  case Map.lookup (gstate ^. Mode.gsPrevKeysL) (Mode.getKeyMap gstate) of
+    Just action -> fmap (Mode.clearKeysL .~ []) <$> action
     Nothing     -> continue
 
 toInsertMode :: IsMode a => Action 'Normal a
@@ -120,5 +108,5 @@ changeEditingMode e GlobalState {..} = GlobalState
   , _gsKeyMapL          = _gsKeyMapL
   , _gsPrevKeysL        = _gsPrevKeysL
   , _gsEditingModeL     = e
-  , _gsStatusLineL      = _gsStatusLineL & slEditingModeL .~ e
+  , _gsStatusLineL      = _gsStatusLineL & StatusLine.slEditingModeL .~ e
   }
