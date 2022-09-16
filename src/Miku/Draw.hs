@@ -32,16 +32,18 @@ data Draw a
 
 
 instance Drawable (Widget Name) where
-  draw Draw{..} = Core.withBorderStyle _borderTypeL _drawableL
+  draw Draw {..} = Core.withBorderStyle _borderTypeL _drawableL
 
 
 defDraw :: a -> Draw a
-defDraw a = Draw { _focusedL = False, _borderTypeL = Border.borderStyleFromChar ' ', _drawableL = a}
+defDraw a = Draw { _focusedL    = False
+                 , _borderTypeL = Border.borderStyleFromChar ' '
+                 , _drawableL   = a
+                 }
 
 whenfocused :: (Draw a -> Draw a) -> Draw a -> Draw a
-whenfocused f d
-  | _focusedL d = f d
-  | otherwise   = d
+whenfocused f d | _focusedL d = f d
+                | otherwise   = d
 
 makeLenses ''Draw
 

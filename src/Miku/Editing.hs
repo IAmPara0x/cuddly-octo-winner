@@ -1,7 +1,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 module Miku.Editing
-  ( EditingMode (Normal, Insert)
-  , SEditingMode (SNormal, SInsert)
+  ( EditingMode (Insert, Normal)
+  , SEditingMode (SInsert, SNormal)
   ) where
 
 import Relude

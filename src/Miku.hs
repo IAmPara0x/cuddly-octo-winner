@@ -26,20 +26,21 @@ import Miku.UI              (drawUI, handleEvent)
 import Relude
 
 uiAttrMap :: AttrMap
-uiAttrMap = attrMap (fg Vty.red) [("todo", fg Vty.white), ("current", fg Vty.blue)]
+uiAttrMap =
+  attrMap (fg Vty.red) [("todo", fg Vty.white), ("current", fg Vty.blue)]
 
 app :: App AppState Tick Name
-app = App { appDraw = drawUI
+app = App { appDraw         = drawUI
           , appChooseCursor = neverShowCursor
-          , appHandleEvent = handleEvent
-          , appStartEvent = return
-          , appAttrMap = const uiAttrMap
+          , appHandleEvent  = handleEvent
+          , appStartEvent   = return
+          , appAttrMap      = const uiAttrMap
           }
 
 
 run :: IO ()
 run = do
-  (s, k) <- defState @CurrentLog
+  (s, k) <- _
 
   chan   <- BChan.newBChan 10
 
@@ -47,14 +48,14 @@ run = do
     BChan.writeBChan chan Tick
     threadDelay 100000
 
-  let buildVty = Vty.mkVty Vty.defaultConfig
-      initState = GlobalState { _gsConfigL = def
+  let buildVty  = Vty.mkVty Vty.defaultConfig
+      initState = GlobalState { _gsConfigL          = def
                               , _gsKeysTickCounterL = 0
-                              , _gsTickCounterL = 0
-                              , _gsModeStateL = s
-                              , _gsKeyMapL = k
-                              , _gsPrevKeysL = []
-                              , _gsEditingModeL = SNormal
+                              , _gsTickCounterL     = 0
+                              , _gsModeStateL       = s
+                              , _gsKeyMapL          = k
+                              , _gsPrevKeysL        = []
+                              , _gsEditingModeL     = SNormal
                               }
 
   initialVty <- buildVty

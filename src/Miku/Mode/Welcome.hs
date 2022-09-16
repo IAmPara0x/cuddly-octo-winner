@@ -56,54 +56,57 @@ makeLenses ''WelcomeState
 instance IsMode Welcome where
   type ModeState Welcome = WelcomeState
 
-  defState         = return (WelcomeState { _wsMsgL = "Moshi Moshi!" }, welcomeStateActions)
+  defState =
+    return (WelcomeState { _wsMsgL = "Moshi Moshi!" }, welcomeStateActions)
   drawState        = drawWelcomeState
   handleEventState = handleAnyStateEvent
 
 drawWelcomeState :: DrawMode emode Welcome
-drawWelcomeState  = do
+drawWelcomeState = do
   gstate <- ask
 
   let wstate = gstate ^. gsModeStateL
 
-  return [ Core.vBox
-             [ Core.center $ Core.txt (wstate ^. wsMsgL)
-             , draw $ runReader statusLine gstate
-             ]
-         ]
+  return
+    [ Core.vBox
+        [ Core.center $ Core.txt (wstate ^. wsMsgL)
+        , draw $ runReader statusLine gstate
+        ]
+    ]
 
 statusLine :: W emode Welcome (StatusLine emode)
 statusLine = do
   gstate <- ask
 
   let widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
-                          , _slInfoL = [StatusInfo Welcome]
+                          , _slInfoL        = [StatusInfo Welcome]
                           }
 
-  return Draw { _focusedL = False , _drawableL = widget, _borderTypeL = Border.unicode }
+  return Draw { _focusedL    = False
+              , _drawableL   = widget
+              , _borderTypeL = Border.unicode
+              }
 
 welcomeStateActions :: KeyMap Welcome
-welcomeStateActions =
-  KeyMap { _normalModeMapL =
-              Map.fromList [ ("c", changeMsg)
-                           , ("q", exitApp)
-                           , ("<spc>w", changeMsgAgain)
-                           ]
-         , _insertModeMapL = mempty
-         }
-  where
+welcomeStateActions = KeyMap
+  { _normalModeMapL = Map.fromList
+    [("c", changeMsg), ("q", exitApp), ("<spc>w", changeMsgAgain)]
+  , _insertModeMapL = mempty
+  }
+ where
 
-    changeMsg :: Action 'Normal Welcome
-    changeMsg = modify (gsModeStateL . wsMsgL .~ "welcome!") >> continueAction
+  changeMsg :: Action 'Normal Welcome
+  changeMsg = modify (gsModeStateL . wsMsgL .~ "welcome!") >> continueAction
 
-    changeMsgAgain :: Action 'Normal Welcome
-    changeMsgAgain = modify (gsModeStateL . wsMsgL .~ "welcome again!") >> continueAction
+  changeMsgAgain :: Action 'Normal Welcome
+  changeMsgAgain =
+    modify (gsModeStateL . wsMsgL .~ "welcome again!") >> continueAction
 
-    exitApp :: Action 'Normal Welcome
-    exitApp  = haltAction
+  exitApp :: Action 'Normal Welcome
+  exitApp = haltAction
 
 toWelcomeMode :: Action 'Normal a
 toWelcomeMode = do
-    gstate <- get
-    wstate <- liftIO $ defState @Welcome
-    lift $ Brick.continue (AppState $ gstate & gsChangeModeL .~ wstate)
+  gstate <- get
+  wstate <- liftIO $ _
+  lift $ Brick.continue (AppState $ gstate & gsChangeModeL .~ wstate)
