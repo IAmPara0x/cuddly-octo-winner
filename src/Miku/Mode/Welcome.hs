@@ -15,7 +15,7 @@ import Data.Map             qualified as Map
 
 import Miku.Draw.StatusLine (StatusLineInfo (..))
 import Miku.Editing         (EditingMode (..))
-import Miku.Events          (continueAction, haltAction, handleAnyStateEvent)
+import Miku.Events          (haltAction, handleAnyStateEvent, modifyAndContinue)
 import Miku.Mode
   ( Action
   , AppState (AppState)
@@ -64,10 +64,10 @@ welcomeStateActions = KeyMap
  where
 
   changeMsg :: Action 'Normal Welcome
-  changeMsg = modify (gsModeStateL . wsMsgL .~ "welcome!") >> continueAction
+  changeMsg = modifyAndContinue (gsModeStateL . wsMsgL .~ "welcome!")
 
   changeMsgAgain :: Action 'Normal Welcome
-  changeMsgAgain = modify (gsModeStateL . wsMsgL .~ "welcome again!") >> continueAction
+  changeMsgAgain = modifyAndContinue (gsModeStateL . wsMsgL .~ "welcome again!")
 
   exitApp :: Action 'Normal Welcome
   exitApp = haltAction

@@ -76,19 +76,15 @@ data CurrentLog
   = CurrentLog
   deriving stock (Show)
 
-data CurrentLogConfig
-  = CurrentLogConfig
-      { _clcConfigPathL    :: FilePath
-      , _clcClockAnimTimeL :: Int
-      }
+newtype CurrentLogConfig
+  = CurrentLogConfig { _clcConfigPathL :: FilePath }
 
 data CurrentLogState
   = CurrentLogState
-      { _clsConfigL         :: CurrentLogConfig
-      , _clsWindowL         :: Window 2 2
-      , _clsLogL            :: Log
-      , _clsClockAnimStateL :: Int
-      , _clsAllWindowsL     :: Rec '[Drawable Draw, StatusLineInfo] WindowStates Draw
+      { _clsConfigL     :: CurrentLogConfig
+      , _clsWindowL     :: Window 2 2
+      , _clsLogL        :: Log
+      , _clsAllWindowsL :: Rec '[Drawable Draw, StatusLineInfo] WindowStates Draw
       }
 
 type WindowStates = '[CurrentTask , Stats , Todos NotCompleted , Todos Completed]
@@ -98,7 +94,7 @@ makeLenses ''CurrentLogState
 
 
 instance Default CurrentLogConfig where
-  def = CurrentLogConfig { _clcConfigPathL = "/home/iamparadox/.miku/", _clcClockAnimTimeL = 5 }
+  def = CurrentLogConfig { _clcConfigPathL = "/home/iamparadox/.miku/" }
 
 instance StatusLineInfo CurrentLog where
   statusLineInfo x = [show x]
@@ -130,11 +126,10 @@ defCurrentLogState = do
       stats = defDraw $ Stats $ Border.border $ Core.center $ Core.txt "No Stats!"
 
   return $ CurrentLogState
-    { _clsConfigL         = def
-    , _clsWindowL         = window 0 0
-    , _clsLogL            = log
-    , _clsClockAnimStateL = 0
-    , _clsAllWindowsL     = currentTask :> stats :> notCompletedTodos :> completedTodos :> RNil
+    { _clsConfigL     = def
+    , _clsWindowL     = window 0 0
+    , _clsLogL        = log
+    , _clsAllWindowsL = currentTask :> stats :> notCompletedTodos :> completedTodos :> RNil
     }
 
 currentLogStateActions :: KeyMap CurrentLog
@@ -212,22 +207,6 @@ drawCurrentLogState = do
 
   return $ drawAllWindows allWindows
 
--- statusLine :: W emode CurrentLog (StatusLine emode)
--- statusLine = do
---
---   (gstate :: GlobalState emode CurrentLog) <- ask
---   CurrentLogState {..}                     <- (^. gsModeStateL) <$> ask
---
---   let widget :: StatusLine emode
---       widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
---                           , _slInfoL        = [StatusInfo CurrentLog, windowStatusInfo]
---                           }
---
---
---   return $ Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
-
--- Helpers
-
 switchWindow :: (Window 2 2 -> Window 2 2) -> CurrentLogState -> CurrentLogState
 switchWindow f x = x & clsWindowL %~ f & changeFocus
  where
@@ -239,7 +218,6 @@ switchWindow f x = x & clsWindowL %~ f & changeFocus
     (0, 1) -> mstate & clsAllWindowsL %~ rmodify @CurrentTask focused . rmap notfocused
     (1, 1) -> mstate & clsAllWindowsL %~ rmodify @Stats focused . rmap notfocused
     a      -> error $ "Window of coord " <> show a <> " is not possible!"
-
 
   focused :: Draw a -> Draw a
   focused a = a & focusedL .~ True & borderTypeL .~ Border.unicodeRounded
