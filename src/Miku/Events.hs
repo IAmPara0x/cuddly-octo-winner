@@ -1,7 +1,7 @@
 module Miku.Events
   ( actionWithKeys
-  , continueAction
-  , haltAction
+  , continue
+  , halt
   , handleAnyStateEvent
   , handleInsertStateEvent
   , handleNormalStateEvent
@@ -52,32 +52,32 @@ handleAnyStateEvent event = do
 handleNormalStateEvent :: forall a . IsMode a => BrickEvent Res Tick -> Action 'Normal a
 handleNormalStateEvent (AppEvent Tick              ) = tickAction
 handleNormalStateEvent (VtyEvent (Vty.EvKey key [])) = case key of
-  KEsc         -> modify ((gsPrevKeysL .~ []) . (gsKeysTickCounterL .~ 0)) >> continueAction
+  KEsc         -> modify ((gsPrevKeysL .~ []) . (gsKeysTickCounterL .~ 0)) >> continue
   (KChar '\t') -> actionWithKeys "<tab>"
   (KChar ' ' ) -> actionWithKeys "<spc>"
   (KChar 'i' ) -> toInsertMode
   (KChar c   ) -> actionWithKeys [c]
   KBackTab     -> actionWithKeys "<shift>+<tab>"
-  _            -> continueAction
-handleNormalStateEvent _ = continueAction
+  _            -> continue
+handleNormalStateEvent _ = continue
 
 handleInsertStateEvent :: forall a . IsMode a => BrickEvent Res Tick -> Action 'Insert a
 handleInsertStateEvent (AppEvent Tick)                     = tickAction
 handleInsertStateEvent (VtyEvent (Vty.EvKey KEsc []))      = toNormalMode
 handleInsertStateEvent (VtyEvent (Vty.EvKey (KChar c) [])) = actionWithKeys [c]
-handleInsertStateEvent _                                   = continueAction
+handleInsertStateEvent _                                   = continue
 
-continueAction :: IsMode mode => Action emode mode
-continueAction = get >>= lift . Brick.continue . AppState
+continue :: IsMode mode => Action emode mode
+continue = get >>= lift . Brick.continue . AppState
 
 modifyAndContinue :: IsMode m => (GlobalState e m -> GlobalState e m) -> Action e m
-modifyAndContinue f = modify f >> continueAction
+modifyAndContinue f = modify f >> continue
 
-haltAction :: IsMode mode => Action 'Normal mode
-haltAction = get >>= lift . Brick.halt . AppState
+halt :: IsMode mode => Action 'Normal mode
+halt = get >>= lift . Brick.halt . AppState
 
 tickAction :: IsMode mode => Action emode mode
-tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continueAction
+tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continue
  where
   updateTickCounter :: AppState -> AppState
   updateTickCounter (AppState gstate) =
@@ -99,7 +99,7 @@ actionWithKeys keys = do
 
   case Map.lookup (gstate ^. gsPrevKeysL) (getKeyMap gstate) of
     Just action -> fmap (clearKeysL .~ []) <$> action
-    Nothing     -> continueAction
+    Nothing     -> continue
 
 toInsertMode :: IsMode a => Action 'Normal a
 toInsertMode = do

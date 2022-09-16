@@ -40,7 +40,7 @@ import Miku.Draw.Todos
   , mkCompletedTodos
   , mkNotCompletedTodos
   )
-import Miku.Events                (haltAction, handleAnyStateEvent, modifyAndContinue, toNormalMode)
+import Miku.Events                (halt, handleAnyStateEvent, modifyAndContinue, toNormalMode)
 import Miku.Mode
   ( Action
   , DrawMode
@@ -141,7 +141,7 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
 
   normalKeyMap :: Map Keys (Action 'Normal CurrentLog)
   normalKeyMap = Map.fromList
-    [ ("q"            , haltAction)
+    [ ("q"            , halt)
     , ("k"            , up)
     , ("j"            , down)
     , ("l"            , right)
