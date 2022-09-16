@@ -12,13 +12,7 @@ import Data.Default         (def)
 import Graphics.Vty         qualified as Vty
 
 import Miku.Editing         (SEditingMode (SNormal))
-import Miku.Mode
-  ( AppState (AppState)
-  , GlobalState (..)
-  , Name
-  , Tick (Tick)
-  , defState
-  )
+import Miku.Mode            (AppState (AppState), GlobalState (..), Name, Tick (Tick), defState)
 import Miku.Mode.CurrentLog (CurrentLog)
 
 import Miku.UI              (drawUI, handleEvent)
@@ -26,8 +20,7 @@ import Miku.UI              (drawUI, handleEvent)
 import Relude
 
 uiAttrMap :: AttrMap
-uiAttrMap =
-  attrMap (fg Vty.red) [("todo", fg Vty.white), ("current", fg Vty.blue)]
+uiAttrMap = attrMap (fg Vty.red) [("todo", fg Vty.white), ("current", fg Vty.blue)]
 
 app :: App AppState Tick Name
 app = App { appDraw         = drawUI

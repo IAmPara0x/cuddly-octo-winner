@@ -36,10 +36,8 @@ instance Drawable (Widget Name) where
 
 
 defDraw :: a -> Draw a
-defDraw a = Draw { _focusedL    = False
-                 , _borderTypeL = Border.borderStyleFromChar ' '
-                 , _drawableL   = a
-                 }
+defDraw a =
+  Draw { _focusedL = False, _borderTypeL = Border.borderStyleFromChar ' ', _drawableL = a }
 
 whenfocused :: (Draw a -> Draw a) -> Draw a -> Draw a
 whenfocused f d | _focusedL d = f d

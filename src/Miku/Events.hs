@@ -19,10 +19,7 @@ import Data.Map     qualified as Map
 import Graphics.Vty (Key (KBackTab, KChar, KEsc))
 import Graphics.Vty qualified as Vty
 
-import Miku.Editing
-  ( EditingMode (Insert, Normal)
-  , SEditingMode (SInsert, SNormal)
-  )
+import Miku.Editing (EditingMode (Insert, Normal), SEditingMode (SInsert, SNormal))
 import Miku.Mode
   ( Action
   , AppState (..)
@@ -49,12 +46,10 @@ handleAnyStateEvent event = do
     SNormal -> handleNormalStateEvent event
     SInsert -> handleInsertStateEvent event
 
-handleNormalStateEvent
-  :: forall a . IsMode a => BrickEvent Name Tick -> Action 'Normal a
+handleNormalStateEvent :: forall a . IsMode a => BrickEvent Name Tick -> Action 'Normal a
 handleNormalStateEvent (AppEvent Tick              ) = tickAction
 handleNormalStateEvent (VtyEvent (Vty.EvKey key [])) = case key of
-  KEsc ->
-    modify ((gsPrevKeysL .~ []) . (gsKeysTickCounterL .~ 0)) >> continueAction
+  KEsc         -> modify ((gsPrevKeysL .~ []) . (gsKeysTickCounterL .~ 0)) >> continueAction
   (KChar '\t') -> actionWithKeys "<tab>"
   (KChar ' ' ) -> actionWithKeys "<spc>"
   (KChar 'i' ) -> toInsertMode
@@ -63,8 +58,7 @@ handleNormalStateEvent (VtyEvent (Vty.EvKey key [])) = case key of
   _            -> continueAction
 handleNormalStateEvent _ = continueAction
 
-handleInsertStateEvent
-  :: forall a . IsMode a => BrickEvent Name Tick -> Action 'Insert a
+handleInsertStateEvent :: forall a . IsMode a => BrickEvent Name Tick -> Action 'Insert a
 handleInsertStateEvent (AppEvent Tick)                     = tickAction
 handleInsertStateEvent (VtyEvent (Vty.EvKey KEsc []))      = toNormalMode
 handleInsertStateEvent (VtyEvent (Vty.EvKey (KChar c) [])) = actionWithKeys [c]
@@ -86,15 +80,11 @@ tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continueAction
       &  gsTickCounterL
       .~ uncurry mod (gstate ^. gsTickL & _1 +~ 1)
       &  gsKeysTickCounterL
-      .~ uncurry
-           mod
-           (gstate ^. gsKeysTickL & _1 +~ 1 & _2 .~ gstate ^. gsTickL . _2)
+      .~ uncurry mod (gstate ^. gsKeysTickL & _1 +~ 1 & _2 .~ gstate ^. gsTickL . _2)
 
   clearPrevKeys :: AppState -> AppState
-  clearPrevKeys (AppState gstate) = AppState $ gstate & gsPrevKeysL %~ bool
-    id
-    (const [])
-    (uncurry rem (gstate ^. gsKeysTickL) == 0)
+  clearPrevKeys (AppState gstate) =
+    AppState $ gstate & gsPrevKeysL %~ bool id (const []) (uncurry rem (gstate ^. gsKeysTickL) == 0)
 
 actionWithKeys :: forall a emode . IsMode a => Keys -> Action emode a
 actionWithKeys keys = do

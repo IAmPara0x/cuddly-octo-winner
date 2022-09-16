@@ -59,7 +59,7 @@ conf_layout:
   lconfig_indentPolicy: IndentPolicyFree
   lconfig_indentAmount: 2
   lconfig_alignmentLimit: 30
-  lconfig_cols: 80
+  lconfig_cols: 100
   lconfig_columnAlignMode:
     contents: 0.7
     tag: ColumnAlignModeMajority

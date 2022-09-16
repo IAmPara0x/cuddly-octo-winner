@@ -63,7 +63,7 @@ rfmap
   -> Rec cs xs f
   -> Rec cs xs f
 rfmap _ _ RNil = RNil
-rfmap p (f :> fs) (x :> xs) | p x = fmap (runIdentity f) x :> rfmap p fs xs
+rfmap p (f :> fs) (x :> xs) | p x       = fmap (runIdentity f) x :> rfmap p fs xs
                             | otherwise = x :> rfmap p fs xs
 
 recToList :: (forall x . AllC cs x => f x -> a) -> Rec cs xs f -> [a]

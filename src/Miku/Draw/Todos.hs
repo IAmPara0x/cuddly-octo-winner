@@ -50,18 +50,15 @@ changeTodoIdx _ NoTodos           = NoTodos
 changeTodoIdx n (Todos idx todos) = Todos (mod (n + idx) $ length todos) todos
 
 instance StatusLineInfo (Todos Completed) where
-  statusLineInfo Todos {..} =
-    ["Todos", "Completed", "[" <> show _currTodoIdxL <> "]"]
-  statusLineInfo NoTodos = ["Todos", "Completed"]
+  statusLineInfo Todos {..} = ["Todos", "Completed", "[" <> show _currTodoIdxL <> "]"]
+  statusLineInfo NoTodos    = ["Todos", "Completed"]
 
 instance StatusLineInfo (Todos NotCompleted) where
-  statusLineInfo Todos {..} =
-    ["Todos", "NotCompleted", "[" <> show _currTodoIdxL <> "]"]
-  statusLineInfo NoTodos = ["Todos", "NotCompleted"]
+  statusLineInfo Todos {..} = ["Todos", "NotCompleted", "[" <> show _currTodoIdxL <> "]"]
+  statusLineInfo NoTodos    = ["Todos", "NotCompleted"]
 
 instance Drawable (Todos Completed) where
-  draw x@Draw {..} =
-    Core.withBorderStyle _borderTypeL $ drawTodos "[✓] Completed" x
+  draw x@Draw {..} = Core.withBorderStyle _borderTypeL $ drawTodos "[✓] Completed" x
 
 drawTodos :: Text -> Draw (Todos a) -> Widget Name
 drawTodos heading Draw {..} = case _drawableL of
@@ -74,15 +71,13 @@ drawTodos heading Draw {..} = case _drawableL of
     [Core.padTopBottom 1 $ Core.hCenter $ Core.txt heading, Core.fill ' ']
 
  where
-  addAttr currIdx (idx, todo)
-    | not _focusedL  = Core.withAttr "todo" $ drawTodo todo
-    | idx == currIdx = Core.withAttr "current" $ drawTodo todo
-    | otherwise      = drawTodo todo
+  addAttr currIdx (idx, todo) | not _focusedL  = Core.withAttr "todo" $ drawTodo todo
+                              | idx == currIdx = Core.withAttr "current" $ drawTodo todo
+                              | otherwise      = drawTodo todo
 
 instance Drawable (Todos NotCompleted) where
-  draw x@Draw {..} =
-    Core.withBorderStyle _borderTypeL $ drawTodos "[✕] Not Completed" x
+  draw x@Draw {..} = Core.withBorderStyle _borderTypeL $ drawTodos "[✕] Not Completed" x
 
 drawTodo :: Todo -> Widget Name
-drawTodo todo = Core.padBottom (Pad 1)
-  $ Core.hBox [Core.padLeft (Pad 1) $ Core.txt $ todo ^. todoDescL]
+drawTodo todo =
+  Core.padBottom (Pad 1) $ Core.hBox [Core.padLeft (Pad 1) $ Core.txt $ todo ^. todoDescL]

@@ -15,17 +15,9 @@ import Control.Lens               (makeLenses, (.~), (^.))
 import Data.Map                   qualified as Map
 
 import Miku.Draw                  (Draw (..), W, draw)
-import Miku.Draw.StatusLine
-  ( StatusInfo (..)
-  , StatusLine (..)
-  , StatusLineInfo (..)
-  )
+import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..), StatusLineInfo (..))
 import Miku.Editing               (EditingMode (..))
-import Miku.Events
-  ( continueAction
-  , haltAction
-  , handleAnyStateEvent
-  )
+import Miku.Events                (continueAction, haltAction, handleAnyStateEvent)
 import Miku.Mode
   ( Action
   , AppState (AppState)
@@ -56,8 +48,7 @@ makeLenses ''WelcomeState
 instance IsMode Welcome where
   type ModeState Welcome = WelcomeState
 
-  defState =
-    return (WelcomeState { _wsMsgL = "Moshi Moshi!" }, welcomeStateActions)
+  defState         = return (WelcomeState { _wsMsgL = "Moshi Moshi!" }, welcomeStateActions)
   drawState        = drawWelcomeState
   handleEventState = handleAnyStateEvent
 
@@ -67,30 +58,20 @@ drawWelcomeState = do
 
   let wstate = gstate ^. gsModeStateL
 
-  return
-    [ Core.vBox
-        [ Core.center $ Core.txt (wstate ^. wsMsgL)
-        , draw $ runReader statusLine gstate
-        ]
-    ]
+  return [Core.vBox [Core.center $ Core.txt (wstate ^. wsMsgL), draw $ runReader statusLine gstate]]
 
 statusLine :: W emode Welcome (StatusLine emode)
 statusLine = do
   gstate <- ask
 
-  let widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
-                          , _slInfoL        = [StatusInfo Welcome]
-                          }
+  let widget =
+        StatusLine { _slEditingModeL = gstate ^. gsEditingModeL, _slInfoL = [StatusInfo Welcome] }
 
-  return Draw { _focusedL    = False
-              , _drawableL   = widget
-              , _borderTypeL = Border.unicode
-              }
+  return Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
 
 welcomeStateActions :: KeyMap Welcome
 welcomeStateActions = KeyMap
-  { _normalModeMapL = Map.fromList
-    [("c", changeMsg), ("q", exitApp), ("<spc>w", changeMsgAgain)]
+  { _normalModeMapL = Map.fromList [("c", changeMsg), ("q", exitApp), ("<spc>w", changeMsgAgain)]
   , _insertModeMapL = mempty
   }
  where
@@ -99,8 +80,7 @@ welcomeStateActions = KeyMap
   changeMsg = modify (gsModeStateL . wsMsgL .~ "welcome!") >> continueAction
 
   changeMsgAgain :: Action 'Normal Welcome
-  changeMsgAgain =
-    modify (gsModeStateL . wsMsgL .~ "welcome again!") >> continueAction
+  changeMsgAgain = modify (gsModeStateL . wsMsgL .~ "welcome again!") >> continueAction
 
   exitApp :: Action 'Normal Welcome
   exitApp = haltAction

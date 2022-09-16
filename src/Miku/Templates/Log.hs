@@ -37,15 +37,7 @@ module Miku.Templates.Log
   , writeLog
   ) where
 
-import Control.Lens
-  ( _head
-  , filtered
-  , folded
-  , makeLenses
-  , (^.)
-  , (^..)
-  , (^?)
-  )
+import Control.Lens               (_head, filtered, folded, makeLenses, (^.), (^..), (^?))
 import Control.Monad.Trans.Except (throwE)
 import Data.Text                  qualified as T
 import Data.Time                  (Day)
@@ -94,8 +86,7 @@ instance MkBluePrint Heading where
   type Function Heading = HeadingF
 
   parseBP = Heading
-  showBP (Heading day) =
-    composeS @(Format Heading) @(Function Heading) mempty day
+  showBP (Heading day) = composeS @(Format Heading) @(Function Heading) mempty day
 
 makeLenses ''Heading
 
@@ -145,8 +136,7 @@ instance MkBluePrint TaskDesc where
   type Function TaskDesc = TaskDescF
 
   parseBP = TaskDesc . T.unlines
-  showBP (TaskDesc desc) =
-    composeS @TaskDescFormat @TaskDescF mempty (T.lines desc)
+  showBP (TaskDesc desc) = composeS @TaskDescFormat @TaskDescF mempty (T.lines desc)
 
 makeLenses ''TaskDesc
 
@@ -186,10 +176,8 @@ data Task
       }
   deriving stock (Show)
 
-type TaskF
-  = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
-type TaskSep
-  = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
+type TaskF = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
+type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
 
 type TaskFormat = BluePrint TaskName
               :+> BluePrint Time <: Space <: Token "-" <: Space
@@ -271,8 +259,7 @@ instance MkBluePrint Log where
   type Function Log = LogF
 
   parseBP = Log
-  showBP (Log heading tasks todos) =
-    composeS @LogFormat @LogF mempty heading tasks todos
+  showBP (Log heading tasks todos) = composeS @LogFormat @LogF mempty heading tasks todos
 
 makeLenses ''Log
 
@@ -302,8 +289,7 @@ ongoingTask log = do
   return latestTask
 
 todosNotDone :: [Todo] -> [Todo]
-todosNotDone todos =
-  todos ^.. folded . filtered (\g -> g ^. todoStatusL == NotDone)
+todosNotDone todos = todos ^.. folded . filtered (\g -> g ^. todoStatusL == NotDone)
 
 todosDone :: [Todo] -> [Todo]
 todosDone todos = todos ^.. folded . filtered (\g -> g ^. todoStatusL == Done)
@@ -322,12 +308,7 @@ logsDirExists :: FilePath -> ExceptT Text IO ()
 logsDirExists logsDir = do
   dirExists <- liftIO $ doesPathExist logsDir
 
-  unless
-    dirExists
-    (  throwE
-    $  "The following directory for logs doesn't exists: "
-    <> T.pack logsDir
-    )
+  unless dirExists (throwE $ "The following directory for logs doesn't exists: " <> T.pack logsDir)
 
 readLog :: FilePath -> Day -> ExceptT Text IO Log
 readLog logsDir day = do
@@ -342,8 +323,7 @@ readLog logsDir day = do
 
   logExists <- liftIO $ doesFileExist logPath
 
-  unless logExists
-         (throwE $ "The following log file doesn't exist: " <> T.pack logPath)
+  unless logExists (throwE $ "The following log file doesn't exist: " <> T.pack logPath)
 
   input <- readFileText logPath
 
@@ -366,9 +346,7 @@ readCurrentLog logsDir = do
 
   logExists <- liftIO $ doesFileExist logPath
 
-  if logExists
-    then readLog logsDir currDay
-    else writeLog logsDir currDay newLog >> return newLog
+  if logExists then readLog logsDir currDay else writeLog logsDir currDay newLog >> return newLog
 
 
 writeLog :: FilePath -> Day -> Log -> ExceptT Text IO ()

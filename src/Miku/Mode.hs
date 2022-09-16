@@ -81,8 +81,7 @@ instance Monoid (KeyMap mode) where
   mempty = KeyMap mempty mempty
 
 type Keys = [Char]
-type Action emode mode
-  = StateT (GlobalState emode mode) (EventM Name) (Next AppState)
+type Action emode mode = StateT (GlobalState emode mode) (EventM Name) (Next AppState)
 type DrawMode emode mode = Reader (GlobalState emode mode) [Widget Name]
 
 data AppState
@@ -114,29 +113,26 @@ gsChangeModeL
 gsChangeModeL = lens getter setter
  where
   getter gstate = (gstate ^. gsModeStateL, gstate ^. gsKeyMapL)
-  setter gstate (mstate, keymap) = GlobalState
-    { _gsModeStateL       = mstate
-    , _gsKeyMapL          = keymap
-    , _gsConfigL          = _gsConfigL gstate
-    , _gsTickCounterL     = _gsTickCounterL gstate
-    , _gsKeysTickCounterL = _gsKeysTickCounterL gstate
-    , _gsPrevKeysL        = []
-    , _gsEditingModeL     = _gsEditingModeL gstate
-    }
+  setter gstate (mstate, keymap) = GlobalState { _gsModeStateL       = mstate
+                                               , _gsKeyMapL          = keymap
+                                               , _gsConfigL          = _gsConfigL gstate
+                                               , _gsTickCounterL     = _gsTickCounterL gstate
+                                               , _gsKeysTickCounterL = _gsKeysTickCounterL gstate
+                                               , _gsPrevKeysL        = []
+                                               , _gsEditingModeL     = _gsEditingModeL gstate
+                                               }
 
 gsTickL :: Lens' (GlobalState emode mode) (Int, Int)
 gsTickL = lens getter setter
  where
-  getter gstate =
-    (gstate ^. gsTickCounterL, gstate ^. gsConfigL . gcMaxTickCounterL)
+  getter gstate = (gstate ^. gsTickCounterL, gstate ^. gsConfigL . gcMaxTickCounterL)
   setter gstate (val, conf) =
     gstate & gsTickCounterL .~ val & gsConfigL . gcMaxTickCounterL .~ conf
 
 gsKeysTickL :: Lens' (GlobalState emode mode) (Int, Int)
 gsKeysTickL = lens getter setter
  where
-  getter gstate =
-    (gstate ^. gsKeysTickCounterL, gstate ^. gsConfigL . gcClearKeysTimeL)
+  getter gstate = (gstate ^. gsKeysTickCounterL, gstate ^. gsConfigL . gcClearKeysTimeL)
   setter gstate (val, conf) =
     gstate & gsKeysTickCounterL .~ val & gsConfigL . gcClearKeysTimeL .~ conf
 
