@@ -22,7 +22,7 @@ import Miku.Templates.Log   (Todo, todoDescL)
 
 import Miku.Draw            (Draw (..), Drawable (..))
 import Miku.Draw.StatusLine (StatusLineInfo (..))
-import Miku.Mode            (Name)
+import Miku.Resource        (Res)
 
 import Relude
 
@@ -57,10 +57,10 @@ instance StatusLineInfo (Todos NotCompleted) where
   statusLineInfo Todos {..} = ["Todos", "NotCompleted", "[" <> show _currTodoIdxL <> "]"]
   statusLineInfo NoTodos    = ["Todos", "NotCompleted"]
 
-instance Drawable (Todos Completed) where
+instance Drawable Draw (Todos Completed) where
   draw x@Draw {..} = Core.withBorderStyle _borderTypeL $ drawTodos "[✓] Completed" x
 
-drawTodos :: Text -> Draw (Todos a) -> Widget Name
+drawTodos :: Text -> Draw (Todos a) -> Widget Res
 drawTodos heading Draw {..} = case _drawableL of
   Todos currIdx todos -> Border.border $ Core.center $ Core.vBox
     [ Core.padTopBottom 1 $ Core.hCenter $ Core.txt heading
@@ -75,9 +75,9 @@ drawTodos heading Draw {..} = case _drawableL of
                               | idx == currIdx = Core.withAttr "current" $ drawTodo todo
                               | otherwise      = drawTodo todo
 
-instance Drawable (Todos NotCompleted) where
+instance Drawable Draw (Todos NotCompleted) where
   draw x@Draw {..} = Core.withBorderStyle _borderTypeL $ drawTodos "[✕] Not Completed" x
 
-drawTodo :: Todo -> Widget Name
+drawTodo :: Todo -> Widget Res
 drawTodo todo =
   Core.padBottom (Pad 1) $ Core.hBox [Core.padLeft (Pad 1) $ Core.txt $ todo ^. todoDescL]

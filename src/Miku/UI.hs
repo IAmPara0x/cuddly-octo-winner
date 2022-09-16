@@ -4,21 +4,25 @@ module Miku.UI
   , handleEvent
   ) where
 
-import Brick.Types (BrickEvent, EventM, Next, Widget)
+
+import Brick.Types        (BrickEvent, EventM, Next, Widget)
+import Brick.Widgets.Core qualified as Core
+import Miku.Draw          (draw)
 import Miku.Mode
   ( AppState (AppState)
   , GlobalState
-  , IsMode
-  , Name
   , Tick
+  , _gsStatusLineL
   , drawState
   , handleEventState
   )
+import Miku.Resource      (Res)
 
 import Relude
 
-drawUI :: AppState -> [Widget Name]
-drawUI (AppState (s :: IsMode mode => GlobalState emode mode)) = runReader drawState s
+drawUI :: AppState -> [Widget Res]
+drawUI (AppState (s :: GlobalState emode mode)) =
+  [Core.vBox [runReader (drawState @mode) s, draw $ Identity $ _gsStatusLineL s]]
 
-handleEvent :: AppState -> BrickEvent Name Tick -> EventM Name (Next AppState)
+handleEvent :: AppState -> BrickEvent Res Tick -> EventM Res (Next AppState)
 handleEvent (AppState s) event = evalStateT (handleEventState event) s

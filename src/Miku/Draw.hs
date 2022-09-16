@@ -1,8 +1,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FunctionalDependencies    #-}
 module Miku.Draw
   ( Draw (..)
   , Drawable (..)
-  , W
   , borderTypeL
   , defDraw
   , drawableL
@@ -16,12 +16,15 @@ import Brick.Widgets.Core         qualified as Core
 import Brick.Types                (Widget)
 import Control.Lens               (makeLenses, (%~))
 
-import Miku.Mode                  (GlobalState, Name)
+import Miku.Resource              (Res)
 
 import Relude
 
-class Drawable a where
-  draw :: Draw a -> Widget Name
+class Drawable f a | a -> f where
+  draw :: f a -> Widget Res
+
+instance Drawable Draw (Widget Res) where
+  draw Draw {..} = Core.withBorderStyle _borderTypeL _drawableL
 
 data Draw a
   = Draw
@@ -30,10 +33,10 @@ data Draw a
       , _drawableL   :: a
       }
 
+makeLenses ''Draw
 
-instance Drawable (Widget Name) where
-  draw Draw {..} = Core.withBorderStyle _borderTypeL _drawableL
-
+instance Functor Draw where
+  fmap f = drawableL %~ f
 
 defDraw :: a -> Draw a
 defDraw a =
@@ -43,12 +46,3 @@ whenfocused :: (Draw a -> Draw a) -> Draw a -> Draw a
 whenfocused f d | _focusedL d = f d
                 | otherwise   = d
 
-makeLenses ''Draw
-
-
-instance Functor Draw where
-  fmap f = drawableL %~ f
-
-
--- -- TODO: rename this.
-type W emode mode a = Reader (GlobalState emode mode) (Draw a)

@@ -5,27 +5,29 @@ module Miku.Events
   , handleAnyStateEvent
   , handleInsertStateEvent
   , handleNormalStateEvent
+  , modifyAndContinue
   , toInsertMode
   , toNormalMode
   ) where
 
-import Brick.Main   qualified as Brick
-import Brick.Types  (BrickEvent (AppEvent, VtyEvent))
+import Brick.Main           qualified as Brick
+import Brick.Types          (BrickEvent (AppEvent, VtyEvent))
 
-import Control.Lens (_1, _2, (%~), (+~), (.~), (<>~), (^.))
+import Control.Lens         (_1, _2, (%~), (+~), (.~), (<>~), (^.))
 
-import Data.Map     qualified as Map
+import Data.Map             qualified as Map
 
-import Graphics.Vty (Key (KBackTab, KChar, KEsc))
-import Graphics.Vty qualified as Vty
+import Graphics.Vty         (Key (KBackTab, KChar, KEsc))
+import Graphics.Vty         qualified as Vty
 
-import Miku.Editing (EditingMode (Insert, Normal), SEditingMode (SInsert, SNormal))
+import Miku.Draw.StatusLine (slEditingModeL)
+import Miku.Editing         (EditingMode (Insert, Normal), SEditingMode (SInsert, SNormal))
 import Miku.Mode
   ( Action
   , AppState (..)
+  , GlobalState (..)
   , IsMode
   , Keys
-  , Name
   , Tick (..)
   , clearKeysL
   , getKeyMap
@@ -36,17 +38,18 @@ import Miku.Mode
   , gsTickCounterL
   , gsTickL
   )
+import Miku.Resource        (Res)
 
 import Relude
 
-handleAnyStateEvent :: IsMode a => BrickEvent Name Tick -> Action emode a
+handleAnyStateEvent :: IsMode a => BrickEvent Res Tick -> Action emode a
 handleAnyStateEvent event = do
   gstate <- get
   case gstate ^. gsEditingModeL of
     SNormal -> handleNormalStateEvent event
     SInsert -> handleInsertStateEvent event
 
-handleNormalStateEvent :: forall a . IsMode a => BrickEvent Name Tick -> Action 'Normal a
+handleNormalStateEvent :: forall a . IsMode a => BrickEvent Res Tick -> Action 'Normal a
 handleNormalStateEvent (AppEvent Tick              ) = tickAction
 handleNormalStateEvent (VtyEvent (Vty.EvKey key [])) = case key of
   KEsc         -> modify ((gsPrevKeysL .~ []) . (gsKeysTickCounterL .~ 0)) >> continueAction
@@ -58,7 +61,7 @@ handleNormalStateEvent (VtyEvent (Vty.EvKey key [])) = case key of
   _            -> continueAction
 handleNormalStateEvent _ = continueAction
 
-handleInsertStateEvent :: forall a . IsMode a => BrickEvent Name Tick -> Action 'Insert a
+handleInsertStateEvent :: forall a . IsMode a => BrickEvent Res Tick -> Action 'Insert a
 handleInsertStateEvent (AppEvent Tick)                     = tickAction
 handleInsertStateEvent (VtyEvent (Vty.EvKey KEsc []))      = toNormalMode
 handleInsertStateEvent (VtyEvent (Vty.EvKey (KChar c) [])) = actionWithKeys [c]
@@ -66,6 +69,9 @@ handleInsertStateEvent _                                   = continueAction
 
 continueAction :: IsMode mode => Action emode mode
 continueAction = get >>= lift . Brick.continue . AppState
+
+modifyAndContinue :: IsMode m => (GlobalState e m -> GlobalState e m) -> Action e m
+modifyAndContinue f = modify f >> continueAction
 
 haltAction :: IsMode mode => Action 'Normal mode
 haltAction = get >>= lift . Brick.halt . AppState
@@ -98,9 +104,21 @@ actionWithKeys keys = do
 toInsertMode :: IsMode a => Action 'Normal a
 toInsertMode = do
   gstate <- get
-  lift $ Brick.continue (AppState $ gstate & gsEditingModeL .~ SInsert)
+  lift $ Brick.continue (AppState $ changeEditingMode SInsert gstate)
 
 toNormalMode :: IsMode a => Action 'Insert a
 toNormalMode = do
   gstate <- get
-  lift $ Brick.continue (AppState $ gstate & gsEditingModeL .~ SNormal)
+  lift $ Brick.continue (AppState $ changeEditingMode SNormal gstate)
+
+changeEditingMode :: IsMode a => SEditingMode e2 -> GlobalState e1 a -> GlobalState e2 a
+changeEditingMode e GlobalState {..} = GlobalState
+  { _gsConfigL          = _gsConfigL
+  , _gsKeysTickCounterL = _gsKeysTickCounterL
+  , _gsTickCounterL     = _gsTickCounterL
+  , _gsModeStateL       = _gsModeStateL
+  , _gsKeyMapL          = _gsKeyMapL
+  , _gsPrevKeysL        = _gsPrevKeysL
+  , _gsEditingModeL     = e
+  , _gsStatusLineL      = _gsStatusLineL & slEditingModeL .~ e
+  }

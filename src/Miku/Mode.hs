@@ -7,7 +7,6 @@ module Miku.Mode
   , IsMode (..)
   , KeyMap (..)
   , Keys
-  , Name
   , Tick (Tick)
   , clearKeysL
   , gcClearKeysTimeL
@@ -22,23 +21,23 @@ module Miku.Mode
   , gsKeysTickL
   , gsModeStateL
   , gsPrevKeysL
+  , gsStatusLineL
   , gsTickCounterL
   , gsTickL
   , insertModeMapL
   , normalModeMapL
   ) where
 
-import Brick.Types  (BrickEvent, EventM, Next, Widget)
-import Control.Lens (Lens, Lens', lens, makeLenses, (.~), (^.))
-import Data.Default (Default (def))
+import Brick.Types          (BrickEvent, EventM, Next, Widget)
+import Control.Lens         (Lens, Lens', lens, makeLenses, (.~), (^.))
+import Data.Default         (Default (def))
 
+import Miku.Editing         (EditingMode (..), SEditingMode (SInsert, SNormal))
+import Miku.Resource        (Res)
 
-import Miku.Editing (EditingMode (..), SEditingMode (SInsert, SNormal))
-
+import Miku.Draw.StatusLine (StatusLine (StatusLine))
 
 import Relude
-
-type Name = ()
 
 data Tick
   = Tick
@@ -66,6 +65,7 @@ data GlobalState emode mode
       , _gsKeyMapL          :: KeyMap mode
       , _gsPrevKeysL        :: Keys
       , _gsEditingModeL     :: SEditingMode emode
+      , _gsStatusLineL      :: StatusLine emode
       }
 
 data KeyMap mode
@@ -81,8 +81,8 @@ instance Monoid (KeyMap mode) where
   mempty = KeyMap mempty mempty
 
 type Keys = [Char]
-type Action emode mode = StateT (GlobalState emode mode) (EventM Name) (Next AppState)
-type DrawMode emode mode = Reader (GlobalState emode mode) [Widget Name]
+type Action emode mode = StateT (GlobalState emode mode) (EventM Res) (Next AppState)
+type DrawMode emode mode = Reader (GlobalState emode mode) (Widget Res)
 
 data AppState
   = forall emode mode. (IsMode mode) => AppState (GlobalState emode mode)
@@ -92,7 +92,7 @@ class IsMode (mode :: Type) where
 
   defState         :: IO (ModeState mode, KeyMap mode)
   drawState        :: DrawMode emode mode
-  handleEventState :: BrickEvent Name Tick -> Action emode mode
+  handleEventState :: BrickEvent Res Tick -> Action emode mode
 
 makeLenses ''KeyMap
 makeLenses ''GlobalState
@@ -113,14 +113,16 @@ gsChangeModeL
 gsChangeModeL = lens getter setter
  where
   getter gstate = (gstate ^. gsModeStateL, gstate ^. gsKeyMapL)
-  setter gstate (mstate, keymap) = GlobalState { _gsModeStateL       = mstate
-                                               , _gsKeyMapL          = keymap
-                                               , _gsConfigL          = _gsConfigL gstate
-                                               , _gsTickCounterL     = _gsTickCounterL gstate
-                                               , _gsKeysTickCounterL = _gsKeysTickCounterL gstate
-                                               , _gsPrevKeysL        = []
-                                               , _gsEditingModeL     = _gsEditingModeL gstate
-                                               }
+  setter gstate (mstate, keymap) = GlobalState
+    { _gsModeStateL       = mstate
+    , _gsKeyMapL          = keymap
+    , _gsConfigL          = _gsConfigL gstate
+    , _gsTickCounterL     = _gsTickCounterL gstate
+    , _gsKeysTickCounterL = _gsKeysTickCounterL gstate
+    , _gsPrevKeysL        = []
+    , _gsEditingModeL     = _gsEditingModeL gstate
+    , _gsStatusLineL      = StatusLine (_gsEditingModeL gstate) []
+    }
 
 gsTickL :: Lens' (GlobalState emode mode) (Int, Int)
 gsTickL = lens getter setter

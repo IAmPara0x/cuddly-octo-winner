@@ -48,7 +48,6 @@ type family Fun (xs :: [Type]) :: [Type] where
   Fun '[]       = '[]
   Fun (x ': xs) = (x -> x) ': Fun xs
 
-
 class Unit a
 instance Unit a
 

@@ -6,18 +6,16 @@ module Miku.Mode.Welcome
   , wsMsgL
   ) where
 
-import Brick.Main                 qualified as Brick
-import Brick.Widgets.Border.Style qualified as Border
-import Brick.Widgets.Center       qualified as Core
-import Brick.Widgets.Core         qualified as Core
+import Brick.Main           qualified as Brick
+import Brick.Widgets.Center qualified as Core
+import Brick.Widgets.Core   qualified as Core
 
-import Control.Lens               (makeLenses, (.~), (^.))
-import Data.Map                   qualified as Map
+import Control.Lens         (makeLenses, (.~), (^.))
+import Data.Map             qualified as Map
 
-import Miku.Draw                  (Draw (..), W, draw)
-import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..), StatusLineInfo (..))
-import Miku.Editing               (EditingMode (..))
-import Miku.Events                (continueAction, haltAction, handleAnyStateEvent)
+import Miku.Draw.StatusLine (StatusLineInfo (..))
+import Miku.Editing         (EditingMode (..))
+import Miku.Events          (continueAction, haltAction, handleAnyStateEvent)
 import Miku.Mode
   ( Action
   , AppState (AppState)
@@ -25,7 +23,6 @@ import Miku.Mode
   , IsMode (..)
   , KeyMap (..)
   , gsChangeModeL
-  , gsEditingModeL
   , gsModeStateL
   )
 
@@ -57,17 +54,7 @@ drawWelcomeState = do
   gstate <- ask
 
   let wstate = gstate ^. gsModeStateL
-
-  return [Core.vBox [Core.center $ Core.txt (wstate ^. wsMsgL), draw $ runReader statusLine gstate]]
-
-statusLine :: W emode Welcome (StatusLine emode)
-statusLine = do
-  gstate <- ask
-
-  let widget =
-        StatusLine { _slEditingModeL = gstate ^. gsEditingModeL, _slInfoL = [StatusInfo Welcome] }
-
-  return Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
+  return (Core.center $ Core.txt (wstate ^. wsMsgL))
 
 welcomeStateActions :: KeyMap Welcome
 welcomeStateActions = KeyMap

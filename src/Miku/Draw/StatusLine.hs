@@ -13,10 +13,11 @@ import Brick.Widgets.Center qualified as Core
 import Brick.Widgets.Core   qualified as Core
 
 import Control.Lens         (makeLenses)
+import Data.Default         (Default (def))
 
-import Miku.Draw            (Draw (..), Drawable (..))
+import Miku.Draw            (Drawable (..))
 import Miku.Editing         (EditingMode (..), SEditingMode (..))
-import Miku.Mode            (Name)
+import Miku.Resource        (Res)
 
 import Relude
 
@@ -33,10 +34,13 @@ data StatusLine emode
       , _slInfoL        :: [StatusInfo]
       }
 
+instance Default (StatusLine 'Normal) where
+  def = StatusLine SNormal []
+
 makeLenses ''StatusLine
 
-instance Drawable (StatusLine a) where
-  draw Draw { _drawableL = StatusLine {..} } = Core.vLimit 2 $ Core.vBox
+instance Drawable Identity (StatusLine a) where
+  draw Identity { runIdentity = StatusLine {..} } = Core.vLimit 2 $ Core.vBox
     [ Core.vLimit 1 $ Core.hBox
       [ drawMode _slEditingModeL
       , drawInfo $ concatMap (\(StatusInfo a) -> statusLineInfo a) _slInfoL
@@ -44,10 +48,10 @@ instance Drawable (StatusLine a) where
     , Core.fill ' '
     ]
 
-drawMode :: SEditingMode emode -> Widget Name
+drawMode :: SEditingMode emode -> Widget Res
 drawMode = Core.padLeft (Pad 1) . Core.txt . show
 
-drawInfo :: [Text] -> Widget Name
+drawInfo :: [Text] -> Widget Res
 drawInfo = Core.center . Core.hBox . (: []) . Core.txt . fold . intersperse ":"
 
 drawStatusLine :: Text -> Text -> Widget n

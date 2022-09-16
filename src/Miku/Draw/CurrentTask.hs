@@ -22,7 +22,7 @@ import Relude
 
 import Miku.Draw            (Draw (..), Drawable (..), borderTypeL, drawableL)
 import Miku.Draw.StatusLine (StatusLineInfo (..))
-import Miku.Mode            (Name)
+import Miku.Resource        (Res)
 import Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag, descL, nameL, showTags)
 import Miku.Types.Time      (Time, showTime)
 
@@ -32,7 +32,7 @@ newtype CurrentTaskName
   = CurrentTaskName TaskName
 makePrisms ''CurrentTaskName
 
-instance Drawable CurrentTaskName where
+instance Drawable Draw CurrentTaskName where
   draw drawState =
     drawState ^. drawableL . _CurrentTaskName . to drawTaskName . to (<=> Border.hBorder) . to
       (Core.withBorderStyle $ drawState ^. borderTypeL)
@@ -46,7 +46,7 @@ newtype CurrentTaskDesc
   = CurrentTaskDesc (Maybe TaskDesc)
 makePrisms ''CurrentTaskDesc
 
-instance Drawable CurrentTaskDesc where
+instance Drawable Draw CurrentTaskDesc where
   draw drawState =
     drawState ^. drawableL . _CurrentTaskDesc . to (maybe "No Description." (^. descL)) . to
       (Core.vCenter . Core.txt)
@@ -55,7 +55,7 @@ newtype StartTime
   = StartTime Time
 makePrisms ''StartTime
 
-instance Drawable StartTime where
+instance Drawable Draw StartTime where
   draw drawState =
     drawState ^. drawableL . _StartTime . to showTime . to ("From: " <>) . to Core.txt . to
       (Core.padLeft $ Pad 1)
@@ -65,7 +65,7 @@ data EndTime
   = EndTime Int (Maybe Time)
 makePrisms ''EndTime
 
-instance Drawable EndTime where
+instance Drawable Draw EndTime where
   draw drawState =
     drawState
       ^. drawableL
@@ -83,7 +83,7 @@ newtype CurrentTaskTags
   = CurrentTaskTags [TaskTag]
 makePrisms ''CurrentTaskTags
 
-instance Drawable CurrentTaskTags where
+instance Drawable Draw CurrentTaskTags where
   draw drawState = drawState ^. drawableL . _CurrentTaskTags . to drawTaskTags . to
     (Border.hBorder <=>)
     where drawTaskTags tags = Core.padTopBottom 1 $ Core.txt $ showTags tags
@@ -114,7 +114,7 @@ instance StatusLineInfo CurrentTask where
   statusLineInfo (CurrentTask item _) = ["CurrentTask"] <> statusLineInfo item
   statusLineInfo NoCurrentTask{}      = ["NoCurrentTask"]
 
-instance Drawable CurrentTask where
+instance Drawable Draw CurrentTask where
   draw drawState@Draw {..} = case _drawableL of
     NoCurrentTask msg -> Core.withBorderStyle _borderTypeL $ Border.border $ noOngoinTaskWidget msg
     CurrentTask item Task {..} ->
@@ -140,9 +140,9 @@ instance Drawable CurrentTask where
             , draw $ drawState & drawableL .~ CurrentTaskTags _taskTagsL
             ]
    where
-    addAttr :: Bool -> CurrentTaskItem -> [Widget Name] -> [Widget Name]
+    addAttr :: Bool -> CurrentTaskItem -> [Widget Res] -> [Widget Res]
     addAttr False _    widgets = widgets
     addAttr True  item widgets = widgets & ix (fromEnum item) %~ Core.withAttr "current"
 
-    noOngoinTaskWidget :: Text -> Widget Name
+    noOngoinTaskWidget :: Text -> Widget Res
     noOngoinTaskWidget = Core.hLimitPercent 50 . Core.center . Core.txt

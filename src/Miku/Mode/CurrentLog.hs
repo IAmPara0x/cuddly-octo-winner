@@ -1,4 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
 module Miku.Mode.CurrentLog
   ( CurrentLog
   , currentLogStateActions
@@ -12,7 +11,6 @@ import Brick.Widgets.Core         qualified as Core
 import Brick.Types                (Padding (Pad), Widget)
 
 import Control.Lens               (makeLenses, (%~), (.~), (^.))
-import Control.Monad.Trans.Reader (mapReader)
 import Data.Default               (Default (def))
 import Data.Map                   qualified as Map
 
@@ -27,13 +25,13 @@ import Miku.Templates.Log
   , todosNotDone
   )
 
-import Miku.Draw                  (Draw (..), Drawable, W, borderTypeL, defDraw, draw, focusedL)
+import Miku.Draw                  (Draw (..), Drawable, borderTypeL, defDraw, draw, focusedL)
 import Miku.Draw.CurrentTask
   ( CurrentTask (CurrentTask, NoCurrentTask)
   , CurrentTaskItem (TaskName)
   , changeCurrentTaskFocus
   )
-import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..), StatusLineInfo (..))
+import Miku.Draw.StatusLine       (StatusInfo (StatusInfo), StatusLineInfo (..), slInfoL)
 import Miku.Draw.Todos
   ( Completed
   , NotCompleted
@@ -42,7 +40,7 @@ import Miku.Draw.Todos
   , mkCompletedTodos
   , mkNotCompletedTodos
   )
-import Miku.Events                (continueAction, haltAction, handleAnyStateEvent, toNormalMode)
+import Miku.Events                (haltAction, handleAnyStateEvent, modifyAndContinue, toNormalMode)
 import Miku.Mode
   ( Action
   , DrawMode
@@ -50,13 +48,13 @@ import Miku.Mode
   , IsMode (..)
   , KeyMap (..)
   , Keys
-  , Name
-  , gsEditingModeL
   , gsModeStateL
+  , gsStatusLineL
   )
 
 import Miku.Editing               (EditingMode (..))
 import Miku.Mode.Utility          (Window, horizMove, vertMove, viewWindow, window)
+import Miku.Resource              (Res)
 
 import Miku.Types.Rec             (Field (rmodify), Rec (..), recToList, rfilterMap, rfmap, rmap)
 import System.FilePath            ((</>))
@@ -67,13 +65,12 @@ import Relude
 
 -- TODO: remove this
 newtype Stats
-  = Stats (Widget Name)
-  deriving newtype (Drawable)
+  = Stats (Widget Res)
+  deriving newtype (Drawable Draw)
 
 instance StatusLineInfo Stats where
   statusLineInfo _ = ["Stats"]
 
-type WindowStates = '[CurrentTask , Stats , Todos NotCompleted , Todos Completed]
 
 data CurrentLog
   = CurrentLog
@@ -91,8 +88,10 @@ data CurrentLogState
       , _clsWindowL         :: Window 2 2
       , _clsLogL            :: Log
       , _clsClockAnimStateL :: Int
-      , _clsAllWindowsL     :: Rec '[Drawable, StatusLineInfo] WindowStates Draw
+      , _clsAllWindowsL     :: Rec '[Drawable Draw, StatusLineInfo] WindowStates Draw
       }
+
+type WindowStates = '[CurrentTask , Stats , Todos NotCompleted , Todos Completed]
 
 makeLenses ''CurrentLogConfig
 makeLenses ''CurrentLogState
@@ -157,14 +156,18 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
     ]
 
   right, left, up, down :: Action 'Normal CurrentLog
-  right = modify (gsModeStateL %~ switchWindow (horizMove 1)) >> continueAction
-  left  = modify (gsModeStateL %~ switchWindow (horizMove (-1))) >> continueAction
-  up    = modify (gsModeStateL %~ switchWindow (vertMove 1)) >> continueAction
-  down  = modify (gsModeStateL %~ switchWindow (vertMove (-1))) >> continueAction
+  right = modify (gsModeStateL %~ switchWindow (horizMove 1)) >> modifyAndContinue updateStatusLine
+  left =
+    modify (gsModeStateL %~ switchWindow (horizMove (-1))) >> modifyAndContinue updateStatusLine
+  up = modify (gsModeStateL %~ switchWindow (vertMove 1)) >> modifyAndContinue updateStatusLine
+  down =
+    modify (gsModeStateL %~ switchWindow (vertMove (-1))) >> modifyAndContinue updateStatusLine
 
   incAction, decAction :: Action 'Normal CurrentLog
-  incAction = modify (gsModeStateL . clsAllWindowsL %~ changeIdx 1) >> continueAction
-  decAction = modify (gsModeStateL . clsAllWindowsL %~ changeIdx (-1)) >> continueAction
+  incAction =
+    modify (gsModeStateL . clsAllWindowsL %~ changeIdx 1) >> modifyAndContinue updateStatusLine
+  decAction =
+    modify (gsModeStateL . clsAllWindowsL %~ changeIdx (-1)) >> modifyAndContinue updateStatusLine
 
   changeIdx :: Int -> Rec cs WindowStates Draw -> Rec cs WindowStates Draw
   changeIdx n =
@@ -175,19 +178,30 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
       :> Identity (changeTodoIdx n)
       :> RNil
 
+  updateStatusLine :: GlobalState 'Normal CurrentLog -> GlobalState 'Normal CurrentLog
+  updateStatusLine gstate =
+    gstate & gsStatusLineL . slInfoL .~ [StatusInfo CurrentLog, windowStatusInfo]
+   where
+    allWindows = gstate ^. gsModeStateL . clsAllWindowsL
+
+    windowStatusInfo :: StatusInfo
+    windowStatusInfo = case rfilterMap _focusedL (StatusInfo . _drawableL) allWindows of
+      [x] -> x
+      _   -> error "There must be atleast one window focued"
+
 
 drawCurrentLogState :: DrawMode emode CurrentLog
 drawCurrentLogState = do
 
-  gstate               <- ask
   CurrentLogState {..} <- (^. gsModeStateL) <$> ask
 
-  h                    <- mapReader draw heading
   let
-    allWindows :: [Widget Name]
-    allWindows = h : recToList draw _clsAllWindowsL
+    logHeading = Core.padAll 1 $ Core.hCenter $ Core.txt $ showHeading (_clsLogL ^. logHeadingL)
 
-    drawAllWindows :: [Widget Name] -> Widget Name
+    allWindows :: [Widget Res]
+    allWindows = logHeading : recToList draw _clsAllWindowsL
+
+    drawAllWindows :: [Widget Res] -> Widget Res
     drawAllWindows [headingWindow, topWLeftindow, topWRightindow, botWLeftindow, botWRightindow] =
       Core.vBox
         [ headingWindow
@@ -196,36 +210,21 @@ drawCurrentLogState = do
         ]
     drawAllWindows _ = error "x_x"
 
-  return [Core.vBox [drawAllWindows allWindows, draw $ runReader statusLine gstate]]
+  return $ drawAllWindows allWindows
 
-heading :: W emode CurrentLog (Widget Name)
-heading = do
-  mstate <- (^. gsModeStateL) <$> ask
-
-  let logHeading = mstate ^. clsLogL . logHeadingL
-      widget     = Core.padAll 1 $ Core.hCenter $ Core.txt $ showHeading logHeading
-
-  return $ Draw { _focusedL    = False
-                , _drawableL   = widget
-                , _borderTypeL = Border.borderStyleFromChar ' '
-                }
-
-statusLine :: W emode CurrentLog (StatusLine emode)
-statusLine = do
-
-  (gstate :: GlobalState emode CurrentLog) <- ask
-  CurrentLogState {..}                     <- (^. gsModeStateL) <$> ask
-
-  let widget :: StatusLine emode
-      widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
-                          , _slInfoL        = [StatusInfo CurrentLog, windowStatusInfo]
-                          }
-
-      windowStatusInfo = case rfilterMap _focusedL (StatusInfo . _drawableL) _clsAllWindowsL of
-        [x] -> x
-        _   -> error "There must be atleast one window focued"
-
-  return $ Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
+-- statusLine :: W emode CurrentLog (StatusLine emode)
+-- statusLine = do
+--
+--   (gstate :: GlobalState emode CurrentLog) <- ask
+--   CurrentLogState {..}                     <- (^. gsModeStateL) <$> ask
+--
+--   let widget :: StatusLine emode
+--       widget = StatusLine { _slEditingModeL = gstate ^. gsEditingModeL
+--                           , _slInfoL        = [StatusInfo CurrentLog, windowStatusInfo]
+--                           }
+--
+--
+--   return $ Draw { _focusedL = False, _drawableL = widget, _borderTypeL = Border.unicode }
 
 -- Helpers
 
