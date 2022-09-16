@@ -23,8 +23,15 @@ import Relude
 import Miku.Draw            (Draw (..), Drawable (..), borderTypeL, drawableL)
 import Miku.Draw.StatusLine (StatusLineInfo (..))
 import Miku.Mode            (Name)
-import Miku.Templates.Log   (Task (..), TaskDesc, TaskName, TaskTag, descL,
-                             nameL, showTags)
+import Miku.Templates.Log
+  ( Task (..)
+  , TaskDesc
+  , TaskName
+  , TaskTag
+  , descL
+  , nameL
+  , showTags
+  )
 import Miku.Types.Time      (Time, showTime)
 
 import Relude.Unsafe        ((!!))
@@ -101,8 +108,8 @@ instance Drawable CurrentTaskTags where
 
 data CurrentTaskItem
   = TaskName
-  | TaskDesc
   | TaskStartTime
+  | TaskDesc
   | TaskTags
   deriving stock (Bounded, Enum, Show)
 

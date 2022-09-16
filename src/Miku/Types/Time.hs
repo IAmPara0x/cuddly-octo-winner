@@ -9,8 +9,15 @@ module Miku.Types.Time
   ) where
 
 import Control.Lens      (makeLenses)
-import Data.Time         (Day, getZonedTime, localDay, localTimeOfDay, todHour,
-                          todMin, zonedTimeToLocalTime)
+import Data.Time
+  ( Day
+  , getZonedTime
+  , localDay
+  , localTimeOfDay
+  , todHour
+  , todMin
+  , zonedTimeToLocalTime
+  )
 
 import Miku.Types.Parser
 

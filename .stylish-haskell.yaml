@@ -216,7 +216,7 @@ steps:
       #   >     )
       #
       # Default: inline
-      long_list_align: inline
+      long_list_align: multiline
 
       # Align empty list (importing instances)
       #
@@ -240,7 +240,7 @@ steps:
       #   Useful for 'file' and 'group' align settings.
       #
       # Default: 4
-      list_padding: 4
+      list_padding: 2
 
       # Separate lists option affects formatting of import list for type
       # or class. The only difference is single space between type and list

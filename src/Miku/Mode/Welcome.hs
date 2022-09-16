@@ -15,14 +15,27 @@ import Control.Lens               (makeLenses, (.~), (^.))
 import Data.Map                   qualified as Map
 
 import Miku.Draw                  (Draw (..), W, draw)
-import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..),
-                                   StatusLineInfo (..))
+import Miku.Draw.StatusLine
+  ( StatusInfo (..)
+  , StatusLine (..)
+  , StatusLineInfo (..)
+  )
 import Miku.Editing               (EditingMode (..))
-import Miku.Events                (continueAction, haltAction,
-                                   handleAnyStateEvent)
-import Miku.Mode                  (Action, AppState (AppState), DrawMode,
-                                   IsMode (..), KeyMap (..), gsChangeModeL,
-                                   gsEditingModeL, gsModeStateL)
+import Miku.Events
+  ( continueAction
+  , haltAction
+  , handleAnyStateEvent
+  )
+import Miku.Mode
+  ( Action
+  , AppState (AppState)
+  , DrawMode
+  , IsMode (..)
+  , KeyMap (..)
+  , gsChangeModeL
+  , gsEditingModeL
+  , gsModeStateL
+  )
 
 import Relude
 

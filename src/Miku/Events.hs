@@ -19,11 +19,26 @@ import Data.Map     qualified as Map
 import Graphics.Vty (Key (KBackTab, KChar, KEsc))
 import Graphics.Vty qualified as Vty
 
-import Miku.Editing (EditingMode (Insert, Normal),
-                     SEditingMode (SInsert, SNormal))
-import Miku.Mode    (Action, AppState (..), IsMode, Keys, Name, Tick (..),
-                     clearKeysL, getKeyMap, gsEditingModeL, gsKeysTickCounterL,
-                     gsKeysTickL, gsPrevKeysL, gsTickCounterL, gsTickL)
+import Miku.Editing
+  ( EditingMode (Insert, Normal)
+  , SEditingMode (SInsert, SNormal)
+  )
+import Miku.Mode
+  ( Action
+  , AppState (..)
+  , IsMode
+  , Keys
+  , Name
+  , Tick (..)
+  , clearKeysL
+  , getKeyMap
+  , gsEditingModeL
+  , gsKeysTickCounterL
+  , gsKeysTickL
+  , gsPrevKeysL
+  , gsTickCounterL
+  , gsTickL
+  )
 
 import Relude
 

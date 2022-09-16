@@ -16,32 +16,79 @@ import Control.Monad.Trans.Reader (mapReader)
 import Data.Default               (Default (def))
 import Data.Map                   qualified as Map
 
-import Miku.Templates.Log         (Log, logHeadingL, logTodosL, ongoingTask,
-                                   readCurrentLog, showHeading, todosDone,
-                                   todosNotDone)
+import Miku.Templates.Log
+  ( Log
+  , logHeadingL
+  , logTodosL
+  , ongoingTask
+  , readCurrentLog
+  , showHeading
+  , todosDone
+  , todosNotDone
+  )
 
-import Miku.Draw                  (Draw (..), Drawable, W, borderTypeL, defDraw,
-                                   draw, focusedL)
-import Miku.Draw.CurrentTask      (CurrentTask (CurrentTask, NoCurrentTask),
-                                   CurrentTaskItem (TaskName),
-                                   changeCurrentTaskFocus)
-import Miku.Draw.StatusLine       (StatusInfo (..), StatusLine (..),
-                                   StatusLineInfo (..))
-import Miku.Draw.Todos            (Completed, NotCompleted, Todos,
-                                   changeTodoIdx, mkCompletedTodos,
-                                   mkNotCompletedTodos)
-import Miku.Events                (continueAction, haltAction,
-                                   handleAnyStateEvent, toNormalMode)
-import Miku.Mode                  (Action, DrawMode, GlobalState, IsMode (..),
-                                   KeyMap (..), Name, gsEditingModeL,
-                                   gsModeStateL)
+import Miku.Draw
+  ( Draw (..)
+  , Drawable
+  , W
+  , borderTypeL
+  , defDraw
+  , draw
+  , focusedL
+  )
+import Miku.Draw.CurrentTask
+  ( CurrentTask (CurrentTask, NoCurrentTask)
+  , CurrentTaskItem (TaskName)
+  , changeCurrentTaskFocus
+  )
+import Miku.Draw.StatusLine
+  ( StatusInfo (..)
+  , StatusLine (..)
+  , StatusLineInfo (..)
+  )
+import Miku.Draw.Todos
+  ( Completed
+  , NotCompleted
+  , Todos
+  , changeTodoIdx
+  , mkCompletedTodos
+  , mkNotCompletedTodos
+  )
+import Miku.Events
+  ( continueAction
+  , haltAction
+  , handleAnyStateEvent
+  , toNormalMode
+  )
+import Miku.Mode
+  ( Action
+  , DrawMode
+  , GlobalState
+  , IsMode (..)
+  , KeyMap (..)
+  , Keys
+  , Name
+  , gsEditingModeL
+  , gsModeStateL
+  )
 
 import Miku.Editing               (EditingMode (..))
-import Miku.Mode.Utility          (Window, horizMove, vertMove, viewWindow,
-                                   window)
+import Miku.Mode.Utility
+  ( Window
+  , horizMove
+  , vertMove
+  , viewWindow
+  , window
+  )
 
-import Miku.Types.Rec             (Field (rmodify), Rec (..), recToList,
-                                   rfilterMap, rfmap, rmap)
+import Miku.Types.Rec
+  ( Field (rmodify)
+  , Rec (..)
+  , recToList
+  , rfilterMap
+  , rfmap
+  , rmap
+  )
 import System.FilePath            ((</>))
 
 import Relude
@@ -130,6 +177,7 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
 
   where
 
+    normalKeyMap :: Map Keys (Action 'Normal CurrentLog)
     normalKeyMap =
       Map.fromList [ ("q", haltAction)
                    , ("k", up)
@@ -137,7 +185,7 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
                    , ("l", right)
                    , ("h", left)
                    , ("<tab>", incAction)
-                   -- , ("<shift>+<tab>", decAction)
+                   , ("<shift>+<tab>", decAction)
                    ]
 
     right,left,up,down :: Action 'Normal CurrentLog
@@ -146,14 +194,17 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
     up    = modify (gsModeStateL %~ switchWindow (vertMove 1)) >> continueAction
     down  = modify (gsModeStateL %~ switchWindow (vertMove (-1))) >> continueAction
 
-    incAction :: Action 'Normal CurrentLog
-    incAction = modify (gsModeStateL . clsAllWindowsL %~ inc) >> continueAction
-      where
-        inc = rfmap _focusedL $ Identity (changeCurrentTaskFocus 1)
-                             :> Identity id
-                             :> Identity (changeTodoIdx 1)
-                             :> Identity (changeTodoIdx 1)
-                             :> RNil
+    incAction,decAction :: Action 'Normal CurrentLog
+    incAction = modify (gsModeStateL . clsAllWindowsL %~ changeIdx 1) >> continueAction
+    decAction = modify (gsModeStateL . clsAllWindowsL %~ changeIdx (-1)) >> continueAction
+
+    changeIdx :: Int -> Rec cs WindowStates Draw -> Rec cs WindowStates Draw
+    changeIdx n = rfmap _focusedL
+                $ Identity (changeCurrentTaskFocus n)
+                   :> Identity id
+                   :> Identity (changeTodoIdx n)
+                   :> Identity (changeTodoIdx n)
+                   :> RNil
 
 
 drawCurrentLogState :: DrawMode emode CurrentLog
@@ -235,4 +286,3 @@ switchWindow f x = x & clsWindowL %~ f & changeFocus
 
     notfocused :: Draw a -> Draw a
     notfocused a = a & focusedL .~ False & borderTypeL .~ Border.borderStyleFromChar ' '
-

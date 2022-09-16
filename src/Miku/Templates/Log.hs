@@ -37,8 +37,15 @@ module Miku.Templates.Log
   , writeLog
   ) where
 
-import Control.Lens               (_head, filtered, folded, makeLenses, (^.),
-                                   (^..), (^?))
+import Control.Lens
+  ( _head
+  , filtered
+  , folded
+  , makeLenses
+  , (^.)
+  , (^..)
+  , (^?)
+  )
 import Control.Monad.Trans.Except (throwE)
 import Data.Text                  qualified as T
 import Data.Time                  (Day)
