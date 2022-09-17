@@ -22,9 +22,9 @@ import Graphics.Vty         qualified as Vty
 
 import Miku.Draw.StatusLine qualified as StatusLine
 import Miku.Editing         (EditingMode (Insert, Normal), SEditingMode (SInsert, SNormal))
-import Miku.Mode            (Action, AppState (..), GlobalState (..), IsMode, Keys, Tick (..))
+import Miku.Mode            (Action, AppState (..), GlobalState (..), IsMode, Keys)
 import Miku.Mode            qualified as Mode
-import Miku.Resource        (Res)
+import Miku.Resource        (Res, Tick (Tick))
 
 import Relude
 

@@ -8,9 +8,9 @@ module Miku.UI
 import Brick.Types        (BrickEvent, EventM, Next, Widget)
 import Brick.Widgets.Core qualified as Core
 import Miku.Draw          (draw)
-import Miku.Mode          (AppState (AppState), GlobalState, Tick)
+import Miku.Mode          (AppState (AppState), GlobalState)
 import Miku.Mode          qualified as Mode
-import Miku.Resource      (Res)
+import Miku.Resource      (Res, Tick)
 
 import Relude
 

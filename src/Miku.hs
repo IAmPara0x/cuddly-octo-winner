@@ -12,9 +12,9 @@ import Data.Default         (def)
 import Graphics.Vty         qualified as Vty
 
 import Miku.Editing         (SEditingMode (SNormal))
-import Miku.Mode            (AppState (AppState), GlobalState (..), Tick (Tick), defState)
+import Miku.Mode            (AppState (AppState), GlobalState (..), defState)
 import Miku.Mode.CurrentLog (CurrentLog)
-import Miku.Resource        (Res)
+import Miku.Resource        (Res, Tick (Tick))
 
 import Miku.UI              (drawUI, handleEvent)
 

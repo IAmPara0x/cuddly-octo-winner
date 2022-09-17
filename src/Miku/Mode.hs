@@ -7,7 +7,6 @@ module Miku.Mode
   , IsMode (..)
   , KeyMap (..)
   , Keys
-  , Tick (Tick)
   , clearKeysL
   , gcClearKeysTimeL
   , gcMaxTickCounterL
@@ -33,14 +32,11 @@ import Control.Lens         (Lens, Lens', lens, makeLenses, (.~), (^.))
 import Data.Default         (Default (def))
 
 import Miku.Editing         (EditingMode (..), SEditingMode (SInsert, SNormal))
-import Miku.Resource        (Res)
+import Miku.Resource        (Res, Tick)
 
 import Miku.Draw.StatusLine (StatusLine (StatusLine))
 
 import Relude
-
-data Tick
-  = Tick
 
 data GlobalConfig
   = GlobalConfig
