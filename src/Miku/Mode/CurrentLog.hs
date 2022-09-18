@@ -1,8 +1,11 @@
 module Miku.Mode.CurrentLog
   ( CurrentLog
   , currentLogStateActions
+  , initCurrentLogMode
+  , toCurrentLogMode
   ) where
 
+import Brick.Main                 qualified as Brick
 import Brick.Widgets.Border       qualified as Border
 import Brick.Widgets.Border.Style qualified as Border
 import Brick.Widgets.Center       qualified as Core
@@ -31,6 +34,7 @@ import Miku.Draw.Todos            qualified as Todos
 import Miku.Events                qualified as Events
 import Miku.Mode
   ( Action
+  , AppState (AppState)
   , DrawMode
   , GlobalState
   , IsMode (..)
@@ -39,6 +43,7 @@ import Miku.Mode
   , gsModeStateL
   , gsStatusLineL
   )
+import Miku.Mode                  qualified as Mode
 
 import Miku.Editing               (EditingMode (..))
 import Miku.Mode.Utility          (Window)
@@ -68,7 +73,7 @@ data CurrentLog
   deriving stock (Show)
 
 newtype CurrentLogConfig
-  = CurrentLogConfig { _configPathL :: FilePath }
+  = CurrentLogConfig { _logDirL :: FilePath }
 
 data CurrentLogState
   = CurrentLogState
@@ -85,23 +90,40 @@ makeLenses ''CurrentLogState
 
 
 instance Default CurrentLogConfig where
-  def = CurrentLogConfig { _configPathL = "/home/iamparadox/.miku/" }
+  def = CurrentLogConfig { _logDirL = Mode._gcPathL def </> "logs" }
 
 instance StatusLineInfo CurrentLog where
   statusLineInfo x = [show x]
 
 instance IsMode CurrentLog where
   type ModeState CurrentLog = CurrentLogState
+  type ModeConf CurrentLog = CurrentLogConfig
 
-  defState = (, currentLogStateActions) . switchWindow (Utils.vertMove 1) <$> defCurrentLogState
-  drawState = drawCurrentLogState
+  -- defState         = return def
+  drawstate        = drawCurrentLogState
   handleEventState = Events.handleAnyStateEvent
+
+
+toCurrentLogMode :: forall a . Action 'Normal a
+toCurrentLogMode = do
+  mstate <- liftIO $ switchWindow (Utils.vertMove 1) <$> defCurrentLogState
+  mconf  <- liftIO def
+  gstate <- get
+
+  lift
+    $ Brick.continue (AppState $ gstate & Mode.gsModeL .~ (mstate, mconf, currentLogStateActions))
+
+initCurrentLogMode :: IO (GlobalState 'Normal CurrentLog)
+initCurrentLogMode = do
+  mstate <- switchWindow (Utils.vertMove 1) <$> defCurrentLogState
+  mconf  <- def
+  return $ Mode.initGlobalState mstate mconf currentLogStateActions
 
 
 defCurrentLogState :: IO CurrentLogState
 defCurrentLogState = do
 
-  elog <- runExceptT $ Log.readCurrentLog (def ^. configPathL </> "logs")
+  elog <- runExceptT $ Log.readCurrentLog (_logDirL def)
 
   let
     log            = either error id elog

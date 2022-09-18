@@ -8,12 +8,10 @@ import Brick.Main           (App (..), customMain, neverShowCursor)
 import Brick.Util           (fg)
 
 import Control.Concurrent   (forkIO, threadDelay)
-import Data.Default         (def)
 import Graphics.Vty         qualified as Vty
 
-import Miku.Editing         (SEditingMode (SNormal))
-import Miku.Mode            (AppState (AppState), GlobalState (..), defState)
-import Miku.Mode.CurrentLog (CurrentLog)
+import Miku.Mode            (AppState (AppState))
+import Miku.Mode.CurrentLog qualified as CurrentLog
 import Miku.Resource        (Res, Tick (Tick))
 
 import Miku.UI              (drawUI, handleEvent)
@@ -34,24 +32,14 @@ app = App { appDraw         = drawUI
 
 run :: IO ()
 run = do
-  (s, k) <- defState @CurrentLog
-
-  chan   <- BChan.newBChan 10
+  chan      <- BChan.newBChan 10
+  initState <- CurrentLog.initCurrentLogMode
 
   void $ forkIO $ forever $ do
     BChan.writeBChan chan Tick
     threadDelay 100000
 
-  let buildVty  = Vty.mkVty Vty.defaultConfig
-      initState = GlobalState { _gsConfigL          = def
-                              , _gsKeysTickCounterL = 0
-                              , _gsTickCounterL     = 0
-                              , _gsModeStateL       = s
-                              , _gsKeyMapL          = k
-                              , _gsPrevKeysL        = []
-                              , _gsEditingModeL     = SNormal
-                              , _gsStatusLineL      = def
-                              }
+  let buildVty = Vty.mkVty Vty.defaultConfig
 
   initialVty <- buildVty
 

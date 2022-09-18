@@ -7,34 +7,35 @@ module Miku.Mode
   , IsMode (..)
   , KeyMap (..)
   , Keys
-  , clearKeysL
+  , changeEditingMode
   , gcClearKeysTimeL
   , gcMaxTickCounterL
   , gcPathL
   , getKeyMap
-  , gsChangeModeL
-  , gsConfigL
   , gsEditingModeL
   , gsKeyMapL
   , gsKeysTickCounterL
-  , gsKeysTickL
+  , gsModeConfL
+  , gsModeL
   , gsModeStateL
   , gsPrevKeysL
   , gsStatusLineL
   , gsTickCounterL
-  , gsTickL
+  , initGlobalState
   , insertModeMapL
+  , modifyAppState
   , normalModeMapL
   ) where
 
 import Brick.Types          (BrickEvent, EventM, Next, Widget)
-import Control.Lens         (Lens, Lens', lens, makeLenses, (.~), (^.))
+import Control.Lens         (Lens, lens, makeLenses, (.~))
 import Data.Default         (Default (def))
 
 import Miku.Editing         (EditingMode (..), SEditingMode (SInsert, SNormal))
 import Miku.Resource        (Res, Tick)
 
 import Miku.Draw.StatusLine (StatusLine (StatusLine))
+import Miku.Draw.StatusLine qualified as StatusLine
 
 import Relude
 
@@ -54,11 +55,11 @@ instance Default GlobalConfig where
 type GlobalState :: EditingMode -> Type -> Type
 data GlobalState emode mode
   = IsMode mode => GlobalState
-      { _gsConfigL          :: GlobalConfig
-      , _gsKeysTickCounterL :: Int
+      { _gsKeysTickCounterL :: Int
       , _gsTickCounterL     :: Int
       , _gsModeStateL       :: ModeState mode
       , _gsKeyMapL          :: KeyMap mode
+      , _gsModeConfL        :: ModeConf mode
       , _gsPrevKeysL        :: Keys
       , _gsEditingModeL     :: SEditingMode emode
       , _gsStatusLineL      :: StatusLine emode
@@ -85,9 +86,9 @@ data AppState
 
 class IsMode (mode :: Type) where
   type ModeState mode :: Type
+  type ModeConf  mode :: Type
 
-  defState         :: IO (ModeState mode, KeyMap mode)
-  drawState        :: DrawMode emode mode
+  drawstate        :: DrawMode emode mode
   handleEventState :: BrickEvent Res Tick -> Action emode mode
 
 makeLenses ''KeyMap
@@ -99,20 +100,20 @@ getKeyMap gstate = case _gsEditingModeL gstate of
   SNormal -> _normalModeMapL $ _gsKeyMapL gstate
   SInsert -> _insertModeMapL $ _gsKeyMapL gstate
 
-gsChangeModeL
+gsModeL
   :: IsMode b
   => Lens
        (GlobalState 'Normal a)
        (GlobalState 'Normal b)
-       (ModeState a, KeyMap a)
-       (ModeState b, KeyMap b)
-gsChangeModeL = lens getter setter
+       (ModeState a, ModeConf a, KeyMap a)
+       (ModeState b, ModeConf b, KeyMap b)
+gsModeL = lens getter setter
  where
-  getter gstate = (gstate ^. gsModeStateL, gstate ^. gsKeyMapL)
-  setter gstate (mstate, keymap) = GlobalState
+  getter gstate = (_gsModeStateL gstate, _gsModeConfL gstate, _gsKeyMapL gstate)
+  setter gstate (mstate, mconf, keymap) = GlobalState
     { _gsModeStateL       = mstate
     , _gsKeyMapL          = keymap
-    , _gsConfigL          = _gsConfigL gstate
+    , _gsModeConfL        = mconf
     , _gsTickCounterL     = _gsTickCounterL gstate
     , _gsKeysTickCounterL = _gsKeysTickCounterL gstate
     , _gsPrevKeysL        = []
@@ -120,24 +121,28 @@ gsChangeModeL = lens getter setter
     , _gsStatusLineL      = StatusLine (_gsEditingModeL gstate) []
     }
 
-gsTickL :: Lens' (GlobalState emode mode) (Int, Int)
-gsTickL = lens getter setter
- where
-  getter gstate = (gstate ^. gsTickCounterL, gstate ^. gsConfigL . gcMaxTickCounterL)
-  setter gstate (val, conf) =
-    gstate & gsTickCounterL .~ val & gsConfigL . gcMaxTickCounterL .~ conf
+modifyAppState :: (forall e m . GlobalState e m -> GlobalState e m) -> AppState -> AppState
+modifyAppState f (AppState s) = AppState (f s)
 
-gsKeysTickL :: Lens' (GlobalState emode mode) (Int, Int)
-gsKeysTickL = lens getter setter
- where
-  getter gstate = (gstate ^. gsKeysTickCounterL, gstate ^. gsConfigL . gcClearKeysTimeL)
-  setter gstate (val, conf) =
-    gstate & gsKeysTickCounterL .~ val & gsConfigL . gcClearKeysTimeL .~ conf
+initGlobalState :: IsMode m => ModeState m -> ModeConf m -> KeyMap m -> GlobalState 'Normal m
+initGlobalState mstate mconf keymap = GlobalState { _gsKeysTickCounterL = 0
+                                                  , _gsTickCounterL     = 0
+                                                  , _gsModeStateL       = mstate
+                                                  , _gsModeConfL        = mconf
+                                                  , _gsKeyMapL          = keymap
+                                                  , _gsPrevKeysL        = []
+                                                  , _gsEditingModeL     = SNormal
+                                                  , _gsStatusLineL      = def
+                                                  }
 
-clearKeysL :: Lens' AppState Keys
-clearKeysL = lens getter setter
- where
-  getter (AppState s) = s ^. gsPrevKeysL
-  setter (AppState s) keys = AppState $ s & gsPrevKeysL .~ keys
-
-
+changeEditingMode :: IsMode a => SEditingMode e2 -> GlobalState e1 a -> GlobalState e2 a
+changeEditingMode e GlobalState {..} = GlobalState
+  { _gsKeysTickCounterL = _gsKeysTickCounterL
+  , _gsTickCounterL     = _gsTickCounterL
+  , _gsModeStateL       = _gsModeStateL
+  , _gsKeyMapL          = _gsKeyMapL
+  , _gsPrevKeysL        = _gsPrevKeysL
+  , _gsEditingModeL     = e
+  , _gsStatusLineL      = _gsStatusLineL & StatusLine.slEditingModeL .~ e
+  , _gsModeConfL        = _gsModeConfL
+  }

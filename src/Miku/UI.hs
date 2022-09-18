@@ -16,7 +16,7 @@ import Relude
 
 drawUI :: AppState -> [Widget Res]
 drawUI (AppState (s :: GlobalState emode mode)) =
-  [Core.vBox [runReader (Mode.drawState @mode) s, draw $ Identity $ Mode._gsStatusLineL s]]
+  [Core.vBox [runReader (Mode.drawstate @mode) s, draw $ Identity $ Mode._gsStatusLineL s]]
 
 handleEvent :: AppState -> BrickEvent Res Tick -> EventM Res (Next AppState)
 handleEvent (AppState s) event = evalStateT (Mode.handleEventState event) s

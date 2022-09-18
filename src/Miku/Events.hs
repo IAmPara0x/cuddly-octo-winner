@@ -13,7 +13,8 @@ module Miku.Events
 import Brick.Main           qualified as Brick
 import Brick.Types          (BrickEvent (AppEvent, VtyEvent))
 
-import Control.Lens         (_1, _2, (%~), (+~), (.~), (<>~), (^.))
+import Control.Lens         ((%~), (.~), (<>~), (^.))
+import Data.Default         (def)
 
 import Data.Map             qualified as Map
 
@@ -70,15 +71,15 @@ tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continue
     AppState
       $  gstate
       &  Mode.gsTickCounterL
-      .~ uncurry mod (gstate ^. Mode.gsTickL & _1 +~ 1)
+      %~ (\tickCounts -> mod (tickCounts + 1) (Mode._gcMaxTickCounterL def))
       &  Mode.gsKeysTickCounterL
-      .~ uncurry mod (gstate ^. Mode.gsKeysTickL & _1 +~ 1 & _2 .~ gstate ^. Mode.gsTickL . _2)
+      %~ (\ktickCounts -> mod (ktickCounts + 1) (Mode._gcMaxTickCounterL def))
 
   clearPrevKeys :: AppState -> AppState
   clearPrevKeys (AppState gstate) = AppState $ gstate & Mode.gsPrevKeysL %~ bool
     id
     (const [])
-    (uncurry rem (gstate ^. Mode.gsKeysTickL) == 0)
+    (rem (_gsKeysTickCounterL gstate) (Mode._gcClearKeysTimeL def) == 0)
 
 actionWithKeys :: forall a emode . IsMode a => Keys -> Action emode a
 actionWithKeys keys = do
@@ -86,27 +87,15 @@ actionWithKeys keys = do
   gstate <- get
 
   case Map.lookup (gstate ^. Mode.gsPrevKeysL) (Mode.getKeyMap gstate) of
-    Just action -> fmap (Mode.clearKeysL .~ []) <$> action
+    Just action -> fmap (Mode.modifyAppState $ Mode.gsPrevKeysL .~ []) <$> action
     Nothing     -> continue
 
 toInsertMode :: IsMode a => Action 'Normal a
 toInsertMode = do
   gstate <- get
-  lift $ Brick.continue (AppState $ changeEditingMode SInsert gstate)
+  lift $ Brick.continue (AppState $ Mode.changeEditingMode SInsert gstate)
 
 toNormalMode :: IsMode a => Action 'Insert a
 toNormalMode = do
   gstate <- get
-  lift $ Brick.continue (AppState $ changeEditingMode SNormal gstate)
-
-changeEditingMode :: IsMode a => SEditingMode e2 -> GlobalState e1 a -> GlobalState e2 a
-changeEditingMode e GlobalState {..} = GlobalState
-  { _gsConfigL          = _gsConfigL
-  , _gsKeysTickCounterL = _gsKeysTickCounterL
-  , _gsTickCounterL     = _gsTickCounterL
-  , _gsModeStateL       = _gsModeStateL
-  , _gsKeyMapL          = _gsKeyMapL
-  , _gsPrevKeysL        = _gsPrevKeysL
-  , _gsEditingModeL     = e
-  , _gsStatusLineL      = _gsStatusLineL & StatusLine.slEditingModeL .~ e
-  }
+  lift $ Brick.continue (AppState $ Mode.changeEditingMode SNormal gstate)
