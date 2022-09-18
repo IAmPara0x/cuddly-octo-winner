@@ -115,7 +115,7 @@ changeCurrentTaskFocus _ t = t
 
 instance StatusLineInfo CurrentTask where
   statusLineInfo (CurrentTask item _) = ["CurrentTask"] <> statusLineInfo item
-  statusLineInfo NoCurrentTask{}      = ["NoCurrentTask"]
+  statusLineInfo NoCurrentTask{}      = ["CurrentTask"]
 
 instance Drawable Draw CurrentTask where
   draw drawState@Draw {..} = case _drawableL of

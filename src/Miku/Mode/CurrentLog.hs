@@ -99,7 +99,6 @@ instance IsMode CurrentLog where
   type ModeState CurrentLog = CurrentLogState
   type ModeConf CurrentLog = CurrentLogConfig
 
-  -- defState         = return def
   drawstate        = drawCurrentLogState
   handleEventState = Events.handleAnyStateEvent
 

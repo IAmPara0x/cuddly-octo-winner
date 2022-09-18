@@ -51,11 +51,11 @@ changeTodoIdx _ NoTodos           = NoTodos
 changeTodoIdx n (Todos idx todos) = Todos (mod (n + idx) $ length todos) todos
 
 instance StatusLineInfo (Todos Completed) where
-  statusLineInfo Todos {..} = ["Todos", "Completed", "[" <> show _currTodoIdxL <> "]"]
+  statusLineInfo Todos {..} = ["Todos", "Completed", "[" <> show (_currTodoIdxL + 1) <> "]"]
   statusLineInfo NoTodos    = ["Todos", "Completed"]
 
 instance StatusLineInfo (Todos NotCompleted) where
-  statusLineInfo Todos {..} = ["Todos", "NotCompleted", "[" <> show _currTodoIdxL <> "]"]
+  statusLineInfo Todos {..} = ["Todos", "NotCompleted", "[" <> show (_currTodoIdxL + 1) <> "]"]
   statusLineInfo NoTodos    = ["Todos", "NotCompleted"]
 
 instance Drawable Draw (Todos Completed) where
