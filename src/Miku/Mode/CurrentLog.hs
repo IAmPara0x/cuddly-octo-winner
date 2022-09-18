@@ -46,7 +46,7 @@ import Miku.Mode
 import Miku.Mode                  qualified as Mode
 
 import Miku.Editing               (EditingMode (..))
-import Miku.Mode.Utility          (Window)
+import Miku.Mode.Utility          (FocusRing2D)
 import Miku.Mode.Utility          qualified as Utils
 
 import Miku.Resource              (Res)
@@ -75,19 +75,23 @@ data CurrentLog
 newtype CurrentLogConfig
   = CurrentLogConfig { _logDirL :: FilePath }
 
+data Windows
+  = UL CurrentTask
+  | UR Stats
+  | BL (Todos NotCompleted)
+  | BR (Todos Completed)
+
 data CurrentLogState
   = CurrentLogState
-      { _configL     :: CurrentLogConfig
-      , _windowL     :: Window 2 2
-      , _logL        :: Log
-      , _allWindowsL :: Rec '[Drawable Draw, StatusLineInfo] WindowStates Draw
+      { _configL :: CurrentLogConfig
+      , _windowL :: FocusRing2D 2 2 Windows
+      , _logL    :: Log
       }
 
 type WindowStates = '[CurrentTask , Stats , Todos NotCompleted , Todos Completed]
 
 makeLenses ''CurrentLogConfig
 makeLenses ''CurrentLogState
-
 
 instance Default CurrentLogConfig where
   def = CurrentLogConfig { _logDirL = Mode._gcPathL def </> "logs" }

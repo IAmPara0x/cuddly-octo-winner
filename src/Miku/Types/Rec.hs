@@ -1,4 +1,3 @@
-{-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Miku.Types.Rec
   ( Elem
@@ -13,21 +12,17 @@ module Miku.Types.Rec
 
 import Relude
 
-type Rec :: [Type -> Constraint] -> [Type] -> (Type -> Type) -> Type
-data Rec cs xs f where
-  RNil :: Rec cs '[] f
-  (:>) :: AllC cs x => f x -> Rec cs xs f -> Rec cs (x : xs) f
+type Rec :: [Type] -> (Type -> Type) -> Type
+data Rec xs f where
+  RNil :: Rec '[] f
+  (:>) :: f x -> Rec xs f -> Rec (x : xs) f
 infixr 5 :>
-
-type family AllC (cs :: [Type -> Constraint]) (x :: Type) :: Constraint where
-  AllC '[] x       = ()
-  AllC (c ': cs) x = (c x, AllC cs x)
 
 type Field :: Type -> [Type] -> Constraint
 class (Elem x xs ~ 'True) => Field x xs where
-  rget :: Rec cs xs f -> f x
-  rput :: f x -> Rec cs xs f -> Rec cs xs f
-  rmodify :: (f x -> f x) -> Rec cs xs f -> Rec cs xs f
+  rget :: Rec xs f -> f x
+  rput :: f x -> Rec xs f -> Rec xs f
+  rmodify :: (f x -> f x) -> Rec xs f -> Rec xs f
 
 instance {-# OVERLAPPING #-} (Elem x (x ': xs) ~ 'True) => Field x (x ': xs) where
   rget (x :> _) = x
@@ -51,29 +46,20 @@ type family Fun (xs :: [Type]) :: [Type] where
 class Unit a
 instance Unit a
 
-rmap :: (forall x . f x -> f x) -> Rec cs xs f -> Rec cs xs f
+rmap :: (forall x . f x -> f x) -> Rec xs f -> Rec xs f
 rmap _ RNil      = RNil
 rmap f (x :> xs) = f x :> rmap f xs
 
-rfmap
-  :: Functor f
-  => (forall x . f x -> Bool)
-  -> Rec '[Unit] (Fun xs) Identity
-  -> Rec cs xs f
-  -> Rec cs xs f
+rfmap :: Functor f => (forall x . f x -> Bool) -> Rec (Fun xs) Identity -> Rec xs f -> Rec xs f
 rfmap _ _ RNil = RNil
 rfmap p (f :> fs) (x :> xs) | p x       = fmap (runIdentity f) x :> rfmap p fs xs
                             | otherwise = x :> rfmap p fs xs
 
-toList :: (forall x . AllC cs x => f x -> a) -> Rec cs xs f -> [a]
+toList :: (forall x . f x -> a) -> Rec xs f -> [a]
 toList _ RNil      = []
 toList f (x :> xs) = f x : Miku.Types.Rec.toList f xs
 
-rfilterMap
-  :: (forall x . AllC cs x => f x -> Bool)
-  -> (forall x . AllC cs x => f x -> a)
-  -> Rec cs xs f
-  -> [a]
+rfilterMap :: (forall x . f x -> Bool) -> (forall x . f x -> a) -> Rec xs f -> [a]
 rfilterMap _ _ RNil = []
 rfilterMap p f (x :> xs) | p x       = f x : rfilterMap p f xs
                          | otherwise = rfilterMap p f xs
