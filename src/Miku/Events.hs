@@ -10,22 +10,21 @@ module Miku.Events
   , toNormalMode
   ) where
 
-import Brick.Main           qualified as Brick
-import Brick.Types          (BrickEvent (AppEvent, VtyEvent))
+import Brick.Main    qualified as Brick
+import Brick.Types   (BrickEvent (AppEvent, VtyEvent))
 
-import Control.Lens         ((%~), (.~), (<>~), (^.))
-import Data.Default         (def)
+import Control.Lens  ((%~), (.~), (<>~), (^.))
+import Data.Default  (def)
 
-import Data.Map             qualified as Map
+import Data.Map      qualified as Map
 
-import Graphics.Vty         (Key (KBackTab, KChar, KEsc))
-import Graphics.Vty         qualified as Vty
+import Graphics.Vty  (Key (KBackTab, KChar, KEsc))
+import Graphics.Vty  qualified as Vty
 
-import Miku.Draw.StatusLine qualified as StatusLine
-import Miku.Editing         (EditingMode (Insert, Normal), SEditingMode (SInsert, SNormal))
-import Miku.Mode            (Action, AppState (..), GlobalState (..), IsMode, Keys)
-import Miku.Mode            qualified as Mode
-import Miku.Resource        (Res, Tick (Tick))
+import Miku.Editing  (EditingMode (Insert, Normal), SEditingMode (SInsert, SNormal))
+import Miku.Mode     (Action, AppState (..), GlobalState (..), IsMode, Keys)
+import Miku.Mode     qualified as Mode
+import Miku.Resource (Res, Tick (Tick))
 
 import Relude
 
@@ -55,13 +54,13 @@ handleInsertStateEvent (VtyEvent (Vty.EvKey (KChar c) [])) = actionWithKeys [c]
 handleInsertStateEvent _                                   = continue
 
 continue :: IsMode mode => Action emode mode
-continue = get >>= lift . Brick.continue . AppState
+continue = get >>= Mode.liftEvent . Brick.continue . AppState
 
 modifyAndContinue :: IsMode m => (GlobalState e m -> GlobalState e m) -> Action e m
 modifyAndContinue f = modify f >> continue
 
 halt :: IsMode mode => Action 'Normal mode
-halt = get >>= lift . Brick.halt . AppState
+halt = get >>= Mode.liftEvent . Brick.halt . AppState
 
 tickAction :: IsMode mode => Action emode mode
 tickAction = fmap (clearPrevKeys . updateTickCounter) <$> continue
@@ -93,9 +92,9 @@ actionWithKeys keys = do
 toInsertMode :: IsMode a => Action 'Normal a
 toInsertMode = do
   gstate <- get
-  lift $ Brick.continue (AppState $ Mode.changeEditingMode SInsert gstate)
+  Mode.liftEvent $ Brick.continue (AppState $ Mode.changeEditingMode SInsert gstate)
 
 toNormalMode :: IsMode a => Action 'Insert a
 toNormalMode = do
   gstate <- get
-  lift $ Brick.continue (AppState $ Mode.changeEditingMode SNormal gstate)
+  Mode.liftEvent $ Brick.continue (AppState $ Mode.changeEditingMode SNormal gstate)

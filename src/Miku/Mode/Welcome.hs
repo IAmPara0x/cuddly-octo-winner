@@ -1,4 +1,3 @@
-{-# LANGUAGE ViewPatterns    #-}
 module Miku.Mode.Welcome
   ( Welcome
   , initWelcomeMode
@@ -13,7 +12,7 @@ import Control.Lens         (makeLenses, (.~), (^.))
 import Data.Default         (Default (def))
 import Data.Map             qualified as Map
 
-import Miku.Draw.StatusLine (StatusLineInfo (..))
+import Miku.Draw.StatusLine (StatusInfo (StatusInfo))
 import Miku.Editing         (EditingMode (..))
 import Miku.Events          qualified as Events
 import Miku.Mode
@@ -33,8 +32,8 @@ data Welcome
   = Welcome
   deriving stock (Show)
 
-instance StatusLineInfo Welcome where
-  statusLineInfo a = [show a]
+-- instance StatusLineInfo Welcome where
+--   statusLineInfo a = [show a]
 
 -- | Welcome State
 
@@ -55,7 +54,8 @@ instance IsMode Welcome where
 toWelcomeMode :: forall a . Action 'Normal a
 toWelcomeMode = do
   gstate <- get
-  lift $ Brick.continue (AppState $ gstate & Mode.gsModeL .~ (def, (), welcomeStateActions))
+  Mode.liftEvent
+    $ Brick.continue (AppState $ gstate & Mode.gsModeL .~ (def, (), welcomeStateActions))
 
 initWelcomeMode :: IO (GlobalState 'Normal Welcome)
 initWelcomeMode = do
@@ -64,7 +64,6 @@ initWelcomeMode = do
 drawWelcomeState :: DrawMode emode Welcome
 drawWelcomeState = do
   gstate <- ask
-
   let wstate = gstate ^. Mode.gsModeStateL
   return (Core.center $ Core.txt (wstate ^. msgL))
 

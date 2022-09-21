@@ -1,5 +1,6 @@
 module Miku.Mode
   ( Action
+  , ActionM
   , AppState (AppState)
   , DrawMode
   , GlobalConfig (..)
@@ -23,6 +24,7 @@ module Miku.Mode
   , gsTickCounterL
   , initGlobalState
   , insertModeMapL
+  , liftEvent
   , modifyAppState
   , normalModeMapL
   ) where
@@ -38,6 +40,16 @@ import Miku.Draw.StatusLine (StatusLine (StatusLine))
 import Miku.Draw.StatusLine qualified as StatusLine
 
 import Relude
+
+data AppState
+  = forall emode mode. (IsMode mode) => AppState (GlobalState emode mode)
+
+class IsMode (mode :: Type) where
+  type ModeState mode :: Type
+  type ModeConf  mode :: Type
+
+  drawstate        :: DrawMode emode mode
+  handleEventState :: BrickEvent Res Tick -> Action emode mode
 
 data GlobalConfig
   = GlobalConfig
@@ -78,18 +90,13 @@ instance Monoid (KeyMap mode) where
   mempty = KeyMap mempty mempty
 
 type Keys = [Char]
-type Action emode mode = StateT (GlobalState emode mode) (EventM Res) (Next AppState)
-type DrawMode emode mode = Reader (GlobalState emode mode) (Widget Res)
+type ActionM emode mode a = ExceptT Text (StateT (GlobalState emode mode) (EventM Res)) a
+type Action emode mode
+  = ExceptT Text (StateT (GlobalState emode mode) (EventM Res)) (Next AppState)
+type DrawMode emode mode = ExceptT Text (Reader (GlobalState emode mode)) (Widget Res)
 
-data AppState
-  = forall emode mode. (IsMode mode) => AppState (GlobalState emode mode)
-
-class IsMode (mode :: Type) where
-  type ModeState mode :: Type
-  type ModeConf  mode :: Type
-
-  drawstate        :: DrawMode emode mode
-  handleEventState :: BrickEvent Res Tick -> Action emode mode
+liftEvent :: EventM Res a -> ExceptT Text (StateT (GlobalState emode mode) (EventM Res)) a
+liftEvent = lift . lift
 
 makeLenses ''KeyMap
 makeLenses ''GlobalState

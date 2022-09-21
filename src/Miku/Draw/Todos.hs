@@ -3,27 +3,28 @@ module Miku.Draw.Todos
   ( Completed
   , NotCompleted
   , Todos (_currTodoIdxL, _getTodosL)
-  , changeTodoIdx
   , currTodoIdxL
   , getTodosL
   , mkCompletedTodos
   , mkNotCompletedTodos
   ) where
 
-import Brick.Types          (Padding (Pad), Widget)
+import Brick.Types                (Padding (Pad), Widget)
 
-import Brick.Widgets.Border qualified as Border
-import Brick.Widgets.Center qualified as Core
-import Brick.Widgets.Core   qualified as Core
+import Brick.Widgets.Border       qualified as Border
+import Brick.Widgets.Border.Style qualified as Border
+import Brick.Widgets.Center       qualified as Core
+import Brick.Widgets.Core         qualified as Core
 
-import Control.Lens         (ifolded, makeLenses, to, withIndex, (^.), (^..))
+import Control.Lens               (ifolded, makeLenses, to, withIndex, (%~), (^.), (^..))
 
-import Miku.Templates.Log   (Todo)
-import Miku.Templates.Log   qualified as Log
+import Miku.Templates.Log         (Todo)
+import Miku.Templates.Log         qualified as Log
 
-import Miku.Draw            (Draw (..), Drawable (..))
-import Miku.Draw.StatusLine (StatusLineInfo (..))
-import Miku.Resource        (Res)
+import Miku.Draw                  (InitWidget (..), W (..))
+import Miku.Draw                  qualified as Draw
+import Miku.Draw.StatusLine       (StatusInfo (StatusInfo))
+import Miku.Resource              (Res)
 
 import Relude
 
@@ -36,6 +37,8 @@ data Todos a
       }
   | NoTodos
 
+deriving stock instance Eq (Todos a)
+
 makeLenses ''Todos
 
 mkCompletedTodos :: Int -> [Todo] -> Todos Completed
@@ -46,23 +49,40 @@ mkNotCompletedTodos :: Int -> [Todo] -> Todos NotCompleted
 mkNotCompletedTodos _ []    = NoTodos
 mkNotCompletedTodos n todos = Todos (mod n $ length todos) todos
 
+instance InitWidget (Todos Completed) where
+  initWidget a = W { _focusedL        = False
+                   , _borderTypeL     = Border.borderStyleFromChar ' '
+                   , _widgetStateL    = a
+                   , _drawL           = drawTodos "[✓] Completed"
+                   , _statusLineInfoL = completedTodosInfo . _widgetStateL
+                   , _changeFocusL    = \n -> Draw.widgetStateL %~ changeTodoIdx n
+                   }
+
+instance InitWidget (Todos NotCompleted) where
+  initWidget a = W { _focusedL        = False
+                   , _borderTypeL     = Border.borderStyleFromChar ' '
+                   , _widgetStateL    = a
+                   , _drawL           = drawTodos "[✕] Not Completed"
+                   , _statusLineInfoL = notCompletedTodosInfo . _widgetStateL
+                   , _changeFocusL    = \n -> Draw.widgetStateL %~ changeTodoIdx n
+                   }
+
 changeTodoIdx :: Int -> Todos a -> Todos a
 changeTodoIdx _ NoTodos           = NoTodos
 changeTodoIdx n (Todos idx todos) = Todos (mod (n + idx) $ length todos) todos
 
-instance StatusLineInfo (Todos Completed) where
-  statusLineInfo Todos {..} = ["Todos", "Completed", "[" <> show (_currTodoIdxL + 1) <> "]"]
-  statusLineInfo NoTodos    = ["Todos", "Completed"]
+completedTodosInfo :: Todos Completed -> StatusInfo
+completedTodosInfo Todos {..} =
+  StatusInfo ["Todos", "Completed", "[" <> show (_currTodoIdxL + 1) <> "]"]
+completedTodosInfo NoTodos = StatusInfo ["Todos", "Completed"]
 
-instance StatusLineInfo (Todos NotCompleted) where
-  statusLineInfo Todos {..} = ["Todos", "NotCompleted", "[" <> show (_currTodoIdxL + 1) <> "]"]
-  statusLineInfo NoTodos    = ["Todos", "NotCompleted"]
+notCompletedTodosInfo :: Todos NotCompleted -> StatusInfo
+notCompletedTodosInfo Todos {..} =
+  StatusInfo ["Todos", "NotCompleted", "[" <> show (_currTodoIdxL + 1) <> "]"]
+notCompletedTodosInfo NoTodos = StatusInfo ["Todos", "NotCompleted"]
 
-instance Drawable Draw (Todos Completed) where
-  draw x@Draw {..} = Core.withBorderStyle _borderTypeL $ drawTodos "[✓] Completed" x
-
-drawTodos :: Text -> Draw (Todos a) -> Widget Res
-drawTodos heading Draw {..} = case _drawableL of
+drawTodos :: Text -> W (Todos a) -> Widget Res
+drawTodos heading W {..} = Core.withBorderStyle _borderTypeL $ case _widgetStateL of
   Todos currIdx todos -> Border.border $ Core.center $ Core.vBox
     [ Core.padTopBottom 1 $ Core.hCenter $ Core.txt heading
     , Core.vBox (todos ^.. ifolded . withIndex . to (addAttr currIdx))
@@ -75,9 +95,6 @@ drawTodos heading Draw {..} = case _drawableL of
   addAttr currIdx (idx, todo) | not _focusedL  = Core.withAttr "todo" $ drawTodo todo
                               | idx == currIdx = Core.withAttr "current" $ drawTodo todo
                               | otherwise      = drawTodo todo
-
-instance Drawable Draw (Todos NotCompleted) where
-  draw x@Draw {..} = Core.withBorderStyle _borderTypeL $ drawTodos "[✕] Not Completed" x
 
 drawTodo :: Todo -> Widget Res
 drawTodo todo =

@@ -1,5 +1,6 @@
 module Miku.Mode.Utility
   ( FocusRing2D (_currFocusL, _allDataL)
+  , Miku.Mode.Utility.getAny
   , focusRing2D
   , getFocused
   , horizMove
@@ -21,8 +22,15 @@ data FocusRing2D (x :: Nat) (y :: Nat) a
       }
 makeLenses ''FocusRing2D
 
+instance Functor (FocusRing2D x y) where
+  fmap f = allDataL %~ fmap f
+
 getFocused :: FocusRing2D x y a -> Either Text a
-getFocused FocusRing2D{..} = maybeToRight ("Following key [ " <> show _currFocusL <> " ] was not present in the map") (Map.lookup _currFocusL _allDataL)
+getFocused r@FocusRing2D{..} = Miku.Mode.Utility.getAny _currFocusL r
+
+getAny :: (Int,Int) -> FocusRing2D x y a -> Either Text a
+getAny p = maybeToRight ("Following key [ " <> show p <> " ] was not present in the map") . Map.lookup p . _allDataL
+
 
 modifyFocused :: (a -> a) -> FocusRing2D x y a -> FocusRing2D x y a
 modifyFocused f d = d & allDataL . ix (_currFocusL d) %~ f
@@ -45,11 +53,11 @@ focusRing2D (x1,y1) alldata
     possibleKeys = fromList $ [(x,y) | x <- [0..xmax], y <- [0..ymax]]
 
 horizMove :: forall x y a. (KnownNat x) => Int -> FocusRing2D x y a -> FocusRing2D x y a
-horizMove x2 f = f & currFocusL %~ (\(x1,y1) -> (clampToZero $ min xmax (x1 + x2), y1))
+horizMove x2 r = r & currFocusL %~ (\(x1,y1) -> (clampToZero $ min xmax (x1 + x2), y1))
   where xmax = naturalToInt $ natVal @x Proxy - 1
 
 vertMove :: forall x y a. (KnownNat y) => Int -> FocusRing2D x y a -> FocusRing2D x y a
-vertMove y2 f = f & currFocusL %~ (\(x1,y1) -> (x1, clampToZero $ min ymax (y1 + y2)))
+vertMove y2 r = r & currFocusL %~ (\(x1,y1) -> (x1, clampToZero $ min ymax (y1 + y2)))
   where ymax = naturalToInt $ natVal @y Proxy - 1
 
 clampToZero :: Int -> Int

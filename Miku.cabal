@@ -67,6 +67,7 @@ library
     RankNTypes
     RecordWildCards
     ScopedTypeVariables
+    StandaloneDeriving
     StandaloneKindSignatures
     TemplateHaskell
     TupleSections
@@ -123,6 +124,7 @@ executable miku
     RankNTypes
     RecordWildCards
     ScopedTypeVariables
+    StandaloneDeriving
     StandaloneKindSignatures
     TemplateHaskell
     TupleSections
@@ -170,6 +172,7 @@ test-suite timeTracker-test
     RankNTypes
     RecordWildCards
     ScopedTypeVariables
+    StandaloneDeriving
     StandaloneKindSignatures
     TemplateHaskell
     TupleSections

@@ -32,8 +32,8 @@ app = App { appDraw         = drawUI
 
 run :: IO ()
 run = do
-  chan      <- BChan.newBChan 10
-  initState <- CurrentLog.initCurrentLogMode
+  chan              <- BChan.newBChan 10
+  (Right initState) <- runExceptT CurrentLog.initCurrentLogMode
 
   void $ forkIO $ forever $ do
     BChan.writeBChan chan Tick

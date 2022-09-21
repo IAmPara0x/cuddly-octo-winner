@@ -174,7 +174,7 @@ data Task
       , _taskDescL  :: Maybe TaskDesc
       , _taskTagsL  :: [TaskTag]
       }
-  deriving stock (Show)
+  deriving stock (Eq, Show)
 
 type TaskF = TaskName -> Time -> Maybe Time -> Maybe TaskDesc -> [TaskTag] -> Task
 type TaskSep = Many Newline :> Literal "---" <: Repeat 3 Newline <: Many Newline
@@ -212,7 +212,7 @@ data Todo
       { _todoStatusL :: TodoStatus
       , _todoDescL   :: Text
       }
-  deriving stock (Show)
+  deriving stock (Eq, Show)
 
 type TodoFormat =  Repeat 2 Space :> Literal "-" :> Space
                :>  Literal "[" :> PrintChar <: Literal "]" <: Space

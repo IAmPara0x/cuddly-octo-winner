@@ -5,35 +5,34 @@ module Miku.Mode.CurrentLog
   , toCurrentLogMode
   ) where
 
-import Brick.Main                 qualified as Brick
-import Brick.Widgets.Border       qualified as Border
-import Brick.Widgets.Border.Style qualified as Border
-import Brick.Widgets.Center       qualified as Core
-import Brick.Widgets.Core         qualified as Core
+import Brick.Main            qualified as Brick
+import Brick.Widgets.Border  qualified as Border
+import Brick.Widgets.Center  qualified as Core
+import Brick.Widgets.Core    qualified as Core
 
-import Brick.Types                (Padding (Pad), Widget)
+import Brick.Types           (Padding (Pad), Widget)
 
-import Control.Lens               (makeLenses, (%~), (.~), (^.))
-import Data.Default               (Default (def))
-import Data.Map                   qualified as Map
+import Control.Lens          (makeLenses, (%~), (.~), (^.))
+import Data.Default          (Default (def))
+import Data.Map              qualified as Map
 
-import Miku.Templates.Log         (Log)
-import Miku.Templates.Log         qualified as Log
+import Miku.Templates.Log    (Log)
+import Miku.Templates.Log    qualified as Log
 
-import Miku.Draw                  (Draw (..), Drawable, defDraw, draw)
-import Miku.Draw                  qualified as Draw
+import Miku.Draw             (AnyWidget (..), InitWidget (..), W (..))
+import Miku.Draw             qualified as Draw
 import Miku.Draw.CurrentTask
   ( CurrentTask (CurrentTask, NoCurrentTask)
   , CurrentTaskItem (TaskName)
-  , changeCurrentTaskFocus
+  , Stats (Stats)
   )
-import Miku.Draw.StatusLine       (StatusInfo (StatusInfo), StatusLineInfo (..))
-import Miku.Draw.StatusLine       qualified as StatusLine
-import Miku.Draw.Todos            (Completed, NotCompleted, Todos (..))
-import Miku.Draw.Todos            qualified as Todos
-import Miku.Events                qualified as Events
+import Miku.Draw.StatusLine  qualified as StatusLine
+import Miku.Draw.Todos       (Completed, NotCompleted, Todos (..))
+import Miku.Draw.Todos       qualified as Todos
+import Miku.Events           qualified as Events
 import Miku.Mode
   ( Action
+  , ActionM
   , AppState (AppState)
   , DrawMode
   , GlobalState
@@ -43,30 +42,18 @@ import Miku.Mode
   , gsModeStateL
   , gsStatusLineL
   )
-import Miku.Mode                  qualified as Mode
+import Miku.Mode             qualified as Mode
 
-import Miku.Editing               (EditingMode (..))
-import Miku.Mode.Utility          (FocusRing2D)
-import Miku.Mode.Utility          qualified as Utils
+import Miku.Editing          (EditingMode (..))
+import Miku.Mode.Utility     (FocusRing2D)
+import Miku.Mode.Utility     qualified as Utils
 
-import Miku.Resource              (Res)
+import Miku.Resource         (Res)
 
-import Miku.Types.Rec             (Rec (..), rmap, rmodify)
-import Miku.Types.Rec             qualified as Rec
-import System.FilePath            ((</>))
+import System.FilePath       ((</>))
 
+import Control.Monad.Except  (mapExceptT)
 import Relude
-
--- TODO: Remove all errors and replace them with EitherT or Freer Monad
-
--- TODO: remove this
-newtype Stats
-  = Stats (Widget Res)
-  deriving newtype (Drawable Draw)
-
-instance StatusLineInfo Stats where
-  statusLineInfo _ = ["Stats"]
-
 
 data CurrentLog
   = CurrentLog
@@ -75,29 +62,18 @@ data CurrentLog
 newtype CurrentLogConfig
   = CurrentLogConfig { _logDirL :: FilePath }
 
-data Windows
-  = UL CurrentTask
-  | UR Stats
-  | BL (Todos NotCompleted)
-  | BR (Todos Completed)
-
 data CurrentLogState
   = CurrentLogState
-      { _configL :: CurrentLogConfig
-      , _windowL :: FocusRing2D 2 2 Windows
-      , _logL    :: Log
+      { _configL  :: CurrentLogConfig
+      , _windowsL :: FocusRing2D 2 2 AnyWidget
+      , _logL     :: Log
       }
-
-type WindowStates = '[CurrentTask , Stats , Todos NotCompleted , Todos Completed]
 
 makeLenses ''CurrentLogConfig
 makeLenses ''CurrentLogState
 
 instance Default CurrentLogConfig where
   def = CurrentLogConfig { _logDirL = Mode._gcPathL def </> "logs" }
-
-instance StatusLineInfo CurrentLog where
-  statusLineInfo x = [show x]
 
 instance IsMode CurrentLog where
   type ModeState CurrentLog = CurrentLogState
@@ -106,49 +82,52 @@ instance IsMode CurrentLog where
   drawstate        = drawCurrentLogState
   handleEventState = Events.handleAnyStateEvent
 
-
 toCurrentLogMode :: forall a . Action 'Normal a
 toCurrentLogMode = do
-  mstate <- liftIO $ switchWindow (Utils.vertMove 1) <$> defCurrentLogState
+  mstate <- mapExceptT liftIO defCurrentLogState
   mconf  <- liftIO def
   gstate <- get
 
-  lift
+  Mode.liftEvent
     $ Brick.continue (AppState $ gstate & Mode.gsModeL .~ (mstate, mconf, currentLogStateActions))
 
-initCurrentLogMode :: IO (GlobalState 'Normal CurrentLog)
+initCurrentLogMode :: ExceptT Text IO (GlobalState 'Normal CurrentLog)
 initCurrentLogMode = do
-  mstate <- switchWindow (Utils.vertMove 1) <$> defCurrentLogState
-  mconf  <- def
-  return $ Mode.initGlobalState mstate mconf currentLogStateActions
+  mstate <- defCurrentLogState
+  return $ Mode.initGlobalState mstate def currentLogStateActions
 
-
-defCurrentLogState :: IO CurrentLogState
+defCurrentLogState :: ExceptT Text IO CurrentLogState
 defCurrentLogState = do
 
-  elog <- runExceptT $ Log.readCurrentLog (_logDirL def)
+  log <- Log.readCurrentLog (_logDirL def)
 
-  let
-    log            = either error id elog
+  let completedTodos :: W (Todos Completed)
+      completedTodos = initWidget $ Todos.mkCompletedTodos 0 $ Log.todosDone $ log ^. Log.logTodosL
 
-    completedTodos = defDraw $ Todos.mkCompletedTodos 0 $ Log.todosDone $ log ^. Log.logTodosL
+      notCompletedTodos :: W (Todos NotCompleted)
+      notCompletedTodos =
+        initWidget $ Todos.mkNotCompletedTodos 0 $ Log.todosNotDone $ log ^. Log.logTodosL
 
-    notCompletedTodos =
-      defDraw $ Todos.mkNotCompletedTodos 0 $ Log.todosNotDone $ log ^. Log.logTodosL
+      currentTask :: W CurrentTask
+      currentTask =
+        initWidget
+          $ maybe (NoCurrentTask "There's currently no ongoing task.") (CurrentTask TaskName)
+          $ Log.ongoingTask log
 
-    currentTask =
-      defDraw
-        $ maybe (NoCurrentTask "There's currently no ongoing task.") (CurrentTask TaskName)
-        $ Log.ongoingTask log
+      stats :: W Stats
+      stats = initWidget $ Stats $ Border.border $ Core.center $ Core.txt "No Stats!"
 
-    stats = defDraw $ Stats $ Border.border $ Core.center $ Core.txt "No Stats!"
+      allwindows :: Map (Int, Int) AnyWidget
+      allwindows = fromList
+        [ ((0, 0), AnyWidget notCompletedTodos)
+        , ((1, 0), AnyWidget completedTodos)
+        , ((0, 1), AnyWidget currentTask)
+        , ((1, 1), AnyWidget stats)
+        ]
 
-  return $ CurrentLogState
-    { _configL     = def
-    , _windowL     = Utils.window 0 0
-    , _logL        = log
-    , _allWindowsL = currentTask :> stats :> notCompletedTodos :> completedTodos :> RNil
-    }
+  windows <- hoistEither $ Utils.focusRing2D (0, 0) allwindows
+
+  return $ CurrentLogState { _configL = def, _windowsL = windows, _logL = log }
 
 currentLogStateActions :: KeyMap CurrentLog
 currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
@@ -169,41 +148,27 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
     ]
 
   right, left, up, down :: Action 'Normal CurrentLog
-  right = modify (gsModeStateL %~ switchWindow (Utils.horizMove 1))
-    >> Events.modifyAndContinue updateStatusLine
-  left = modify (gsModeStateL %~ switchWindow (Utils.horizMove (-1)))
-    >> Events.modifyAndContinue updateStatusLine
-  up = modify (gsModeStateL %~ switchWindow (Utils.vertMove 1))
-    >> Events.modifyAndContinue updateStatusLine
-  down = modify (gsModeStateL %~ switchWindow (Utils.vertMove (-1)))
-    >> Events.modifyAndContinue updateStatusLine
+  right = switch (Utils.horizMove 1)
+  left  = switch (Utils.horizMove (-1))
+  up    = switch (Utils.vertMove 1)
+  down  = switch (Utils.vertMove (-1))
 
-  incAction, decAction :: Action 'Normal CurrentLog
+  incAction :: Action 'Normal CurrentLog
   incAction =
-    modify (gsModeStateL . allWindowsL %~ changeIdx 1) >> Events.modifyAndContinue updateStatusLine
-  decAction = modify (gsModeStateL . allWindowsL %~ changeIdx (-1))
-    >> Events.modifyAndContinue updateStatusLine
+    Events.modifyAndContinue
+        (gsModeStateL . windowsL %~ Utils.modifyFocused (Draw.changeAnyWidgetFocus 1))
+      >> updateStatusLine
+      >> Events.continue
 
-  changeIdx :: Int -> Rec cs WindowStates Draw -> Rec cs WindowStates Draw
-  changeIdx n =
-    Rec.rfmap _focusedL
-      $  Identity (changeCurrentTaskFocus n)
-      :> Identity id
-      :> Identity (Todos.changeTodoIdx n)
-      :> Identity (Todos.changeTodoIdx n)
-      :> RNil
+  decAction :: Action 'Normal CurrentLog
+  decAction =
+    Events.modifyAndContinue
+        (gsModeStateL . windowsL %~ Utils.modifyFocused (Draw.changeAnyWidgetFocus (-1)))
+      >> updateStatusLine
+      >> Events.continue
 
-  updateStatusLine :: GlobalState 'Normal CurrentLog -> GlobalState 'Normal CurrentLog
-  updateStatusLine gstate =
-    gstate & gsStatusLineL . StatusLine.slInfoL .~ [StatusInfo CurrentLog, windowStatusInfo]
-   where
-    allWindows = gstate ^. gsModeStateL . allWindowsL
-
-    windowStatusInfo :: StatusInfo
-    windowStatusInfo = case Rec.rfilterMap _focusedL (StatusInfo . _drawableL) allWindows of
-      [x] -> x
-      _   -> error "There must be atleast one window focued"
-
+  switch :: (FocusRing2D 2 2 AnyWidget -> FocusRing2D 2 2 AnyWidget) -> Action 'Normal CurrentLog
+  switch f = switchWindow f >> Events.continue
 
 drawCurrentLogState :: DrawMode emode CurrentLog
 drawCurrentLogState = do
@@ -211,37 +176,37 @@ drawCurrentLogState = do
   CurrentLogState {..} <- (^. gsModeStateL) <$> ask
 
   let
+    logHeading :: Widget Res
     logHeading =
       Core.padAll 1 $ Core.hCenter $ Core.txt $ Log.showHeading (_logL ^. Log.logHeadingL)
 
-    allWindows :: [Widget Res]
-    allWindows = logHeading : Rec.toList draw _allWindowsL
+    x :: FocusRing2D 2 2 (Widget Res)
+    x = fmap Draw.drawAnyWidget _windowsL
 
-    drawAllWindows :: [Widget Res] -> Widget Res
-    drawAllWindows [headingWindow, topWLeftindow, topWRightindow, botWLeftindow, botWRightindow] =
-      Core.vBox
+    drawAllWindows :: [Widget Res] -> Either Text (Widget Res)
+    drawAllWindows [headingWindow, botWLeftindow, botWRightindow, topWLeftindow, topWRightindow] =
+      Right $ Core.vBox
         [ headingWindow
         , Core.hBox [topWLeftindow, topWRightindow]
         , Core.padTop (Pad 1) $ Core.hBox [botWLeftindow, botWRightindow]
         ]
-    drawAllWindows _ = error "x_x"
+    drawAllWindows _ = Left "Expected only 5 elements in the list."
 
-  return $ drawAllWindows allWindows
+  allwindows <- hoistEither $ mapM (`Utils.getAny` x) [(0, 0), (1, 0), (0, 1), (1, 1)]
 
-switchWindow :: (Window 2 2 -> Window 2 2) -> CurrentLogState -> CurrentLogState
-switchWindow f x = x & windowL %~ f & changeFocus
- where
+  hoistEither $ drawAllWindows (logHeading : allwindows)
 
-  changeFocus :: CurrentLogState -> CurrentLogState
-  changeFocus mstate = case Utils.viewWindow (mstate ^. windowL) of
-    (0, 0) -> mstate & allWindowsL %~ rmodify @(Todos NotCompleted) focused . rmap notfocused
-    (1, 0) -> mstate & allWindowsL %~ rmodify @(Todos Completed) focused . rmap notfocused
-    (0, 1) -> mstate & allWindowsL %~ rmodify @CurrentTask focused . rmap notfocused
-    (1, 1) -> mstate & allWindowsL %~ rmodify @Stats focused . rmap notfocused
-    a      -> error $ "Window of coord " <> show a <> " is not possible!"
 
-  focused :: Draw a -> Draw a
-  focused a = a & Draw.focusedL .~ True & Draw.borderTypeL .~ Border.unicodeRounded
+switchWindow
+  :: (FocusRing2D 2 2 AnyWidget -> FocusRing2D 2 2 AnyWidget) -> ActionM 'Normal CurrentLog ()
+switchWindow switch = do
+  modify (gsModeStateL . windowsL %~ Utils.modifyFocused Draw.unfocusAnyWidget)
+  modify (gsModeStateL . windowsL %~ Utils.modifyFocused Draw.focusAnyWidget . switch)
+  updateStatusLine
 
-  notfocused :: Draw a -> Draw a
-  notfocused a = a & Draw.focusedL .~ False & Draw.borderTypeL .~ Border.borderStyleFromChar ' '
+updateStatusLine :: ActionM 'Normal CurrentLog ()
+updateStatusLine = do
+  gstate        <- get
+  (AnyWidget w) <- hoistEither (Utils.getFocused $ gstate ^. gsModeStateL . windowsL)
+  let windowStatusInfo = Draw._statusLineInfoL w w
+  put (gstate & gsStatusLineL . StatusLine.slInfoL .~ ["CurrentLog", windowStatusInfo])

@@ -1,48 +1,58 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FunctionalDependencies    #-}
 module Miku.Draw
-  ( Draw (..)
-  , Drawable (..)
+  ( AnyWidget (..)
+  , InitWidget (..)
+  , W (..)
   , borderTypeL
-  , defDraw
-  , drawableL
+  , changeAnyWidgetFocus
+  , changeFocusL
+  , drawAnyWidget
+  , drawL
+  , focusAnyWidget
   , focusedL
-  , whenfocused
+  , statusLineInfoL
+  , unfocusAnyWidget
+  , widgetStateL
   ) where
 
 import Brick.Widgets.Border.Style qualified as Border
-import Brick.Widgets.Core         qualified as Core
 
 import Brick.Types                (Widget)
-import Control.Lens               (makeLenses, (%~))
+import Control.Lens               (makeLenses, (.~))
 
+import Miku.Draw.StatusLine       (StatusInfo)
 import Miku.Resource              (Res)
 
 import Relude
 
-class Drawable f a | a -> f where
-  draw :: f a -> Widget Res
+class InitWidget a where
+  initWidget :: a -> W a
 
-instance Drawable Draw (Widget Res) where
-  draw Draw {..} = Core.withBorderStyle _borderTypeL _drawableL
+data AnyWidget
+  = forall a. AnyWidget (W a)
 
-data Draw a
-  = Draw
-      { _focusedL    :: Bool
-      , _borderTypeL :: Border.BorderStyle
-      , _drawableL   :: a
+data W a
+  = W
+      { _focusedL        :: Bool
+      , _borderTypeL     :: Border.BorderStyle
+      , _widgetStateL    :: a
+      , _drawL           :: W a -> Widget Res
+      , _statusLineInfoL :: W a -> StatusInfo
+      , _changeFocusL    :: Int -> W a -> W a
       }
 
-makeLenses ''Draw
+makeLenses ''W
 
-instance Functor Draw where
-  fmap f = drawableL %~ f
+drawAnyWidget :: AnyWidget -> Widget Res
+drawAnyWidget (AnyWidget w) = _drawL w w
 
-defDraw :: a -> Draw a
-defDraw a =
-  Draw { _focusedL = False, _borderTypeL = Border.borderStyleFromChar ' ', _drawableL = a }
+focusAnyWidget :: AnyWidget -> AnyWidget
+focusAnyWidget (AnyWidget a) =
+  AnyWidget $ a & focusedL .~ True & borderTypeL .~ Border.unicodeRounded
 
-whenfocused :: (Draw a -> Draw a) -> Draw a -> Draw a
-whenfocused f d | _focusedL d = f d
-                | otherwise   = d
+unfocusAnyWidget :: AnyWidget -> AnyWidget
+unfocusAnyWidget (AnyWidget a) =
+  AnyWidget $ a & focusedL .~ False & borderTypeL .~ Border.borderStyleFromChar ' '
 
+changeAnyWidgetFocus :: Int -> AnyWidget -> AnyWidget
+changeAnyWidgetFocus n (AnyWidget w) = AnyWidget $ _changeFocusL w n w
