@@ -1,7 +1,7 @@
-module Miku.Mode.Utility
+module Miku.Types.FocusRing
   ( FocusRing2D (_currFocusL, _allDataL)
-  , Miku.Mode.Utility.getAny
   , focusRing2D
+  , getAny
   , getFocused
   , horizMove
   , modifyFocused
@@ -13,7 +13,7 @@ module Miku.Mode.Utility
 import Control.Lens (ix, makeLenses, (%~))
 import Data.Map     qualified as Map
 import GHC.Natural  (naturalToInt)
-import Relude
+import Relude       hiding (getAny)
 
 data FocusRing2D (x :: Nat) (y :: Nat) a
   = FocusRing2D
@@ -26,7 +26,7 @@ instance Functor (FocusRing2D x y) where
   fmap f = allDataL %~ fmap f
 
 getFocused :: FocusRing2D x y a -> Either Text a
-getFocused r@FocusRing2D{..} = Miku.Mode.Utility.getAny _currFocusL r
+getFocused r@FocusRing2D{..} = getAny _currFocusL r
 
 getAny :: (Int,Int) -> FocusRing2D x y a -> Either Text a
 getAny p = maybeToRight ("Following key [ " <> show p <> " ] was not present in the map") . Map.lookup p . _allDataL

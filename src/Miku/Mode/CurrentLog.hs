@@ -19,6 +19,7 @@ import Data.Map              qualified as Map
 import Miku.Templates.Log    (Log)
 import Miku.Templates.Log    qualified as Log
 
+import Miku.Actions          qualified as Actions
 import Miku.Draw             (AnyWidget (..), InitWidget (..), W (..))
 import Miku.Draw             qualified as Draw
 import Miku.Draw.CurrentTask
@@ -29,7 +30,6 @@ import Miku.Draw.CurrentTask
 import Miku.Draw.StatusLine  qualified as StatusLine
 import Miku.Draw.Todos       (Completed, NotCompleted, Todos (..))
 import Miku.Draw.Todos       qualified as Todos
-import Miku.Events           qualified as Events
 import Miku.Mode
   ( Action
   , ActionM
@@ -45,8 +45,8 @@ import Miku.Mode
 import Miku.Mode             qualified as Mode
 
 import Miku.Editing          (EditingMode (..))
-import Miku.Mode.Utility     (FocusRing2D)
-import Miku.Mode.Utility     qualified as Utils
+import Miku.Types.FocusRing  (FocusRing2D)
+import Miku.Types.FocusRing  qualified as Utils
 
 import Miku.Resource         (Res)
 
@@ -56,8 +56,6 @@ import Control.Monad.Except  (mapExceptT)
 import Relude
 
 data CurrentLog
-  = CurrentLog
-  deriving stock (Show)
 
 newtype CurrentLogConfig
   = CurrentLogConfig { _logDirL :: FilePath }
@@ -80,7 +78,7 @@ instance IsMode CurrentLog where
   type ModeConf CurrentLog = CurrentLogConfig
 
   drawstate        = drawCurrentLogState
-  handleEventState = Events.handleAnyStateEvent
+  handleEventState = Actions.handleAnyStateEvent
 
 toCurrentLogMode :: forall a . Action 'Normal a
 toCurrentLogMode = do
@@ -131,14 +129,14 @@ defCurrentLogState = do
 
 currentLogStateActions :: KeyMap CurrentLog
 currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
-                                , _insertModeMapL = Map.fromList [("jk", Events.toNormalMode)]
+                                , _insertModeMapL = Map.fromList [("jk", Actions.toNormalMode)]
                                 }
 
  where
 
   normalKeyMap :: Map Keys (Action 'Normal CurrentLog)
   normalKeyMap = Map.fromList
-    [ ("q"            , Events.halt)
+    [ ("q"            , Actions.halt)
     , ("k"            , up)
     , ("j"            , down)
     , ("l"            , right)
@@ -153,22 +151,20 @@ currentLogStateActions = KeyMap { _normalModeMapL = normalKeyMap
   up    = switch (Utils.vertMove 1)
   down  = switch (Utils.vertMove (-1))
 
-  incAction :: Action 'Normal CurrentLog
+  incAction, decAction :: Action 'Normal CurrentLog
   incAction =
-    Events.modifyAndContinue
+    Actions.modifyAndContinue
         (gsModeStateL . windowsL %~ Utils.modifyFocused (Draw.changeAnyWidgetFocus 1))
       >> updateStatusLine
-      >> Events.continue
-
-  decAction :: Action 'Normal CurrentLog
+      >> Actions.continue
   decAction =
-    Events.modifyAndContinue
+    Actions.modifyAndContinue
         (gsModeStateL . windowsL %~ Utils.modifyFocused (Draw.changeAnyWidgetFocus (-1)))
       >> updateStatusLine
-      >> Events.continue
+      >> Actions.continue
 
   switch :: (FocusRing2D 2 2 AnyWidget -> FocusRing2D 2 2 AnyWidget) -> Action 'Normal CurrentLog
-  switch f = switchWindow f >> Events.continue
+  switch f = switchWindow f >> Actions.continue
 
 drawCurrentLogState :: DrawMode emode CurrentLog
 drawCurrentLogState = do

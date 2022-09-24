@@ -1,4 +1,4 @@
-module Miku.Events
+module Miku.Actions
   ( actionWithKeys
   , continue
   , halt

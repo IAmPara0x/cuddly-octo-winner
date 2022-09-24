@@ -28,18 +28,18 @@ source-repository head
 library
   exposed-modules:    Miku
   other-modules:
+    Miku.Actions
     Miku.Draw
     Miku.Draw.CurrentTask
     Miku.Draw.StatusLine
     Miku.Draw.Todos
     Miku.Editing
-    Miku.Events
     Miku.Mode
     Miku.Mode.CurrentLog
-    Miku.Mode.Utility
-    Miku.Mode.Welcome
+    Miku.Mode.Default
     Miku.Resource
     Miku.Templates.Log
+    Miku.Types.FocusRing
     Miku.Types.Parser
     Miku.Types.Rec
     Miku.Types.Time
